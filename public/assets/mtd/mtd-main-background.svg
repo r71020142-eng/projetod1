@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" fill="none">
+  <defs>
+    <linearGradient id="base" x1="80" y1="20" x2="1510" y2="880" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FBFAF7"/>
+      <stop offset="0.55" stop-color="#F8F6F1"/>
+      <stop offset="1" stop-color="#F4F1EB"/>
+    </linearGradient>
+    <radialGradient id="violetGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1190 130) rotate(126) scale(500 650)">
+      <stop stop-color="#6C4AF2" stop-opacity="0.095"/>
+      <stop offset="1" stop-color="#6C4AF2" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="microGrid" width="80" height="80" patternUnits="userSpaceOnUse">
+      <path d="M80 0H0V80" stroke="#273D6B" stroke-opacity="0.022" stroke-width="1"/>
+    </pattern>
+    <linearGradient id="fadeArchitecture" x1="820" y1="40" x2="1300" y2="390" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#314875" stop-opacity="0"/>
+      <stop offset="0.35" stop-color="#314875" stop-opacity="0.13"/>
+      <stop offset="1" stop-color="#314875" stop-opacity="0.035"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#base)"/>
+  <rect width="1600" height="900" fill="url(#microGrid)"/>
+  <rect width="1600" height="900" fill="url(#violetGlow)"/>
+
+  <!-- Refined institutional architectural line art. Intentionally subtle. -->
+  <g stroke="url(#fadeArchitecture)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M742 203L1113 54L1487 203" stroke-width="2"/>
+    <path d="M788 194L1113 78L1442 194" stroke-width="1.4"/>
+    <path d="M765 207H1464" stroke-width="2"/>
+    <path d="M790 222H1438" stroke-width="1.5"/>
+    <path d="M817 239H1411" stroke-width="1"/>
+    <path d="M850 239V374M945 239V374M1040 239V374M1135 239V374M1230 239V374M1325 239V374" stroke-width="1.3"/>
+    <path d="M836 239H864L858 254H842L836 239ZM931 239H959L953 254H937L931 239ZM1026 239H1054L1048 254H1032L1026 239ZM1121 239H1149L1143 254H1127L1121 239ZM1216 239H1244L1238 254H1222L1216 239ZM1311 239H1339L1333 254H1317L1311 239Z" stroke-width="1"/>
+    <path d="M842 358H858L864 374H836L842 358ZM937 358H953L959 374H931L937 358ZM1032 358H1048L1054 374H1026L1032 358ZM1127 358H1143L1149 374H1121L1127 358ZM1222 358H1238L1244 374H1216L1222 358ZM1317 358H1333L1339 374H1311L1317 358Z" stroke-width="1"/>
+    <path d="M785 374H1440M760 389H1466" stroke-width="1.5"/>
+    <circle cx="1113" cy="160" r="24" stroke-width="1.2"/>
+    <circle cx="1113" cy="160" r="12" stroke-width="0.8"/>
+    <path d="M1113 136V184M1089 160H1137" stroke-width="0.6"/>
+    <path d="M780 197L1113 55L1447 197M827 189L1113 91L1401 189" stroke-width="0.75"/>
+  </g>
+
+  <g opacity="0.14" stroke="#C89128" stroke-width="1">
+    <path d="M0 850C258 770 370 805 566 740"/>
+    <path d="M0 875C270 795 425 830 620 754"/>
+  </g>
+</svg>

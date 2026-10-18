@@ -103,8 +103,8 @@ export default async function AlunoDashboardPage() {
   const acoesPlano = calcularPlanoDiario(contextoPlano);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in duration-200">
-      {/* 1. Primeira Seção: Boas-vindas compacta */}
+    <div className="space-y-4 max-w-[1360px] mx-auto pb-12 animate-in fade-in duration-200">
+      {/* 1. Primeira Seção: Boas-vindas compacta e institucional */}
       <DashboardBoasVindas
         nomeAluno={data.aluno.name}
         totalAcoesHoje={acoesPlano.length}
@@ -112,17 +112,17 @@ export default async function AlunoDashboardPage() {
         streakDays={data.flashcardsResumo?.sequenciaDias}
       />
 
-      {/* 2. Segunda Seção: Próxima Aula (7 colunas) e Meu Plano de Hoje (5 colunas) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        <div className="lg:col-span-7 h-full">
+      {/* 2. Segunda Seção: Próxima Aula (~62%) e Meu Plano de Hoje (~38%) */}
+      <div className="flex flex-col lg:flex-row gap-4 items-stretch">
+        <div className="w-full lg:w-[62%] h-full">
           <ProximaAulaCard aula={data.proximaAula} />
         </div>
-        <div className="lg:col-span-5 h-full">
+        <div className="w-full lg:w-[38%] h-full">
           <MeuPlanoHojeCard acoes={acoesPlano} />
         </div>
       </div>
 
-      {/* 3. Terceira Seção: Resumo Rápido (4 cards compactos na mesma linha) */}
+      {/* 3. Terceira Seção: Faixa Única de Indicadores (4 colunas com divisores) */}
       <ResumoRapidoGrid
         percentualModulo={
           data.progressoJornada?.percentualConclusaoModulo ?? data.aluno.journeyProgress
@@ -134,22 +134,32 @@ export default async function AlunoDashboardPage() {
         streakWeeks={data.aluno.streakWeeks}
       />
 
-      {/* 4. Quarta Seção: Continue Sua Jornada */}
+      {/* 4. Quarta Seção: Faixa Horizontal Compacta Jornada MTD */}
       <JornadaCompactCard progresso={data.progressoJornada} />
 
-      {/* 5. Quinta Seção: Atualizações Recentes (Feedback + Conquista) */}
-      <AtualizacoesRecentesGrid
-        selfPresentation={data.selfPresentationAtiva}
-        conquistas={data.conquistasRecentes}
-        conquistaConcedidaDestaque={conquistaDestaque}
-      />
+      {/* 5. Painel Complementar: Atualizações Recentes & Dedicação Semanal (100% Preservados) */}
+      <div className="pt-4 mt-6 border-t border-[#DDDDE5]/60 space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold text-[#60708F] uppercase tracking-[0.2em] font-sans">
+            Histórico Pedagógico e Evolução
+          </span>
+          <span className="text-[11px] text-[#60708F]">
+            Registro contínuo do Método Paulo
+          </span>
+        </div>
 
-      {/* 6. Sexta Seção: Minha Semana */}
-      <MinhaSemanaCard
-        tempoEstudoTexto={data.aluno.studyHoursThisWeek}
-        atividadesConcluidasCount={data.aluno.completedActivitiesCount}
-        dias={data.evolucaoSemanal}
-      />
+        <AtualizacoesRecentesGrid
+          selfPresentation={data.selfPresentationAtiva}
+          conquistas={data.conquistasRecentes}
+          conquistaConcedidaDestaque={conquistaDestaque}
+        />
+
+        <MinhaSemanaCard
+          tempoEstudoTexto={data.aluno.studyHoursThisWeek}
+          atividadesConcluidasCount={data.aluno.completedActivitiesCount}
+          dias={data.evolucaoSemanal}
+        />
+      </div>
     </div>
   );
 }

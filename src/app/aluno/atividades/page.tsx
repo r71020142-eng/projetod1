@@ -8,6 +8,7 @@ import {
   Clock,
   ChevronRight,
   Info,
+  AlertCircle,
 } from "lucide-react";
 import {
   Atividade,
@@ -32,6 +33,7 @@ export default function AlunoAtividadesPage() {
   const [entregaMap, setEntregaMap] = useState<Map<string, Entrega>>(new Map());
   const [praticaHoje, setPraticaHoje] = useState<ConteudoDiario | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Filter state
   const [filtroStatus, setFiltroStatus] = useState<"todas" | "pendentes" | "concluidas">("todas");
@@ -40,8 +42,9 @@ export default function AlunoAtividadesPage() {
   const [modalEntregaOpen, setModalEntregaOpen] = useState(false);
   const [atividadeSelecionada, setAtividadeSelecionada] = useState<Atividade | null>(null);
 
-  const carregarDados = useCallback(async () => {
+  const carregarDados = useCallback(async (mounted = true) => {
     setLoading(true);
+    setError(null);
     try {
       const turmas = await turmaRepository.listarPorAluno(DEMO_ALUNO_ID);
       const turmaIds = turmas.map((t: Turma) => t.id);
@@ -52,21 +55,39 @@ export default function AlunoAtividadesPage() {
         conteudoDiarioRepository.obterPraticaDeHoje(DEMO_ALUNO_ID, turmaIds),
       ]);
 
+      if (!mounted) return;
+
       const mapEntregas = new Map<string, Entrega>();
       todasEntregas.forEach((e: Entrega) => mapEntregas.set(e.atividadeId, e));
 
       setAtividades(todasAtividades);
       setEntregaMap(mapEntregas);
       setPraticaHoje(diario);
-    } catch (err) {
-      console.error("Erro ao carregar atividades do aluno:", err);
+    } catch (err: unknown) {
+      if (mounted) {
+        console.error("Erro ao carregar atividades do aluno:", err);
+        setError((err as Error)?.message || "Não foi possível carregar as atividades práticas.");
+      }
     } finally {
-      setLoading(false);
+      if (mounted) {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    carregarDados();
+    let isMounted = true;
+    carregarDados(isMounted);
+
+    const handleStorage = () => {
+      if (isMounted) carregarDados(isMounted);
+    };
+    window.addEventListener("mtd_storage_updated", handleStorage);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("mtd_storage_updated", handleStorage);
+    };
   }, [carregarDados]);
 
   const abrirModalEntrega = (atv: Atividade) => {
@@ -168,6 +189,22 @@ export default function AlunoAtividadesPage() {
           </button>
         </div>
       </div>
+
+      {/* Alerta de Erro com Retry */}
+      {error && (
+        <div className="flex items-center justify-between p-4 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl text-xs">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <button
+            onClick={() => carregarDados()}
+            className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold transition"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )}
 
       {/* Compact Prática de Hoje Pill */}
       {praticaHoje && (

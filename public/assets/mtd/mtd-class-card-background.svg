@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="280" viewBox="0 0 1000 280" fill="none">
+  <defs>
+    <linearGradient id="hero" x1="20" y1="20" x2="980" y2="260" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#06142C"/>
+      <stop offset="0.62" stop-color="#0B1D43"/>
+      <stop offset="1" stop-color="#28157B"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(702 135) rotate(180) scale(370 245)">
+      <stop stop-color="#6545E9" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#6545E9" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="dots" width="11" height="11" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.25" fill="#A693FF" fill-opacity="0.48"/>
+    </pattern>
+    <clipPath id="world">
+      <path d="M609 89L627 75L650 77L662 69L689 74L700 88L694 102L707 110L699 125L679 129L667 142L647 135L641 119L621 112L610 98Z"/>
+      <path d="M706 65L725 57L742 63L756 58L775 70L798 69L815 82L839 85L849 100L834 111L810 108L799 118L783 112L770 121L758 112L742 116L729 103L711 95Z"/>
+      <path d="M732 126L754 123L770 137L777 157L770 181L755 203L742 194L738 174L727 158L722 140Z"/>
+      <path d="M844 119L860 112L878 120L892 116L908 127L900 139L881 137L869 148L854 141Z"/>
+      <path d="M894 170L909 165L925 175L921 187L901 190L890 181Z"/>
+    </clipPath>
+    <linearGradient id="poly" x1="820" y1="0" x2="1000" y2="280" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4F2BD6" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#8A55FF" stop-opacity="0.78"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1000" height="280" fill="url(#hero)"/>
+  <rect width="1000" height="280" fill="url(#halo)"/>
+  <rect x="0" width="6" height="280" fill="#D89A25"/>
+
+  <g opacity="0.34" fill="url(#dots)" clip-path="url(#world)">
+    <rect x="590" y="45" width="360" height="180"/>
+  </g>
+
+  <g fill="none" stroke="#7762E7" stroke-opacity="0.19">
+    <path d="M235 8C393 75 482 42 607 86C720 125 780 183 914 193"/>
+    <path d="M300 -15C430 55 542 23 669 78C792 130 828 177 966 176" stroke-dasharray="4 8"/>
+  </g>
+
+  <path d="M869 0H1000V280H762L869 0Z" fill="url(#poly)"/>
+  <path d="M930 0L820 280" stroke="#E0A532" stroke-width="2"/>
+  <path d="M875 0L1000 135V0H875Z" fill="#7652EF" fill-opacity="0.23"/>
+  <path d="M761 279L1000 280V149L896 43L761 279Z" fill="#281982" fill-opacity="0.24"/>
+</svg>

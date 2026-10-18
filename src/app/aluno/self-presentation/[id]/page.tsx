@@ -33,34 +33,43 @@ export default function AlunoSelfPresentationDetailPage() {
 
   const [sp, setSp] = useState<SelfPresentation | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [modalEditOpen, setModalEditOpen] = useState(false);
 
-  const loadSp = useCallback(async () => {
+  const loadSp = useCallback(async (isMounted = true) => {
     if (!id) return;
-    setLoading(true);
     try {
+      setError(null);
       // Consulta protegida com sanitização estrita de observacoesInternas
       const found = await selfPresentationRepository.obterParaAluno(id, DEMO_ALUNO_ID);
+      if (!isMounted) return;
       setSp(found);
     } catch (err) {
       console.error("Erro ao carregar detalhes da apresentação do aluno:", err);
+      if (isMounted) {
+        setError("Não foi possível carregar os detalhes desta apresentação.");
+      }
     } finally {
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
     }
   }, [id]);
 
   useEffect(() => {
-    loadSp();
+    let isMounted = true;
+    loadSp(isMounted);
 
     const handleStorageUpdated = (e: Event) => {
       const custom = e as CustomEvent;
       if (!custom.detail || custom.detail.entity === "self_presentations") {
-        loadSp();
+        loadSp(isMounted);
       }
     };
 
     window.addEventListener("mtd_storage_updated", handleStorageUpdated);
     return () => {
+      isMounted = false;
       window.removeEventListener("mtd_storage_updated", handleStorageUpdated);
     };
   }, [loadSp]);
@@ -70,6 +79,23 @@ export default function AlunoSelfPresentationDetailPage() {
       <div className="p-12 text-center text-slate-500 space-y-3">
         <Video className="h-8 w-8 text-purple-600 animate-pulse mx-auto" />
         <p className="text-sm font-semibold">Carregando detalhes da Self Presentation...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center bg-white rounded-2xl border border-red-200 shadow-sm max-w-xl mx-auto my-8 space-y-3">
+        <p className="text-sm font-bold text-red-700">{error}</p>
+        <button
+          onClick={() => {
+            setLoading(true);
+            loadSp(true);
+          }}
+          className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition"
+        >
+          Tentar novamente
+        </button>
       </div>
     );
   }

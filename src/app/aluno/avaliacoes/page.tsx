@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Avaliacao,
@@ -34,24 +34,23 @@ type FiltroAlunoAba = "todas" | "disponiveis" | "aguardando" | "concluidas";
 export default function AvaliacoesAlunoPage() {
   const [aba, setAba] = useState<FiltroAlunoAba>("todas");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([]);
   const [tentativas, setTentativas] = useState<TentativaAvaliacao[]>([]);
   const [progressoJornada, setProgressoJornada] = useState<ProgressoJornadaAluno | undefined>();
   const [alunoAtual, setAlunoAtual] = useState<Aluno | null>(null);
 
-  useEffect(() => {
-    carregarDados();
-  }, []);
-
-  async function carregarDados() {
-    setLoading(true);
+  const carregarDados = useCallback(async (isMounted = true) => {
     try {
+      setError(null);
       // Aluno demonstrativo padrão
       const aluno = (await alunoRepository.obterPorId("alu-001")) || null;
+      if (!isMounted) return;
       setAlunoAtual(aluno);
 
       // Dashboard com dados da jornada calculados
       const dash = await getAlunoDashboardData();
+      if (!isMounted) return;
       setProgressoJornada(dash.progressoJornada);
 
       // Turmas do aluno
@@ -63,14 +62,43 @@ export default function AvaliacoesAlunoPage() {
       // Tentativas do aluno
       const tents = await tentativaAvaliacaoRepository.listar({ alunoId: "alu-001" });
 
+      if (!isMounted) return;
       setAvaliacoes(avals);
       setTentativas(tents);
     } catch (err) {
       console.error("Erro ao carregar avaliações do aluno:", err);
+      if (isMounted) {
+        setError("Não foi possível carregar suas avaliações. Tente novamente.");
+      }
     } finally {
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    carregarDados(isMounted);
+
+    const handleStorageUpdate = (e: Event) => {
+      const custom = e as CustomEvent;
+      if (
+        !custom.detail ||
+        custom.detail.entity === "avaliacoes" ||
+        custom.detail.entity === "tentativas" ||
+        custom.detail.entity === "alunos"
+      ) {
+        carregarDados(isMounted);
+      }
+    };
+
+    window.addEventListener("mtd_storage_updated", handleStorageUpdate);
+    return () => {
+      isMounted = false;
+      window.removeEventListener("mtd_storage_updated", handleStorageUpdate);
+    };
+  }, [carregarDados]);
 
   // Filtragem
   const avaliacoesFiltradas = avaliacoes.filter((a) => {
@@ -156,7 +184,20 @@ export default function AvaliacoesAlunoPage() {
       </div>
 
       {/* Cards de Avaliações */}
-      {loading ? (
+      {error ? (
+        <div className="p-8 text-center bg-white rounded-2xl border border-red-200 shadow-sm space-y-3">
+          <p className="text-sm font-bold text-red-700">{error}</p>
+          <button
+            onClick={() => {
+              setLoading(true);
+              carregarDados(true);
+            }}
+            className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      ) : loading ? (
         <div className="py-12 text-center text-slate-400">Carregando avaliações...</div>
       ) : avaliacoesFiltradas.length === 0 ? (
         <div className="p-8 text-center bg-white rounded-3xl border border-slate-200/80 space-y-2">

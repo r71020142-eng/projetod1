@@ -47,20 +47,22 @@ export default function AlunoMaterialDetalhesPage() {
   const [entrega, setEntrega] = useState<Entrega | null>(null);
   const [materialRelacionado, setMaterialRelacionado] = useState<Material | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Modal
   const [modalEntregaOpen, setModalEntregaOpen] = useState(false);
 
-  const carregarItem = useCallback(async () => {
+  const carregarItem = useCallback(async (isMounted = true) => {
     if (!id) return;
-    setLoading(true);
-
     try {
+      setError(null);
       const turmas = await turmaRepository.listarPorAluno(DEMO_ALUNO_ID);
       const turmaIds = turmas.map((t) => t.id);
 
       // Check if it is a Material
       const mat = await materialRepository.obterPorIdParaAluno(id, DEMO_ALUNO_ID, turmaIds);
+      if (!isMounted) return;
+
       if (mat) {
         setMaterial(mat);
         setAtividade(null);
@@ -68,10 +70,13 @@ export default function AlunoMaterialDetalhesPage() {
       } else {
         // Check if it is an Atividade
         const atv = await atividadeRepository.obterPorIdParaAluno(id, DEMO_ALUNO_ID, turmaIds);
+        if (!isMounted) return;
+
         if (atv) {
           setAtividade(atv);
           setMaterial(null);
           const ent = await entregaRepository.obterPorAtividadeEAluno(atv.id, DEMO_ALUNO_ID);
+          if (!isMounted) return;
           setEntrega(ent);
 
           if (atv.materialRelacionadoId) {
@@ -80,19 +85,26 @@ export default function AlunoMaterialDetalhesPage() {
               DEMO_ALUNO_ID,
               turmaIds
             );
+            if (!isMounted) return;
             setMaterialRelacionado(relMat);
           }
         }
       }
     } catch (err) {
       console.error("Erro ao carregar detalhes para o aluno:", err);
+      if (isMounted) {
+        setError("Não foi possível carregar os detalhes do conteúdo.");
+      }
     } finally {
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
     }
   }, [id]);
 
   useEffect(() => {
-    carregarItem();
+    let isMounted = true;
+    carregarItem(isMounted);
 
     const handleStorageUpdate = (e: Event) => {
       const custom = e as CustomEvent;
@@ -102,12 +114,13 @@ export default function AlunoMaterialDetalhesPage() {
         custom.detail.entity === "atividades" ||
         custom.detail.entity === "entregas"
       ) {
-        carregarItem();
+        carregarItem(isMounted);
       }
     };
 
     window.addEventListener("mtd_storage_updated", handleStorageUpdate);
     return () => {
+      isMounted = false;
       window.removeEventListener("mtd_storage_updated", handleStorageUpdate);
     };
   }, [carregarItem]);
@@ -120,6 +133,23 @@ export default function AlunoMaterialDetalhesPage() {
           <div className="h-8 bg-slate-200 rounded w-64"></div>
           <div className="h-48 bg-slate-200 rounded-2xl"></div>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center bg-white rounded-2xl border border-red-200 shadow-sm max-w-xl mx-auto my-8 space-y-3">
+        <p className="text-sm font-bold text-red-700">{error}</p>
+        <button
+          onClick={() => {
+            setLoading(true);
+            carregarItem(true);
+          }}
+          className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition"
+        >
+          Tentar novamente
+        </button>
       </div>
     );
   }

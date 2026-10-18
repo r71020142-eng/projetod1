@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="1080" viewBox="0 0 320 1080" fill="none">
+  <defs>
+    <linearGradient id="navy" x1="15" y1="0" x2="305" y2="1080" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#071833"/>
+      <stop offset="0.5" stop-color="#081A39"/>
+      <stop offset="1" stop-color="#06142C"/>
+    </linearGradient>
+    <radialGradient id="blueGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(250 565) rotate(143) scale(340 450)">
+      <stop stop-color="#304C86" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#304C86" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="facade" x1="65" y1="448" x2="278" y2="812" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8596BC" stop-opacity="0.03"/>
+      <stop offset="0.55" stop-color="#A9B5D0" stop-opacity="0.13"/>
+      <stop offset="1" stop-color="#D6DCEC" stop-opacity="0.02"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="20" y1="1040" x2="305" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E7AD38" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#E7AD38" stop-opacity="0.04"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="320" height="1080" fill="url(#navy)"/>
+  <rect width="320" height="1080" fill="url(#blueGlow)"/>
+
+  <!-- Subtle academy facade -->
+  <g stroke="url(#facade)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M52 758H300M67 733H294M82 708H288" stroke-width="1.2"/>
+    <path d="M83 708V487M126 708V487M169 708V487M212 708V487M255 708V487" stroke-width="1.1"/>
+    <path d="M72 487H270L286 510H58L72 487Z" stroke-width="1.4"/>
+    <path d="M93 487C94 444 116 426 126 426C137 426 158 445 159 487M136 487C137 444 159 426 169 426C180 426 201 445 202 487M179 487C180 444 202 426 212 426C223 426 244 445 245 487" stroke-width="1"/>
+    <path d="M93 708V574C93 548 108 532 126 532C144 532 159 548 159 574V708M136 708V574C136 548 151 532 169 532C187 532 202 548 202 574V708M179 708V574C179 548 194 532 212 532C230 532 245 548 245 574V708" stroke-width="1"/>
+    <path d="M62 510H282M58 520H286M75 758V792M273 758V792M55 792H297" stroke-width="0.8"/>
+    <path d="M72 487L169 385L269 487M96 472L169 407L244 472" stroke-width="0.8"/>
+  </g>
+
+  <!-- Proprietary gold movement lines -->
+  <g fill="none" stroke="url(#gold)" stroke-linecap="round">
+    <path d="M-65 1034C36 921 127 923 198 873C260 830 274 746 355 693" stroke-width="1.25"/>
+    <path d="M-50 1078C48 954 139 964 218 907C277 864 300 789 372 745" stroke-width="0.75"/>
+    <path d="M-40 980C45 884 120 888 185 846C241 810 264 746 338 703" stroke-width="0.55"/>
+    <path d="M44 898L289 535" stroke-width="0.7" stroke-dasharray="3 6"/>
+  </g>
+
+  <path d="M24 935H52" stroke="#E7AD38" stroke-width="2"/>
+</svg>

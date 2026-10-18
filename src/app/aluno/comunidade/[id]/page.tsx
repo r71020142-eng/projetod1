@@ -30,34 +30,49 @@ export default function AlunoEspacoDetalhePage() {
   const [espaco, setEspaco] = useState<EspacoComunidade | null>(null);
   const [publicacoes, setPublicacoes] = useState<PublicacaoComunidade[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [modalNovaPublicacao, setModalNovaPublicacao] = useState(false);
 
-  const carregar = useCallback(async () => {
+  const carregar = useCallback(async (mounted = true) => {
+    if (!id) return;
     setLoading(true);
+    setError(null);
     try {
-      const alu = await alunoRepository.obterPorId(alunoId);
-      setAluno(alu);
+      const [alu, turmas, esp] = await Promise.all([
+        alunoRepository.obterPorId(alunoId),
+        turmaRepository.listarPorAluno(alunoId),
+        comunidadeRepository.obterEspacoPorId(id),
+      ]);
 
-      const turmas = await turmaRepository.listarPorAluno(alunoId);
+      if (!mounted) return;
+      setAluno(alu || null);
+
       const tIds = turmas.map((t) => t.id);
       setTurmaIds(tIds);
-
-      const esp = await comunidadeRepository.obterEspacoPorId(id);
-      setEspaco(esp);
+      setEspaco(esp || null);
 
       if (esp && alu && alunoTemAcessoAoEspaco(esp, alu, tIds)) {
         const pubs = await comunidadeRepository.listarPublicacoes(id, true);
-        setPublicacoes(pubs);
+        if (mounted) setPublicacoes(pubs);
       }
-    } catch (err) {
-      console.error("Erro ao carregar detalhes do espaço:", err);
+    } catch (err: unknown) {
+      if (mounted) {
+        console.error("Erro ao carregar detalhes do espaço:", err);
+        setError((err as Error)?.message || "Não foi possível carregar os detalhes do canal.");
+      }
     } finally {
-      setLoading(false);
+      if (mounted) {
+        setLoading(false);
+      }
     }
   }, [id, alunoId]);
 
   useEffect(() => {
-    if (id) carregar();
+    let isMounted = true;
+    if (id) carregar(isMounted);
+    return () => {
+      isMounted = false;
+    };
   }, [id, carregar]);
 
   async function handleCriarPublicacao(dados: {
@@ -92,13 +107,21 @@ export default function AlunoEspacoDetalhePage() {
     return <div className="p-8 text-center text-xs text-slate-400">Carregando canal...</div>;
   }
 
-  if (!espaco) {
+  if (error || !espaco) {
     return (
-      <div className="p-8 text-center space-y-3">
-        <p className="text-sm font-semibold text-slate-700">Espaço da comunidade não encontrado.</p>
-        <Link href="/aluno/comunidade" className="text-xs text-indigo-600 hover:underline">
-          ← Voltar para a comunidade
-        </Link>
+      <div className="p-8 text-center space-y-4 max-w-md mx-auto">
+        <p className="text-sm font-semibold text-slate-700">{error || "Espaço da comunidade não encontrado."}</p>
+        <div className="flex items-center justify-center gap-3">
+          <button
+            onClick={() => carregar()}
+            className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition cursor-pointer"
+          >
+            Tentar novamente
+          </button>
+          <Link href="/aluno/comunidade" className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 transition">
+            Voltar para a comunidade
+          </Link>
+        </div>
       </div>
     );
   }

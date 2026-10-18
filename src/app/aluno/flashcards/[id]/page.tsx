@@ -42,11 +42,12 @@ export default function AlunoBaralhoDetalhePage() {
     totalNovos: number;
   }>({ totalVencidos: 0, totalAprendendo: 0, totalNovos: 0 });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const carregarDados = useCallback(async () => {
+  const carregarDados = useCallback(async (isMounted = true) => {
     if (!baralhoId) return;
-    setLoading(true);
     try {
+      setError(null);
       const [baralhoRes, cartoesRes, sessoesRes, filaRes] = await Promise.all([
         baralhoRepository.getBaralhoById(baralhoId),
         cartaoRepository.getCartoesPorBaralho(baralhoId, true), // apenas ativos
@@ -54,6 +55,7 @@ export default function AlunoBaralhoDetalhePage() {
         progressoCartaoRepository.obterFilaEstudoBaralho("alu-001", baralhoId),
       ]);
 
+      if (!isMounted) return;
       setBaralho(baralhoRes);
       setCartoes(cartoesRes);
       setSessoes(sessoesRes);
@@ -63,13 +65,21 @@ export default function AlunoBaralhoDetalhePage() {
         totalAprendendo: filaRes.totalAprendendo,
         totalNovos: filaRes.totalNovos,
       });
+    } catch (err) {
+      console.error("Erro ao carregar baralho:", err);
+      if (isMounted) {
+        setError("Não foi possível carregar os dados deste baralho.");
+      }
     } finally {
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
     }
   }, [baralhoId]);
 
   useEffect(() => {
-    carregarDados();
+    let isMounted = true;
+    carregarDados(isMounted);
 
     const handleStorageUpdated = (e: Event) => {
       const customEvent = e as CustomEvent<{ entity: string }>;
@@ -79,18 +89,38 @@ export default function AlunoBaralhoDetalhePage() {
         customEvent.detail?.entity === "progresso_cartoes" ||
         customEvent.detail?.entity === "sessoes_estudo"
       ) {
-        carregarDados();
+        carregarDados(isMounted);
       }
     };
 
     window.addEventListener("mtd_storage_updated", handleStorageUpdated);
-    return () => window.removeEventListener("mtd_storage_updated", handleStorageUpdated);
+    return () => {
+      isMounted = false;
+      window.removeEventListener("mtd_storage_updated", handleStorageUpdated);
+    };
   }, [carregarDados]);
 
   if (loading) {
     return (
       <div className="p-12 text-center text-sm text-gray-400">
         Carregando baralho pedagógico...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center bg-white rounded-2xl border border-red-200 shadow-sm max-w-xl mx-auto my-8 space-y-3">
+        <p className="text-sm font-bold text-red-700">{error}</p>
+        <button
+          onClick={() => {
+            setLoading(true);
+            carregarDados(true);
+          }}
+          className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition"
+        >
+          Tentar novamente
+        </button>
       </div>
     );
   }

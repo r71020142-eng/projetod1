@@ -6,6 +6,21 @@
   --background: #F8FAFC;
   --foreground: #0F172A;
   color-scheme: light;
+
+  /* Academy Design Tokens - MTD */
+  --mtd-navy-950: #06142C;
+  --mtd-navy-900: #0A1A38;
+  --mtd-navy-800: #12264B;
+  --mtd-violet-600: #5B2FE8;
+  --mtd-violet-500: #7047F5;
+  --mtd-gold-500: #D79A24;
+  --mtd-gold-400: #EDB84E;
+  --mtd-ivory: #FAF8F3;
+  --mtd-pearl: #F5F3EE;
+  --mtd-border: #DDDDE5;
+  --mtd-text: #07132E;
+  --mtd-muted: #60708F;
+  --mtd-success: #16A879;
 }
 
 html {

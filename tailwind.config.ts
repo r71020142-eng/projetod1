@@ -9,6 +9,27 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        academy: {
+          navy: {
+            950: "#06142C",
+            900: "#0A1A38",
+            800: "#12264B",
+          },
+          violet: {
+            600: "#5B2FE8",
+            500: "#7047F5",
+          },
+          gold: {
+            500: "#D79A24",
+            400: "#EDB84E",
+          },
+          ivory: "#FAF8F3",
+          pearl: "#F5F3EE",
+          border: "#DDDDE5",
+          text: "#07132E",
+          muted: "#60708F",
+          success: "#16A879",
+        },
         mtd: {
           navy: {
             DEFAULT: "#0F172A",
@@ -52,7 +73,14 @@ const config: Config = {
           },
         },
       },
+      fontFamily: {
+        serif: ["var(--font-serif)", "DM Serif Display", "Playfair Display", "Georgia", "serif"],
+        sans: ["var(--font-sans)", "Inter", "system-ui", "-apple-system", "sans-serif"],
+      },
       borderRadius: {
+        "academy-card": "14px",
+        "academy-elem": "10px",
+        "academy-sm": "8px",
         "2xl": "1rem",
         "3xl": "1.5rem",
       },

@@ -25,10 +25,13 @@ export default function AlunoConquistaDetalhePage() {
   const [modelo, setModelo] = useState<ModeloConquista | null>(null);
   const [concedida, setConcedida] = useState<ConquistaConcedida | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [modalSolicitarPlaca, setModalSolicitarPlaca] = useState(false);
 
-  const carregar = useCallback(async () => {
+  const carregar = useCallback(async (mounted = true) => {
+    if (!id) return;
     setLoading(true);
+    setError(null);
     try {
       const [alu, mod, conqs] = await Promise.all([
         alunoRepository.obterPorId(alunoId),
@@ -36,19 +39,30 @@ export default function AlunoConquistaDetalhePage() {
         gamificacaoRepository.listarConquistasAluno(alunoId),
       ]);
 
-      setAluno(alu);
-      setModelo(mod);
+      if (!mounted) return;
+
+      setAluno(alu || null);
+      setModelo(mod || null);
       const ach = conqs.find((c) => c.modeloId === id);
       setConcedida(ach || null);
-    } catch (err) {
-      console.error("Erro ao carregar detalhes da conquista:", err);
+    } catch (err: unknown) {
+      if (mounted) {
+        console.error("Erro ao carregar detalhes da conquista:", err);
+        setError((err as Error)?.message || "Não foi possível carregar os detalhes da conquista.");
+      }
     } finally {
-      setLoading(false);
+      if (mounted) {
+        setLoading(false);
+      }
     }
   }, [id, alunoId]);
 
   useEffect(() => {
-    if (id) carregar();
+    let isMounted = true;
+    if (id) carregar(isMounted);
+    return () => {
+      isMounted = false;
+    };
   }, [id, carregar]);
 
   async function handleSolicitarPlacaFisica() {
@@ -68,13 +82,21 @@ export default function AlunoConquistaDetalhePage() {
     return <div className="p-8 text-center text-xs text-slate-400">Carregando conquista...</div>;
   }
 
-  if (!modelo) {
+  if (error || !modelo) {
     return (
-      <div className="p-8 text-center space-y-3">
-        <p className="text-sm font-semibold text-slate-700">Conquista não encontrada.</p>
-        <Link href="/aluno/conquistas" className="text-xs text-indigo-600 hover:underline">
-          ← Voltar para minhas conquistas
-        </Link>
+      <div className="p-8 text-center space-y-4 max-w-md mx-auto">
+        <p className="text-sm font-semibold text-slate-700">{error || "Conquista não encontrada."}</p>
+        <div className="flex items-center justify-center gap-3">
+          <button
+            onClick={() => carregar()}
+            className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition cursor-pointer"
+          >
+            Tentar novamente
+          </button>
+          <Link href="/aluno/conquistas" className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold hover:bg-indigo-700 transition">
+            Voltar para minhas conquistas
+          </Link>
+        </div>
       </div>
     );
   }

@@ -50,6 +50,7 @@ export default function AlunoAvaliacaoDetalhePage() {
   const [tentativas, setTentativas] = useState<TentativaAvaliacao[]>([]);
   const [tentativaAtiva, setTentativaAtiva] = useState<TentativaAvaliacao | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState<string | null>(null);
 
   // Estados durante a realização de Objetiva
   const [respostasObjetivas, setRespostasObjetivas] = useState<Record<string, string>>({});
@@ -63,10 +64,11 @@ export default function AlunoAvaliacaoDetalhePage() {
   const [aviso, setAviso] = useState("");
   const [erro, setErro] = useState("");
 
-  const carregarDados = useCallback(async () => {
-    setLoading(true);
+  const carregarDados = useCallback(async (isMounted = true) => {
     try {
+      setPageError(null);
       const aval = await avaliacaoRepository.obterPorId(id);
+      if (!isMounted) return;
       if (!aval) {
         setLoading(false);
         return;
@@ -74,6 +76,7 @@ export default function AlunoAvaliacaoDetalhePage() {
       setAvaliacao(aval);
 
       const mod = await moduloRepository.obterPorId(aval.moduloId);
+      if (!isMounted) return;
       setModulo(mod || null);
 
       // Carregar e sanitizar tentativas
@@ -81,6 +84,7 @@ export default function AlunoAvaliacaoDetalhePage() {
         avaliacaoId: aval.id,
         alunoId,
       });
+      if (!isMounted) return;
       const tentsSanitizadas = tents.map((t) => sanitizarTentativaParaAluno(t, aval.status));
       setTentativas(tentsSanitizadas);
 
@@ -107,15 +111,38 @@ export default function AlunoAvaliacaoDetalhePage() {
       }
     } catch (err) {
       console.error("Erro ao carregar avaliação do aluno:", err);
+      if (isMounted) {
+        setPageError("Não foi possível carregar os detalhes da avaliação.");
+      }
     } finally {
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
     }
   }, [id, alunoId]);
 
   useEffect(() => {
+    let isMounted = true;
     if (id) {
-      carregarDados();
+      carregarDados(isMounted);
     }
+
+    const handleStorageUpdate = (e: Event) => {
+      const custom = e as CustomEvent;
+      if (
+        !custom.detail ||
+        custom.detail.entity === "avaliacoes" ||
+        custom.detail.entity === "tentativas"
+      ) {
+        carregarDados(isMounted);
+      }
+    };
+
+    window.addEventListener("mtd_storage_updated", handleStorageUpdate);
+    return () => {
+      isMounted = false;
+      window.removeEventListener("mtd_storage_updated", handleStorageUpdate);
+    };
   }, [id, carregarDados]);
 
   // Iniciar nova tentativa
@@ -282,6 +309,23 @@ export default function AlunoAvaliacaoDetalhePage() {
     return (
       <div className="py-12 text-center text-slate-400">
         Carregando avaliação...
+      </div>
+    );
+  }
+
+  if (pageError) {
+    return (
+      <div className="p-8 text-center bg-white rounded-2xl border border-red-200 shadow-sm max-w-xl mx-auto my-8 space-y-3">
+        <p className="text-sm font-bold text-red-700">{pageError}</p>
+        <button
+          onClick={() => {
+            setLoading(true);
+            carregarDados(true);
+          }}
+          className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition"
+        >
+          Tentar novamente
+        </button>
       </div>
     );
   }

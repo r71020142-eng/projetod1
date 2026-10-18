@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="180" viewBox="0 0 1400 180" fill="none">
+  <defs>
+    <linearGradient id="wash" x1="0" y1="15" x2="1400" y2="170" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.92"/>
+      <stop offset="0.6" stop-color="#FAF8F3" stop-opacity="0.82"/>
+      <stop offset="1" stop-color="#EEE9FF" stop-opacity="0.92"/>
+    </linearGradient>
+    <linearGradient id="mountain" x1="990" y1="88" x2="1390" y2="176" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7A62EE" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#5840C8" stop-opacity="0.22"/>
+    </linearGradient>
+    <linearGradient id="mountain2" x1="1080" y1="102" x2="1400" y2="180" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A38FFF" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#7C65E4" stop-opacity="0.14"/>
+    </linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" stroke="#354C77" stroke-opacity="0.025"/>
+    </pattern>
+  </defs>
+  <rect width="1400" height="180" fill="url(#wash)"/>
+  <rect width="1400" height="180" fill="url(#grid)"/>
+  <path d="M915 180L1000 132L1052 151L1110 91L1164 137L1229 72L1284 126L1334 95L1400 139V180H915Z" fill="url(#mountain2)"/>
+  <path d="M1015 180L1107 141L1151 156L1218 104L1257 142L1319 69L1360 118L1400 101V180H1015Z" fill="url(#mountain)"/>
+  <path d="M1000 132L1052 151L1110 91L1164 137L1229 72L1284 126L1334 95L1400 139" stroke="#765EE7" stroke-opacity="0.16"/>
+  <path d="M15 24V156" stroke="#D89A25" stroke-width="2"/>
+  <path d="M1384 24V156" stroke="#D89A25" stroke-width="2"/>
+  <path d="M1260 137C1304 122 1342 122 1400 139" stroke="#D89A25" stroke-opacity="0.18" stroke-dasharray="4 7"/>
+</svg>

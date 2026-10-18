@@ -37,6 +37,7 @@ export default function EstudarFlashcardsPage() {
   >({});
   const [indiceAtual, setIndiceAtual] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Estatísticas da Sessão
   const [contadores, setContadores] = useState({
@@ -56,14 +57,22 @@ export default function EstudarFlashcardsPage() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const dataInicioRef = useRef<string>(new Date().toISOString());
 
-  const carregarFila = useCallback(async () => {
+  const carregarFila = useCallback(async (mounted = true) => {
     if (!baralhoId) return;
     setLoading(true);
+    setError(null);
     try {
       const [baralhoRes, filaRes] = await Promise.all([
         baralhoRepository.getBaralhoById(baralhoId),
         progressoCartaoRepository.obterFilaEstudoBaralho("alu-001", baralhoId),
       ]);
+
+      if (!mounted) return;
+
+      if (!baralhoRes) {
+        setError("Baralho não encontrado.");
+        return;
+      }
 
       setBaralho(baralhoRes);
 
@@ -77,13 +86,24 @@ export default function EstudarFlashcardsPage() {
       }
       setIndiceAtual(0);
       dataInicioRef.current = new Date().toISOString();
+    } catch (err: unknown) {
+      if (mounted) {
+        console.error("Erro ao carregar fila de estudo:", err);
+        setError((err as Error)?.message || "Não foi possível carregar os cartões para estudo.");
+      }
     } finally {
-      setLoading(false);
+      if (mounted) {
+        setLoading(false);
+      }
     }
   }, [baralhoId]);
 
   useEffect(() => {
-    carregarFila();
+    let isMounted = true;
+    carregarFila(isMounted);
+    return () => {
+      isMounted = false;
+    };
   }, [carregarFila]);
 
   // Cronômetro da sessão
@@ -226,18 +246,26 @@ export default function EstudarFlashcardsPage() {
     );
   }
 
-  if (!baralho) {
+  if (error || !baralho) {
     return (
-      <div className="p-12 text-center space-y-4">
+      <div className="p-12 text-center space-y-4 max-w-md mx-auto">
         <AlertCircle className="w-12 h-12 text-amber-500 mx-auto" />
-        <h2 className="text-xl font-bold text-gray-900">Baralho não encontrado</h2>
-        <Link
-          href="/aluno/flashcards"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Voltar para Meus Flashcards</span>
-        </Link>
+        <h2 className="text-xl font-bold text-gray-900">{error || "Baralho não encontrado"}</h2>
+        <div className="flex items-center justify-center gap-3">
+          <button
+            onClick={() => carregarFila()}
+            className="px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 transition cursor-pointer"
+          >
+            Tentar novamente
+          </button>
+          <Link
+            href="/aluno/flashcards"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Voltar para Meus Flashcards</span>
+          </Link>
+        </div>
       </div>
     );
   }

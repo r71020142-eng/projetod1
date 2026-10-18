@@ -25,6 +25,7 @@ import {
   Search,
   Filter,
   ExternalLink,
+  AlertCircle,
 } from "lucide-react";
 
 export default function AlunoComunidadePage() {
@@ -35,6 +36,7 @@ export default function AlunoComunidadePage() {
   const [publicacoes, setPublicacoes] = useState<PublicacaoComunidade[]>([]);
   const [oportunidades, setOportunidades] = useState<OportunidadeIntercambio[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Filtros
   const [abaAtiva, setAbaAtiva] = useState<"feed" | "espacos" | "oportunidades">("feed");
@@ -42,35 +44,56 @@ export default function AlunoComunidadePage() {
   const [busca, setBusca] = useState("");
   const [modalNovaPublicacao, setModalNovaPublicacao] = useState(false);
 
-  const carregarDados = useCallback(async () => {
+  const carregarDados = useCallback(async (mounted = true) => {
     setLoading(true);
+    setError(null);
     try {
-      const alu = await alunoRepository.obterPorId(alunoId);
-      setAluno(alu);
+      const [alu, turmas] = await Promise.all([
+        alunoRepository.obterPorId(alunoId),
+        turmaRepository.listarPorAluno(alunoId),
+      ]);
 
-      const turmas = await turmaRepository.listarPorAluno(alunoId);
+      if (!mounted) return;
+      setAluno(alu || null);
+
       const tIds = turmas.map((t) => t.id);
       setTurmaIds(tIds);
 
-      if (alu) {
-        const [espList, pubList, opList] = await Promise.all([
-          comunidadeRepository.listarEspacos(false, alu, tIds),
-          comunidadeRepository.listarPublicacoes(undefined, true),
-          comunidadeRepository.listarOportunidades(),
-        ]);
-        setEspacos(espList);
-        setPublicacoes(pubList);
-        setOportunidades(opList);
+      const [espList, pubList, opList] = await Promise.all([
+        comunidadeRepository.listarEspacos(false, alu || undefined, tIds),
+        comunidadeRepository.listarPublicacoes(undefined, true),
+        comunidadeRepository.listarOportunidades(),
+      ]);
+
+      if (!mounted) return;
+      setEspacos(espList);
+      setPublicacoes(pubList);
+      setOportunidades(opList);
+    } catch (err: unknown) {
+      if (mounted) {
+        console.error("Erro ao carregar comunidade do aluno:", err);
+        setError((err as Error)?.message || "Não foi possível carregar a comunidade.");
       }
-    } catch (err) {
-      console.error("Erro ao carregar comunidade do aluno:", err);
     } finally {
-      setLoading(false);
+      if (mounted) {
+        setLoading(false);
+      }
     }
   }, [alunoId]);
 
   useEffect(() => {
-    carregarDados();
+    let isMounted = true;
+    carregarDados(isMounted);
+
+    const handleStorage = () => {
+      if (isMounted) carregarDados(isMounted);
+    };
+    window.addEventListener("mtd_storage_updated", handleStorage);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("mtd_storage_updated", handleStorage);
+    };
   }, [carregarDados]);
 
   // Espaços onde o aluno tem permissão para publicar
@@ -143,6 +166,22 @@ export default function AlunoComunidadePage() {
           </button>
         )}
       </div>
+
+      {/* Alerta de Erro com Retry */}
+      {error && (
+        <div className="flex items-center justify-between p-4 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl text-xs">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <button
+            onClick={() => carregarDados()}
+            className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold transition"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )}
 
       {/* Navegação por Abas */}
       <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto pb-px">

@@ -24,13 +24,15 @@ export default function AlunoMateriaisPage() {
   const [materiais, setMateriais] = useState<Material[]>([]);
   const [atividadesCount, setAtividadesCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Filters
   const [buscaMaterial, setBuscaMaterial] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("todas");
 
-  const carregarDados = useCallback(async () => {
+  const carregarDados = useCallback(async (isMounted = true) => {
     try {
+      setError(null);
       const turmas = await turmaRepository.listarPorAluno(DEMO_ALUNO_ID);
       const turmaIds = turmas.map((t: Turma) => t.id);
 
@@ -39,17 +41,24 @@ export default function AlunoMateriaisPage() {
         atividadeRepository.listarParaAluno(DEMO_ALUNO_ID, turmaIds),
       ]);
 
+      if (!isMounted) return;
       setMateriais(mats);
       setAtividadesCount(atvs.length);
     } catch (err) {
       console.error("Erro ao carregar materiais do aluno:", err);
+      if (isMounted) {
+        setError("Não foi possível carregar os materiais. Tente novamente.");
+      }
     } finally {
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    carregarDados();
+    let isMounted = true;
+    carregarDados(isMounted);
 
     const handleStorageUpdate = (e: Event) => {
       const custom = e as CustomEvent;
@@ -58,12 +67,13 @@ export default function AlunoMateriaisPage() {
         custom.detail.entity === "materiais" ||
         custom.detail.entity === "atividades"
       ) {
-        carregarDados();
+        carregarDados(isMounted);
       }
     };
 
     window.addEventListener("mtd_storage_updated", handleStorageUpdate);
     return () => {
+      isMounted = false;
       window.removeEventListener("mtd_storage_updated", handleStorageUpdate);
     };
   }, [carregarDados]);
@@ -92,6 +102,23 @@ export default function AlunoMateriaisPage() {
           <div className="h-44 bg-slate-200 rounded-2xl"></div>
           <div className="h-44 bg-slate-200 rounded-2xl"></div>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center bg-white rounded-2xl border border-red-200 shadow-sm max-w-xl mx-auto my-8 space-y-3">
+        <p className="text-sm font-bold text-red-700">{error}</p>
+        <button
+          onClick={() => {
+            setLoading(true);
+            carregarDados(true);
+          }}
+          className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition"
+        >
+          Tentar novamente
+        </button>
       </div>
     );
   }

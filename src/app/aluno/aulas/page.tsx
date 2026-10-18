@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Calendar,
   Clock,
@@ -20,14 +20,15 @@ const DEMO_ALUNO_ID = "alu-001"; // Mariana Oliveira
 
 export default function MinhasAulasPage() {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [aulas, setAulas] = useState<Aula[]>([]);
   const [professores, setProfessores] = useState<Professor[]>([]);
   const [frequencia, setFrequencia] = useState<FrequenciaCalculada | null>(null);
 
-  const carregarDados = async () => {
-    setLoading(true);
+  const carregarDados = useCallback(async (isMounted = true) => {
     try {
+      setError(null);
       const [listTurmas, listAulas, listProfs, freqData] = await Promise.all([
         turmaRepository.listarPorAluno(DEMO_ALUNO_ID),
         aulaRepository.listarPorAluno(DEMO_ALUNO_ID),
@@ -35,19 +36,26 @@ export default function MinhasAulasPage() {
         aulaRepository.calcularFrequenciaAluno(DEMO_ALUNO_ID),
       ]);
 
+      if (!isMounted) return;
       setTurmas(listTurmas);
       setAulas(listAulas);
       setProfessores(listProfs);
       setFrequencia(freqData);
     } catch (err) {
       console.error("Erro ao carregar aulas do aluno:", err);
+      if (isMounted) {
+        setError("Não foi possível carregar as informações das aulas. Tente novamente.");
+      }
     } finally {
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
-    carregarDados();
+    let isMounted = true;
+    carregarDados(isMounted);
 
     const handleStorageUpdate = (e: Event) => {
       const customEvent = e as CustomEvent;
@@ -56,13 +64,16 @@ export default function MinhasAulasPage() {
         customEvent.detail.entity === "aulas" ||
         customEvent.detail.entity === "turmas"
       ) {
-        carregarDados();
+        carregarDados(isMounted);
       }
     };
 
     window.addEventListener("mtd_storage_updated", handleStorageUpdate);
-    return () => window.removeEventListener("mtd_storage_updated", handleStorageUpdate);
-  }, []);
+    return () => {
+      isMounted = false;
+      window.removeEventListener("mtd_storage_updated", handleStorageUpdate);
+    };
+  }, [carregarDados]);
 
   const turmaMap = useMemo(() => new Map(turmas.map((t) => [t.id, t])), [turmas]);
   const profMap = useMemo(() => new Map(professores.map((p) => [p.id, p])), [professores]);
@@ -99,9 +110,26 @@ export default function MinhasAulasPage() {
 
   if (loading) {
     return (
-      <div className="p-16 text-center bg-white rounded-2xl border border-slate-100 shadow-sm">
+      <div className="p-12 text-center bg-white rounded-2xl border border-slate-100 shadow-sm max-w-xl mx-auto my-8">
         <div className="h-8 w-8 border-3 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-3" />
         <p className="text-sm font-semibold text-slate-700">Carregando suas aulas...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center bg-white rounded-2xl border border-red-200 shadow-sm max-w-xl mx-auto my-8 space-y-3">
+        <p className="text-sm font-bold text-red-700">{error}</p>
+        <button
+          onClick={() => {
+            setLoading(true);
+            carregarDados(true);
+          }}
+          className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition"
+        >
+          Tentar novamente
+        </button>
       </div>
     );
   }

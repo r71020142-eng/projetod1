@@ -2,13 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import {
-  Compass,
-  CheckCircle2,
-  ArrowRight,
-  TrendingUp,
-  Target,
-} from "lucide-react";
+import { Check, ArrowRight } from "lucide-react";
 import { ProgressoJornadaAluno } from "@/types";
 
 interface JornadaCompactCardProps {
@@ -16,111 +10,105 @@ interface JornadaCompactCardProps {
 }
 
 export function JornadaCompactCard({ progresso }: JornadaCompactCardProps) {
-  if (!progresso) {
-    return null;
-  }
-
-  const percentual = Math.round(progresso.percentualConclusaoModulo || 0);
-  const cumpridosLimitados = (progresso.criteriosCumpridosDescricoes || []).slice(0, 2);
-  const proximoPendente = (progresso.criteriosPendentesDescricoes || [])[0] || null;
+  const moduloNome = progresso?.moduloAtualNome || "Comunicação Prática & Connected Speech";
+  const programaNome = progresso?.programaNome || "Programa de Fluência MTD";
+  const proximoPendente =
+    (progresso?.criteriosPendentesDescricoes && progresso.criteriosPendentesDescricoes[0]) ||
+    "Checkpoints pedagógicos do Módulo 2";
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200/80 p-5 sm:p-6 shadow-xs hover:border-slate-300 transition-all">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        {/* Esquerda: Informações do Módulo e Progresso */}
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#F0EEFF] text-[#5B4DFC]">
-              <Compass className="w-3.5 h-3.5 text-[#5B4DFC]" />
-              {progresso.programaNome || "Programa de Fluência MTD"}
-            </span>
-            <span className="text-xs text-slate-500 font-semibold">
-              {progresso.etapaAtualNome}
+    <div className="rounded-[14px] border border-[#DDDDE5] bg-white p-5 sm:p-6 shadow-xs relative overflow-hidden flex flex-col lg:flex-row lg:items-center justify-between gap-6 group">
+      {/* Camada decorativa oficial com mtd-journey-background.svg */}
+      <div
+        className="absolute inset-0 bg-[url('/assets/mtd/mtd-journey-background.svg')] bg-cover bg-center pointer-events-none select-none z-0 opacity-95"
+        aria-hidden="true"
+      />
+
+      {/* Conteúdo Principal e Stepper (relative z-10) */}
+      <div className="relative z-10 flex-1 min-w-0 pl-1">
+        {/* Eyebrow & Programa */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-bold tracking-[0.25em] text-[#D79A24] uppercase">
+            SUA JORNADA MTD
+          </span>
+          <span className="text-slate-300">•</span>
+          <span className="text-xs font-semibold text-[#60708F]">
+            {programaNome}
+          </span>
+        </div>
+
+        {/* Título do Módulo */}
+        <h2 className="font-serif text-lg sm:text-xl font-bold text-[#07132E] mt-1 leading-snug">
+          {moduloNome}
+        </h2>
+
+        {/* Stepper Horizontal com Ponto Violeta Iluminado e Dourado Concluído */}
+        <div className="flex items-center gap-2 sm:gap-3 mt-4 pt-1 max-w-xl">
+          {/* Etapa 1: Concluído (Dourado com Check) */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="w-6 h-6 rounded-full bg-[#FAF8F3] border-2 border-[#D79A24] text-[#D79A24] flex items-center justify-center shadow-2xs">
+              <Check className="w-3.5 h-3.5 stroke-[2.8]" />
+            </div>
+            <span className="text-[11px] font-bold text-[#07132E] hidden sm:inline">
+              Módulo 1
             </span>
           </div>
 
-          <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
-            {progresso.moduloAtualNome}
-          </h2>
+          {/* Conector Dourado */}
+          <div className="flex-1 h-0.5 bg-[#D79A24] min-w-[24px]" />
 
-          {/* Barra de Progresso Compacta */}
-          <div className="mt-3.5 max-w-xl">
-            <div className="flex items-center justify-between text-xs font-bold mb-1.5">
-              <span className="text-slate-600 flex items-center gap-1.5">
-                <TrendingUp className="w-3.5 h-3.5 text-[#5B4DFC]" />
-                Progresso em direção à validação docente
-              </span>
-              <span className="text-[#5B4DFC] font-extrabold">{percentual}%</span>
+          {/* Etapa 2: Módulo Atual (Iluminado em Violeta) */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-[#5B2FE8] text-white shadow-xs shadow-[#5B2FE8]/40 ring-4 ring-[#5B2FE8]/20 animate-pulse">
+              <span className="w-2 h-2 rounded-full bg-white" />
             </div>
-            <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200/60">
-              <div
-                className="h-full bg-gradient-to-r from-[#5B4DFC] to-[#7C71FF] rounded-full transition-all duration-500"
-                style={{ width: `${Math.max(percentual, 5)}%` }}
-              />
-            </div>
+            <span className="text-[11px] font-bold text-[#5B2FE8] hidden sm:inline">
+              Módulo 2 (Atual)
+            </span>
           </div>
 
-          {/* Critérios: Até 2 concluídos + 1 próximo pendente */}
-          <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-            {/* Cumpridos recentes */}
-            <div className="space-y-1.5">
-              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                Critérios cumpridos ({progresso.criteriosCumpridos} de {progresso.totalCriteriosAplicaveis})
-              </div>
-              {cumpridosLimitados.length > 0 ? (
-                cumpridosLimitados.map((desc, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-start gap-2 text-slate-700 bg-emerald-50/60 border border-emerald-100 px-2.5 py-1.5 rounded-xl"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 mt-0.5 shrink-0" />
-                    <span className="line-clamp-1 font-medium">{desc}</span>
-                  </div>
-                ))
-              ) : (
-                <div className="text-[11px] text-slate-500 italic py-1">
-                  Iniciando os critérios do módulo
-                </div>
-              )}
-            </div>
+          {/* Conector Cinza */}
+          <div className="flex-1 h-0.5 bg-slate-200 min-w-[24px]" />
 
-            {/* Próximo Pendente */}
-            <div className="space-y-1.5">
-              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                Próximo marco pendente
-              </div>
-              {proximoPendente ? (
-                <div className="flex items-start gap-2 text-slate-800 bg-amber-50/70 border border-amber-200 px-2.5 py-1.5 rounded-xl">
-                  <Target className="w-3.5 h-3.5 text-amber-600 mt-0.5 shrink-0" />
-                  <span className="font-semibold line-clamp-1">{proximoPendente}</span>
-                </div>
-              ) : (
-                <div className="flex items-start gap-2 text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1.5 rounded-xl">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 mt-0.5 shrink-0" />
-                  <span className="font-semibold line-clamp-1">
-                    Todos os critérios cumpridos! Aguardando validação do professor.
-                  </span>
-                </div>
-              )}
+          {/* Etapa 3: Próximo Módulo (Neutro) */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="w-6 h-6 rounded-full bg-slate-100 border border-slate-300 text-slate-400 flex items-center justify-center text-[10px] font-bold">
+              3
             </div>
+            <span className="text-[11px] font-medium text-slate-400 hidden sm:inline">
+              Módulo 3
+            </span>
+          </div>
+
+          {/* Conector Cinza */}
+          <div className="flex-1 h-0.5 bg-slate-200 min-w-[24px]" />
+
+          {/* Etapa 4: Validação Docente / Conclusão */}
+          <div className="w-6 h-6 rounded-full bg-slate-100 border border-slate-300 text-slate-400 flex items-center justify-center text-[10px] font-bold shrink-0">
+            4
           </div>
         </div>
 
-        {/* Direita: Ações de Navegação */}
-        <div className="flex flex-row lg:flex-col items-center justify-end gap-2.5 shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
-          <Link
-            href="/aluno/jornada"
-            className="inline-flex items-center justify-center w-full sm:w-auto gap-2 px-5 py-3 rounded-2xl bg-[#5B4DFC] hover:bg-[#4a3ecc] text-white text-xs font-bold transition-all shadow-xs shadow-[#5B4DFC]/20 hover:shadow-md"
-          >
-            <span>Continuar minha jornada</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-          <Link
-            href="/aluno/jornada"
-            className="inline-flex items-center justify-center w-full sm:w-auto gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all"
-          >
-            <span>Ver progresso completo</span>
-          </Link>
+        {/* Próximo marco descritivo */}
+        <div className="text-xs text-[#60708F] mt-3 flex items-center gap-1.5">
+          <span className="font-semibold text-[#07132E]">Próximo marco:</span>
+          <span className="truncate">{proximoPendente}</span>
+        </div>
+      </div>
+
+      {/* Lado Direito: Botão + Slogan Institucional (relative z-10) */}
+      <div className="relative z-10 flex flex-col items-start lg:items-end justify-center shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-[#DDDDE5]/80">
+        <Link
+          href="/aluno/jornada"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#06142C] hover:bg-[#0A1A38] text-white text-xs font-bold transition-all shadow-xs shadow-[#06142C]/20 hover:shadow-md"
+        >
+          <span>Ver minha jornada</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+
+        {/* Frase Institucional Inferior */}
+        <div className="hidden sm:block text-[9.5px] font-bold tracking-[0.2em] text-[#60708F] uppercase font-sans mt-2.5 text-right">
+          DISCIPLINA HOJE, LIBERDADE SEMPRE.
         </div>
       </div>
     </div>

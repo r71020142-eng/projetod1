@@ -7,6 +7,7 @@ import {
   PlaySquare,
   BarChart3,
   ArrowRight,
+  AlertCircle,
 } from "lucide-react";
 import { ProgressoJornadaAluno, Aluno } from "@/types";
 import { alunoRepository, getAlunoDashboardData } from "@/data/api";
@@ -18,25 +19,45 @@ export default function AlunoJornadaPage() {
   const [progressoJornada, setProgressoJornada] = useState<ProgressoJornadaAluno | undefined>();
   const [aluno, setAluno] = useState<Aluno | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function carregar() {
-      try {
-        const [alunoData, dashData] = await Promise.all([
-          alunoRepository.obterPorId(DEMO_ALUNO_ID),
-          getAlunoDashboardData(),
-        ]);
-        setAluno(alunoData || null);
-        setProgressoJornada(dashData.progressoJornada);
-      } catch (err) {
+  const carregar = React.useCallback(async (mounted = true) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [alunoData, dashData] = await Promise.all([
+        alunoRepository.obterPorId(DEMO_ALUNO_ID),
+        getAlunoDashboardData(),
+      ]);
+      if (!mounted) return;
+      setAluno(alunoData || null);
+      setProgressoJornada(dashData.progressoJornada);
+    } catch (err: unknown) {
+      if (mounted) {
         console.error("Erro ao carregar dados da jornada:", err);
-      } finally {
+        setError((err as Error)?.message || "Não foi possível carregar o progresso da jornada.");
+      }
+    } finally {
+      if (mounted) {
         setLoading(false);
       }
     }
-
-    carregar();
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    carregar(isMounted);
+
+    const handleStorage = () => {
+      if (isMounted) carregar(isMounted);
+    };
+    window.addEventListener("mtd_storage_updated", handleStorage);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("mtd_storage_updated", handleStorage);
+    };
+  }, [carregar]);
 
   if (loading) {
     return (
@@ -58,6 +79,22 @@ export default function AlunoJornadaPage() {
           Acompanhamento estruturado do Método Paulo • {aluno ? aluno.nomeCompleto : "Mariana Silva"}
         </p>
       </div>
+
+      {/* Alerta de Erro com Retry */}
+      {error && (
+        <div className="flex items-center justify-between p-4 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl text-xs">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <button
+            onClick={() => carregar()}
+            className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold transition"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )}
 
       {/* Card Principal da Jornada do Método Paulo */}
       <ProgressoJornadaCard progresso={progressoJornada} />

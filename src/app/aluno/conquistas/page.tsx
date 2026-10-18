@@ -28,6 +28,7 @@ import {
   Flame,
   Clock,
   X,
+  AlertCircle,
 } from "lucide-react";
 
 export default function AlunoConquistasPage() {
@@ -48,13 +49,15 @@ export default function AlunoConquistasPage() {
 
   const [filtro, setFiltro] = useState<"todas" | "desbloqueadas" | "bloqueadas">("todas");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Modais de Placa
   const [placaDigitalAberta, setPlacaDigitalAberta] = useState<ConquistaConcedida | null>(null);
   const [modalSolicitarPlaca, setModalSolicitarPlaca] = useState(false);
 
-  const carregarDados = useCallback(async () => {
+  const carregarDados = useCallback(async (mounted = true) => {
     setLoading(true);
+    setError(null);
     try {
       const [alu, mods, conqs, plks, ptsRes, todasAulas, tentativasAluno] = await Promise.all([
         alunoRepository.obterPorId(alunoId),
@@ -66,7 +69,9 @@ export default function AlunoConquistasPage() {
         tentativaAvaliacaoRepository.listar({ alunoId }),
       ]);
 
-      setAluno(alu);
+      if (!mounted) return;
+
+      setAluno(alu || null);
       setModelos(mods);
       setConcedidas(conqs);
       setPlacas(plks);
@@ -80,19 +85,25 @@ export default function AlunoConquistasPage() {
       try {
         const baralhos = await baralhoRepository.getBaralhos();
         const metricasSRS = await historicoRevisaoRepository.obterMetricasAluno(alunoId, baralhos);
-        setStreakDias(metricasSRS.sequenciaDias || 7);
-        setTotalRevisoes(metricasSRS.totalEstudadosHistorico || 105);
+        if (mounted) {
+          setStreakDias(metricasSRS.sequenciaDias || 7);
+          setTotalRevisoes(metricasSRS.totalEstudadosHistorico || 105);
+        }
       } catch {
-        setStreakDias(7);
-        setTotalRevisoes(105);
+        if (mounted) {
+          setStreakDias(7);
+          setTotalRevisoes(105);
+        }
       }
 
       // 3. Módulos concluídos e avaliações práticas aprovadas
       const aprovadas = tentativasAluno.filter(
         (t) => t.status === "corrigida" && t.resultado === "aprovado"
       ).length;
-      setAvaliacoesAprovadas(aprovadas);
-      setModulosConcluidos(1); // Módulo 1 validado em Etapa 7
+      if (mounted) {
+        setAvaliacoesAprovadas(aprovadas);
+        setModulosConcluidos(1); // Módulo 1 validado em Etapa 7
+      }
 
       // 4. Executa avaliação de conquistas automáticas
       if (alu) {
@@ -114,22 +125,38 @@ export default function AlunoConquistasPage() {
           alu.nomeCompleto
         );
 
-        if (recemDesbloqueadas.length > 0) {
+        if (mounted && recemDesbloqueadas.length > 0) {
           const conqsAtualizadas = await gamificacaoRepository.listarConquistasAluno(alunoId);
           setConcedidas(conqsAtualizadas);
           const ptsAtualizados = await gamificacaoRepository.obterPontosAluno(alunoId);
           setPontos(ptsAtualizados.pontosTotais);
         }
       }
-    } catch (err) {
-      console.error("Erro ao carregar conquistas do aluno:", err);
+    } catch (err: unknown) {
+      if (mounted) {
+        console.error("Erro ao carregar conquistas do aluno:", err);
+        setError((err as Error)?.message || "Não foi possível carregar as conquistas.");
+      }
     } finally {
-      setLoading(false);
+      if (mounted) {
+        setLoading(false);
+      }
     }
   }, [alunoId]);
 
   useEffect(() => {
-    carregarDados();
+    let isMounted = true;
+    carregarDados(isMounted);
+
+    const handleStorage = () => {
+      if (isMounted) carregarDados(isMounted);
+    };
+    window.addEventListener("mtd_storage_updated", handleStorage);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("mtd_storage_updated", handleStorage);
+    };
   }, [carregarDados]);
 
   // Mapa de conquistas concedidas por modeloId
@@ -185,6 +212,22 @@ export default function AlunoConquistasPage() {
           </button>
         )}
       </div>
+
+      {/* Alerta de Erro com Retry */}
+      {error && (
+        <div className="flex items-center justify-between p-4 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl text-xs">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <button
+            onClick={() => carregarDados()}
+            className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold transition"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )}
 
       {/* Cards de Métricas em Destaque */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">

@@ -30,25 +30,28 @@ export default function AlunoFlashcardsPage() {
     Record<string, { totalVencidos: number; totalAprendendo: number; totalNovos: number }>
   >({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Filtros
   const [busca, setBusca] = useState("");
   const [filtroNivel, setFiltroNivel] = useState<NivelMaterial>("todos");
 
-  const carregarDados = useCallback(async () => {
-    setLoading(true);
+  const carregarDados = useCallback(async (isMounted = true) => {
     try {
+      setError(null);
       // Discente demonstrativo: Mariana Oliveira (alu-001)
       const turmasAluno = await turmaRepository.listarPorAluno("alu-001");
       const turmasIds = turmasAluno.map((t) => t.id);
 
       const baralhosPermitidos = await baralhoRepository.getBaralhosAluno("alu-001", turmasIds);
+      if (!isMounted) return;
       setBaralhos(baralhosPermitidos);
 
       const metricasRes = await historicoRevisaoRepository.obterMetricasAluno(
         "alu-001",
         baralhosPermitidos
       );
+      if (!isMounted) return;
       setMetricas(metricasRes);
 
       // Carrega filas individuais de cada baralho
@@ -72,14 +75,23 @@ export default function AlunoFlashcardsPage() {
         })
       );
 
+      if (!isMounted) return;
       setFilasMap(filasTemp);
+    } catch (err) {
+      console.error("Erro ao carregar flashcards do aluno:", err);
+      if (isMounted) {
+        setError("Não foi possível carregar os flashcards. Tente novamente.");
+      }
     } finally {
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    carregarDados();
+    let isMounted = true;
+    carregarDados(isMounted);
 
     const handleStorageUpdated = (e: Event) => {
       const customEvent = e as CustomEvent<{ entity: string }>;
@@ -89,12 +101,15 @@ export default function AlunoFlashcardsPage() {
         customEvent.detail?.entity === "progresso_cartoes" ||
         customEvent.detail?.entity === "historico_revisoes"
       ) {
-        carregarDados();
+        carregarDados(isMounted);
       }
     };
 
     window.addEventListener("mtd_storage_updated", handleStorageUpdated);
-    return () => window.removeEventListener("mtd_storage_updated", handleStorageUpdated);
+    return () => {
+      isMounted = false;
+      window.removeEventListener("mtd_storage_updated", handleStorageUpdated);
+    };
   }, [carregarDados]);
 
   const baralhosFiltrados = baralhos.filter((b) => {
@@ -239,7 +254,20 @@ export default function AlunoFlashcardsPage() {
       </div>
 
       {/* Grade de Baralhos Disponíveis */}
-      {loading ? (
+      {error ? (
+        <div className="p-8 text-center bg-white rounded-2xl border border-red-200 shadow-sm space-y-3">
+          <p className="text-sm font-bold text-red-700">{error}</p>
+          <button
+            onClick={() => {
+              setLoading(true);
+              carregarDados(true);
+            }}
+            className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      ) : loading ? (
         <div className="p-12 text-center text-sm text-gray-400 bg-white rounded-2xl border border-gray-100">
           Carregando seus baralhos pedagógicos...
         </div>

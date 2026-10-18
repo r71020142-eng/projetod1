@@ -28,25 +28,37 @@ const DEMO_ALUNO_ID = "alu-001";
 export default function AlunoSelfPresentationPage() {
   const [presentations, setPresentations] = useState<SelfPresentation[]>([]);
   const [aluno, setAluno] = useState<Aluno | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSp, setSelectedSp] = useState<SelfPresentation | null>(null);
   const [tipoModal, setTipoModal] = useState<"nivelamento_inicial" | "reavaliacao">("nivelamento_inicial");
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (isMounted = true) => {
     try {
+      setError(null);
       const [list, alu] = await Promise.all([
         selfPresentationRepository.listarParaAluno(DEMO_ALUNO_ID),
         alunoRepository.obterPorId(DEMO_ALUNO_ID),
       ]);
+      if (!isMounted) return;
       setPresentations(list);
       setAluno(alu);
     } catch (err) {
       console.error("Erro ao carregar apresentações do aluno:", err);
+      if (isMounted) {
+        setError("Não foi possível carregar suas apresentações. Tente novamente.");
+      }
+    } finally {
+      if (isMounted) {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    loadData();
+    let isMounted = true;
+    loadData(isMounted);
 
     const handleStorageUpdated = (e: Event) => {
       const custom = e as CustomEvent;
@@ -55,12 +67,13 @@ export default function AlunoSelfPresentationPage() {
         custom.detail.entity === "self_presentations" ||
         custom.detail.entity === "alunos"
       ) {
-        loadData();
+        loadData(isMounted);
       }
     };
 
     window.addEventListener("mtd_storage_updated", handleStorageUpdated);
     return () => {
+      isMounted = false;
       window.removeEventListener("mtd_storage_updated", handleStorageUpdated);
     };
   }, [loadData]);
@@ -81,6 +94,32 @@ export default function AlunoSelfPresentationPage() {
     setTipoModal(sp.tipo);
     setModalOpen(true);
   };
+
+  if (loading) {
+    return (
+      <div className="p-12 text-center bg-white rounded-2xl border border-slate-100 shadow-sm max-w-xl mx-auto my-8 space-y-3">
+        <div className="h-8 w-8 border-3 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-3" />
+        <p className="text-sm font-semibold text-slate-700">Carregando suas apresentações...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center bg-white rounded-2xl border border-red-200 shadow-sm max-w-xl mx-auto my-8 space-y-3">
+        <p className="text-sm font-bold text-red-700">{error}</p>
+        <button
+          onClick={() => {
+            setLoading(true);
+            loadData(true);
+          }}
+          className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition"
+        >
+          Tentar novamente
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
