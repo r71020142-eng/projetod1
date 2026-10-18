@@ -10,26 +10,37 @@ import {
   BookOpen,
   Calendar,
   BarChart2,
-  CreditCard,
   FileText,
+  Video,
+  Layers,
   MessageSquare,
+  Award,
   Settings,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Exact menu items from Image 2:
-// Visão geral, Alunos, Professores, Método, Aulas, Avaliações, Financeiro, Relatórios, Suporte (1), Configurações
-const ADMIN_NAV_ITEMS = [
+interface AdminNavItem {
+  title: string;
+  href: string;
+  icon: import("lucide-react").LucideIcon;
+  exact?: boolean;
+  badge?: number | string;
+}
+
+// Navegação oficial administrativa e pedagógica
+const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { title: "Visão geral", href: "/admin", icon: Home, exact: true },
   { title: "Alunos", href: "/admin/alunos", icon: Users },
   { title: "Professores", href: "/admin/professores", icon: GraduationCap },
-  { title: "Método", href: "/admin/materiais", icon: BookOpen },
-  { title: "Aulas", href: "/admin/agenda", icon: Calendar },
+  { title: "Turmas", href: "/admin/turmas", icon: BookOpen },
+  { title: "Agenda", href: "/admin/agenda", icon: Calendar },
+  { title: "Materiais", href: "/admin/materiais", icon: FileText },
   { title: "Avaliações", href: "/admin/avaliacoes", icon: BarChart2 },
-  { title: "Financeiro", href: "/admin/turmas", icon: CreditCard },
-  { title: "Relatórios", href: "/admin/conquistas", icon: FileText },
-  { title: "Suporte", href: "/admin/comunidade", icon: MessageSquare, badge: 1 },
+  { title: "Self Presentation", href: "/admin/self-presentation", icon: Video },
+  { title: "Flashcards", href: "/admin/flashcards", icon: Layers },
+  { title: "Comunidade", href: "/admin/comunidade", icon: MessageSquare },
+  { title: "Conquistas", href: "/admin/conquistas", icon: Award },
   { title: "Configurações", href: "/admin/configuracoes", icon: Settings },
 ];
 
@@ -156,7 +167,7 @@ export function AdminSidebar({ isOpenMobile, onCloseMobile }: AdminSidebarProps)
   return (
     <>
       {/* Desktop permanent dark sidebar */}
-      <aside className="hidden lg:flex lg:w-60 lg:flex-col min-h-screen bg-[#0D0B2E] border-r border-indigo-950/40 shrink-0 select-none">
+      <aside className="hidden lg:flex lg:w-60 lg:flex-col sticky top-0 h-screen overflow-y-auto bg-[#0D0B2E] border-r border-indigo-950/40 shrink-0 select-none">
         {navContent}
       </aside>
 

@@ -179,8 +179,24 @@ flowchart LR
     - Comprovação de zero componentes ou repositórios órfãos.
   - [x] **Documentação Arquitetural Produzida:**
     - `MAPA_DO_SISTEMA.md`, `AUDITORIA_ETAPA_9.md`, `PLANO_MIGRACAO_BACKEND.md`, `MODELO_DE_DADOS.md`, `MATRIZ_DE_PERMISSOES.md`, `DECISAO_DE_INFRAESTRUTURA.md`, `.env.example`.
-  - [x] **Bateria de Testes Automatizados (`scripts/test-etapa9.mjs`):** 100% de aprovação nas 7 jornadas completas e testes de filtros de permissão demonstrativa.
 * **Status:** Concluída e aprovada.
+
+---
+
+### ETAPA 9.1 (CONCLUÍDA): Reorganização e Refinamento Executivo dos Dashboards (Aluno e Admin)
+* **Objetivo:** Resolver sobrecarga cognitiva, rolagem vertical excessiva e descompassos visuais, transformando tanto `/aluno` quanto `/admin` em centrais diárias compactas, sem alterar regras de negócio, cálculos, dados ou rotas internas.
+* **Escopo Executado:**
+  - [x] **Dashboard do Aluno (`/aluno`):**
+    - Motor determinístico de priorização diária (`planoDiarioMotor.ts`) e suíte de testes (`test-plano-diario.mjs`).
+    - Grade 12 colunas: Saudação dinâmica, Próxima Aula compacta (~7 cols), Meu Plano de Hoje (~5 cols), Resumo Rápido de 4 indicadores, Continue sua Jornada, Feedback recente (Nivelamento oral formatado) e Conquista recente, além de Minha Semana.
+    - Sidebar do aluno sticky no desktop (`sticky top-20 h-[calc(100vh-5rem)]`).
+  - [x] **Dashboard Administrativo (`/admin`):**
+    - Motor determinístico de fila de pendências (`adminPendenciasMotor.ts`) com 7 prioridades e testes (`test-admin-pendencias.mjs`).
+    - Grade 12 colunas: Cabeçalho executivo compacto com contador em tempo real, Grid de 4 KPIs operacionais, Fila de pendências prioritárias (~7 cols) e Próximas aulas com status Zoom (~5 cols), Esteira pedagógica integrada (4 eixos), Alunos em acompanhamento (~6 cols) e Gráfico de evolução de matrículas 2026 (~6 cols).
+    - Sidebar administrativa sticky no desktop (`sticky top-0 h-screen overflow-y-auto`).
+    - Purga de disciplinas incoerentes ("Matemática", "Português", "Ciências") e datas de 2025 nos dados demonstrativos.
+* **Status:** Concluída e aprovada.
+
 
 ---
 

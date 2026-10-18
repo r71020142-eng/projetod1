@@ -420,7 +420,28 @@ A **ETAPA 8** implementou a camada social e de reconhecimento de mérito acadêm
      - *Feedback Recente:* Nivelamento oral concluído, nível formatado como "B1 — Intermediário", parecer do docente e link para detalhes.
      - *Conquista Recente:* Marco recente desbloqueado, pontos e link para galeria de conquistas.
   6. *Minha Semana:* Tempo dedicado, entregas concluídas, dias de prática e gráfico de evolução semanal com resumo textual claro.
-- **Barra Lateral Fixa (Sticky Desktop):** Navegação lateral persistente durante a rolagem (`sticky top-20 h-[calc(100vh-5rem)]`), eliminando colunas em branco e desaparecimento do menu.
+### 3.12. Reorganização Executiva do Dashboard Inicial do Administrador (`/admin`)
+- **Central de Governança e Decisão Rápida do Dia (Anti-Scroll):** Transformação do painel administrativo em um centro executivo de comando diário, eliminando verticalidade desnecessária, cards gigantes empilhados e indicadores financeiros inventados.
+- **Barra Lateral Fixa (Sticky Desktop):** Navegação lateral mantida fixa no desktop (`sticky top-0 h-screen overflow-y-auto`), impedindo que o menu suma durante a rolagem ou deixe vazios à esquerda.
+- **Motor Determinístico de Fila de Pendências (`adminPendenciasMotor.ts`):** Motor puro, tipado e testável com 7 níveis de prioridade acadêmica:
+  1. Denúncia na comunidade pendente de moderação (Urgência máxima de segurança).
+  2. Nivelamento oral / Self Presentation aguardando avaliação docente.
+  3. Aula agendada nas próximas 24h sem link Zoom verificado.
+  4. Módulo com 100% dos critérios aguardando validação pedagógica humana.
+  5. Avaliação prática enviada aguardando correção do professor.
+  6. Atividade prática submetida aguardando feedback.
+  7. Placa de reconhecimento físico pronta para solicitação/envio logístico.
+- **Estrutura Desktop em Grade de 12 Colunas:**
+  1. *Cabeçalho Executivo Compacto:* Saudação horária profissional, contador dinâmico de itens pendentes de atenção imediata, mês de referência (Outubro de 2026) e botões de atalho rápido.
+  2. *Grid de KPIs Operacionais (4 cards na mesma linha):* Alunos ativos (com taxa de retenção), Professores ativos, Turmas ativas e Frequência média consolidada.
+  3. *Fila de Pendências & Próximas Aulas:*
+     - *Fila de Pendências (~7 colunas):* Lista priorizada com badges de urgência, contexto curto, papel responsável e link de ação direta (limite de 4 itens + atalho para visão completa).
+     - *Próximas Aulas (~5 colunas):* Aulas imediatas com avatar de professor/turma, horário, duração e badge visual do status do Zoom (Disponível vs. Pendente).
+  4. *Esteira Pedagógica Integrada (4 cards compactos):* Self Presentation, Avaliações & Módulos, Flashcards SRS e Comunidade & Reconhecimento Físico.
+  5. *Acompanhamento Pedagógico & Evolução Escolar:*
+     - *Alunos em Acompanhamento (~6 colunas):* Alunos que necessitam de intervenção ou apoio pedagógico, com taxa de frequência, progresso e link para prontuário individual.
+     - *Evolução de Alunos (~6 colunas):* Gráfico SVG limpo com gradiente roxo, tooltips interativos e resumo de novos alunos e retenção em 2026.
+- **Consistência Curricular e Temporal:** Purga definitiva de menções legadas a disciplinas estranhas à escola ("Matemática", "Português", "Ciências") e datas de 2025, garantindo total alinhamento com a identidade de escola exclusiva de inglês do Método Paulo.
 
 ---
 

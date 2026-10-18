@@ -248,13 +248,21 @@ A fila de estudos (`obterFilaEstudoBaralho`) implementa uma esteira estrita de p
 - **Flag Central:** `NEXT_PUBLIC_DEMO_MODE=true` (em `src/lib/demoMode.ts`).
 - **Comportamento em Modo Demonstrativo (`true`):**
   - Seletor visual `DemoRoleSwitcher` disponível.
-  - Aluno demonstrativo `alu-001` (Mariana Oliveira) pré-selecionado para navegação fluida.
-  - Sementes ricas carregadas automaticamente no `localStorage`.
-- **Comportamento em Modo de Produção (`false`):**
-  - Oculta o seletor `DemoRoleSwitcher`.
-  - Bloqueia acessos por simples troca de URL renderizando a tela de aviso `ModoProducaoAviso`.
-  - Impede a presunção automática de `alu-001` nas camadas de dados (`api.ts`).
-  - Não inicializa dados fictícios e não simula login estático com senhas falsas.
+### 4.7. Motor de Priorização da Fila Administrativa (`src/data/adminPendenciasMotor.ts`)
+- **Natureza Pura e Determinística:** Função `calcularFilaPendenciasAdmin(dados)` independente de estado de interface React, sem efeitos colaterais e testada por suíte dedicada.
+- **Hierarquia de 7 Prioridades:**
+  1. `denuncia_comunidade`: Moderação de segurança e integridade (urgência máxima).
+  2. `self_presentation`: Nivelamento oral submetido aguardando avaliação e parecer do professor.
+  3. `aula_sem_zoom`: Aula nas próximas 24 horas sem link de reunião verificado.
+  4. `validacao_modulo`: Módulo com 100% dos critérios cumpridos aguardando barreira humana.
+  5. `avaliacao_pratica`: Avaliação discursiva/prática entregue aguardando correção docente.
+  6. `atividade_pratica`: Atividade prática pendente de análise pedagógica.
+  7. `placa_reconhecimento`: Placa de conquista física aguardando solicitação e despacho logístico.
+- **Isolamento de Layout Executivo:**
+  - Sidebar administrativa fixa em desktop (`sticky top-0 h-screen overflow-y-auto`).
+  - Painel dividido em grade de 12 colunas com cartões pareados de mesma altura.
+  - Purga completa de dados demonstrativos incoerentes (substituição de matérias de ensino fundamental por módulos exclusivos de inglês do Método Paulo).
+
 
 ---
 

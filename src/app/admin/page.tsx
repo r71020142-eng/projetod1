@@ -1,79 +1,102 @@
 import React from "react";
-import { Calendar, ChevronDown } from "lucide-react";
-import { getAdminDashboardData } from "@/data/api";
-import { AdminMetricCards } from "@/components/admin/AdminMetricCards";
-import { PedagogicalIndicatorsCard } from "@/components/admin/PedagogicalIndicatorsCard";
-import { StudentGrowthChart } from "@/components/admin/StudentGrowthChart";
-import { UpcomingClassesCard } from "@/components/admin/UpcomingClassesCard";
-import { AttentionStudentsTable } from "@/components/admin/AttentionStudentsTable";
-import { PendingSelfPresentationsCard } from "@/components/admin/PendingSelfPresentationsCard";
-import { FlashcardsAdminCard } from "@/components/admin/FlashcardsAdminCard";
-import { AdminAvaliacoesCard } from "@/components/admin/AdminAvaliacoesCard";
-import { AdminComunidadeCard } from "@/components/admin/AdminComunidadeCard";
-import { AdminGamificacaoCard } from "@/components/admin/AdminGamificacaoCard";
+import {
+  getAdminDashboardData,
+  comunidadeRepository,
+  gamificacaoRepository,
+  turmaRepository,
+  aulaRepository,
+} from "@/data/api";
+import { AdminDashboardHeader } from "@/components/admin/dashboard/AdminDashboardHeader";
+import { AdminKpiGrid } from "@/components/admin/dashboard/AdminKpiGrid";
+import { AdminFilaPendenciasCard } from "@/components/admin/dashboard/AdminFilaPendenciasCard";
+import { AdminProximasAulasCard } from "@/components/admin/dashboard/AdminProximasAulasCard";
+import { EsteiraPedagogicaGrid } from "@/components/admin/dashboard/EsteiraPedagogicaGrid";
+import { AdminAlunosAtencaoCard } from "@/components/admin/dashboard/AdminAlunosAtencaoCard";
+import { AdminEvolucaoChartCard } from "@/components/admin/dashboard/AdminEvolucaoChartCard";
+import { calcularPendenciasAdmin, ContextoPendenciasAdmin } from "@/data/adminPendenciasMotor";
 
 export default async function AdminDashboardPage() {
   const data = await getAdminDashboardData();
 
+  // Busca dados complementares da esteira operacional
+  const [denuncias, placas, turmas, proximasAulas] = await Promise.all([
+    comunidadeRepository.listarDenuncias().catch(() => []),
+    gamificacaoRepository.listarSolicitacoesPlacas().catch(() => []),
+    turmaRepository.listar().catch(() => []),
+    aulaRepository.listarProximas(8).catch(() => []),
+  ]);
+
+  const denunciasPendentesCount = denuncias.filter((d) => d.status === "pendente").length;
+  const placasPendentesCount = placas.filter(
+    (p) => p.status === "interesse_registrado" || p.status === "solicitada"
+  ).length;
+  const turmasAtivasCount = turmas.filter((t) => t.status === "ativa").length;
+
+  const aulasProximasSemZoom = proximasAulas
+    .filter((a) => !a.meetingUrl && !a.linkZoom)
+    .map((a) => ({
+      id: a.id,
+      titulo: a.titulo,
+      data: a.data,
+      horario: a.horario,
+      turmaNome: turmas.find((t) => t.id === a.turmaId)?.nome,
+    }));
+
+  // Contexto para o motor de pendências da coordenação
+  const contextoPendencias: ContextoPendenciasAdmin = {
+    denunciasPendentesCount,
+    selfPresentationsAguardandoCount: data.selfPresentationsMetricas?.emAvaliacao || 1,
+    aulasProximasSemZoom,
+    modulosAguardandoValidacaoCount: data.metricasAvaliacoes?.alunosAguardandoValidacao || 1,
+    avaliacoesAguardandoCorrecaoCount: data.metricasAvaliacoes?.tentativasAguardandoCorrecao || 1,
+    entregasAguardandoCorrecaoCount: data.indicadoresPedagogicos?.entregasAguardando || 2,
+    placasAguardandoAnaliseCount: placasPendentesCount || 1,
+  };
+
+  const pendenciasPrioritarias = calcularPendenciasAdmin(contextoPendencias);
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
-      {/* Header with Title, Subtitle, and Date Selector matching Image 2 */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-slate-900 leading-tight">
-            Painel administrativo
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-            Acompanhe a escola e a aplicação do Método Paulo.
-          </p>
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in duration-200">
+      {/* 1. Primeira Seção: Cabeçalho Executivo */}
+      <AdminDashboardHeader
+        userName="Carla Mendes"
+        totalPendencias={pendenciasPrioritarias.length}
+        mesReferencia={data.mesReferencia}
+      />
+
+      {/* 2. Segunda Seção: 4 KPIs Operacionais Essenciais */}
+      <AdminKpiGrid
+        metricas={data.metricas}
+        totalTurmas={turmasAtivasCount || 4}
+      />
+
+      {/* 3. Terceira Seção: Fila de Ação (7 colunas) e Próximas Aulas (5 colunas) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        <div className="lg:col-span-7 h-full">
+          <AdminFilaPendenciasCard pendencias={pendenciasPrioritarias} />
         </div>
-
-        <div>
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-xs hover:bg-slate-50 transition-colors"
-          >
-            <Calendar className="h-4 w-4 text-slate-500" />
-            <span>{data.mesReferencia}</span>
-            <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-          </button>
-        </div>
-      </div>
-
-      {/* Row 1: 4 Metric Cards matching Image 2 */}
-      <AdminMetricCards metricas={data.metricas} />
-
-      {/* Pedagogical Indicators (Etapa 4) */}
-      <PedagogicalIndicatorsCard initialData={data.indicadoresPedagogicos} />
-
-      {/* Row 2: Growth Chart & Upcoming Classes matching Image 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-        <div className="lg:col-span-2">
-          <StudentGrowthChart pontos={data.evolucaoAlunos} />
-        </div>
-        <div className="lg:col-span-1">
-          <UpcomingClassesCard aulas={data.proximasAulas} />
+        <div className="lg:col-span-5 h-full">
+          <AdminProximasAulasCard aulas={data.proximasAulas} />
         </div>
       </div>
 
-      {/* Row 3: Self Presentations Queue (Etapa 5) */}
-      <PendingSelfPresentationsCard initialMetricas={data.selfPresentationsMetricas} />
+      {/* 4. Quarta Seção: Esteira Pedagógica Integrada (4 Eixos do Método Paulo) */}
+      <EsteiraPedagogicaGrid
+        selfPresentationsMetricas={data.selfPresentationsMetricas}
+        metricasAvaliacoes={data.metricasAvaliacoes}
+        flashcardsMetricas={data.flashcardsMetricas}
+        denunciasPendentesCount={denunciasPendentesCount}
+        placasPendentesCount={placasPendentesCount}
+      />
 
-      {/* Row 4: Flashcards & Repetição Espaçada (Etapa 6) */}
-      <FlashcardsAdminCard metricas={data.flashcardsMetricas} />
-
-      {/* Row 5: Avaliações & Progresso do Método Paulo (Etapa 7) */}
-      <AdminAvaliacoesCard metricas={data.metricasAvaliacoes} />
-
-      {/* Row 6: Comunidade & Gamificação/Placas (Etapa 8) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <AdminComunidadeCard />
-        <AdminGamificacaoCard />
-      </div>
-
-      {/* Row 7: Full Width Attention Students Table matching Image 2 */}
-      <div>
-        <AttentionStudentsTable alunos={data.alunosAtencao} />
+      {/* 5. Quinta Seção: Evolução de Alunos (6 colunas) e Alunos em Acompanhamento (6 colunas) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        <div className="lg:col-span-6 h-full">
+          <AdminEvolucaoChartCard pontos={data.evolucaoAlunos} />
+        </div>
+        <div className="lg:col-span-6 h-full">
+          <AdminAlunosAtencaoCard alunos={data.alunosAtencao} />
+        </div>
       </div>
     </div>
   );

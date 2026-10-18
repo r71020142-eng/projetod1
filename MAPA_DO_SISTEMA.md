@@ -38,7 +38,7 @@ Toda a persistência local (28 chaves em `localStorage`) está estritamente enca
 ### 2.2 Área Administrativa e Coordenação (`/admin`)
 | Rota | Tipo | Finalidade Principal |
 | :--- | :--- | :--- |
-| `/admin` | Estática / SSR | Dashboard executivo com métricas pedagógicas consolidadas, fila de avaliações e gráficos operacionais. |
+| `/admin` | Estática / SSR | Central executiva de governança: Cabeçalho com pendências em tempo real, 4 KPIs operacionais, Fila de prioridades com 7 níveis (`adminPendenciasMotor.ts`), Próximas aulas e status do Zoom, Esteira pedagógica integrada (4 eixos), Alunos em acompanhamento e Gráfico de evolução 2026. |
 | `/admin/alunos` | Estática / SSR | Cadastro de alunos, listagem com busca, filtros por nível e status de matrícula. |
 | `/admin/alunos/[id]` | Dinâmica | Prontuário pedagógico do aluno: turmas vinculadas, frequência real, histórico de níveis e observações internas. |
 | `/admin/professores` | Estática / SSR | Cadastro de docentes, idiomas ministrados, biografia e carga horária. |
@@ -141,15 +141,13 @@ A integridade do sistema é sustentada por relacionamentos estritos entre identi
 * **Self Presentation Ativa:** Carregada de `selfPresentationRepository.obterAtivaParaAluno("alu-001")`.
 * **Progresso da Jornada:** Carregado de `progressoModuloRepository.obterProgressoJornadaAluno("alu-001")`, mapeando critérios concluídos pelo aluno versus critérios totais exigidos pelo Método Paulo.
 
-### 5.2 Dashboard Administrativo (`/admin` • `getAdminDashboardData()`)
-* **Total de Alunos Ativos:** Contagem de alunos com status `"ativo"` em `alunoRepository.listar()`.
-* **Total de Professores:** Contagem de professores ativos em `professorRepository.listar()`.
-* **Aulas Agendadas:** Contagem de aulas futuras em `aulaRepository.listar()`.
-* **Frequência Geral da Escola:** Calculada via fórmula estrita `(presentes / (presentes + ausentes)) * 100`. Faltas justificadas e presenças não registradas não penalizam o percentual.
-* **Fila de Correção de Atividades:** Entregas com status `"aguardando_correcao"` em `entregaRepository`.
-* **Fila de Self Presentations:** Submissões com status `"pendente"` ou `"em_analise"` em `selfPresentationRepository`.
-* **Fila de Avaliações Práticas:** Tentativas com status `"aguardando_correcao"` em `tentativaAvaliacaoRepository`.
-* **Solicitações de Placas:** Contagem de placas em status `"solicitada"`, `"em_analise"` ou `"em_producao"` em `gamificacaoRepository`.
+### 5.2 Dashboard Administrativo (`/admin` • `getAdminDashboardData()` + `adminPendenciasMotor.ts`)
+* **KPIs Operacionais:** Alunos ativos (`alunoRepository`), professores ativos (`professorRepository`), turmas ativas (`turmaRepository`) e frequência consolidada da escola.
+* **Fila de Prioridades e Pendências Imediatas (`adminPendenciasMotor.ts`):** Motor determinístico que agrega denúncias não resolvidas (`comunidadeRepository`), nivelamentos orais pendentes (`selfPresentationRepository`), aulas em 24h sem Zoom (`aulaRepository`), módulos em 100% aguardando validação docente (`progressoModuloRepository`), avaliações práticas pendentes (`tentativaAvaliacaoRepository`), atividades práticas entregues (`entregaRepository`) e placas em análise (`gamificacaoRepository`).
+* **Próximas Aulas e Zoom:** Próximas aulas agendadas com checagem de link HTTPS válido, exibindo status "Zoom verificado" ou "Pendente".
+* **Esteira Pedagógica Integrada (4 Eixos):** Métricas consolidadas em tempo real de Self Presentation, Avaliações e Módulos do Método Paulo, Flashcards SRS e Comunidade/Placas de Reconhecimento.
+* **Alunos em Acompanhamento:** Filtragem de discentes com frequência crítica ou progresso abaixo do esperado para intervenção direta.
+* **Evolução de Alunos 2026:** Série temporal SVG dos alunos ativos e novos ingressos em 2026 (Maio a Outubro de 2026) sem dados legados de 2025.
 
 ---
 
