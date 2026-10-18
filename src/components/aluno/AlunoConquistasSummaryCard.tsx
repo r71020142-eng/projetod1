@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ConquistaConcedida, SolicitacaoPlacaFisica } from "@/types";
 import { gamificacaoRepository } from "@/data/api";
-import { Trophy, Award, Sparkles, ArrowRight, ShieldCheck } from "lucide-react";
+import { Trophy, Award, Star, ArrowRight, ShieldCheck } from "lucide-react";
 
 interface AlunoConquistasSummaryCardProps {
   alunoId?: string;
@@ -69,7 +69,7 @@ export function AlunoConquistasSummaryCard({
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div className="p-3 bg-white/5 rounded-2xl border border-white/10 space-y-0.5">
               <span className="text-[11px] text-slate-300 flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-amber-400" />
+                <Star className="w-3 h-3 text-amber-400" />
                 Pontos de Estudo
               </span>
               <span className="text-xl font-extrabold text-amber-300">{pontos}</span>

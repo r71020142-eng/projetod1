@@ -7,7 +7,7 @@ import {
   Plus,
   ArrowRight,
   Clock,
-  Sparkles,
+  Mic,
   RotateCcw,
   CheckCircle2,
   ShieldCheck,
@@ -128,7 +128,7 @@ export default function AlunoSelfPresentationPage() {
       <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white shadow-md space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-purple-200 text-xs font-bold border border-white/10">
-            <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+            <Mic className="h-3.5 w-3.5 text-amber-300" />
             <span>Rito Central de Fluência Oral • Método Paulo</span>
           </div>
 
@@ -270,7 +270,7 @@ export default function AlunoSelfPresentationPage() {
           {ativa.status === "em_avaliacao" && (
             <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-200 text-xs text-indigo-900 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-indigo-600 animate-pulse shrink-0" />
+                <Clock className="h-4 w-4 text-indigo-600 shrink-0" />
                 <span>
                   O professor <strong>{ativa.professorAvaliadorNome || "MTD"}</strong> está analisando seu vídeo e aplicando as rubricas.
                 </span>

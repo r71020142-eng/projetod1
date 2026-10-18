@@ -178,7 +178,7 @@ export function ModeloConquistaFormModal({
                 <option value="Compass">Compass (Bússola / Início)</option>
                 <option value="CheckCircle">CheckCircle (Conclusão de Módulo)</option>
                 <option value="MessageSquare">MessageSquare (Comunidade)</option>
-                <option value="Sparkles">Sparkles (Especial)</option>
+                <option value="Target">Target (Meta / Foco)</option>
                 <option value="Star">Star (Estrela)</option>
               </select>
             </div>

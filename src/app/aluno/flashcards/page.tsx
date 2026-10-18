@@ -17,7 +17,6 @@ import {
   Layers,
   Flame,
   Clock,
-  Sparkles,
   Search,
   CheckCircle,
   Play,
@@ -172,7 +171,7 @@ export default function AlunoFlashcardsPage() {
         {/* Novos Disponíveis */}
         <div className="p-5 bg-white rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
           <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shrink-0">
-            <Sparkles className="w-6 h-6" />
+            <Layers className="w-6 h-6" />
           </div>
           <div>
             <div className="text-2xl font-black text-gray-900">

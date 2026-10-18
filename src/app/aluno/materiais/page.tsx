@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   BookOpen,
   CheckSquare,
-  Sparkles,
   Search,
   Clock,
   ChevronRight,
@@ -155,7 +154,7 @@ export default function AlunoMateriaisPage() {
         <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white shadow-md relative overflow-hidden">
           <div className="relative z-10 space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-purple-200 text-xs font-bold border border-white/10">
-              <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+              <BookOpen className="h-3.5 w-3.5 text-amber-300" />
               <span>Prática de Hoje • Método Paulo</span>
             </div>
 

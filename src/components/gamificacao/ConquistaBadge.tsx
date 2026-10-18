@@ -9,7 +9,6 @@ import {
   MessageSquare,
   ShieldCheck,
   Trophy,
-  Sparkles,
   Star,
   Target,
 } from "lucide-react";
@@ -38,7 +37,7 @@ export function ConquistaBadge({
     MessageSquare,
     ShieldCheck,
     Trophy,
-    Sparkles,
+    Sparkles: Star,
     Star,
     Target,
   };

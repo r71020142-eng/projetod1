@@ -9,7 +9,7 @@ import { ConquistaBadge } from "@/components/gamificacao/ConquistaBadge";
 import { ModeloConquistaFormModal } from "@/components/gamificacao/ModeloConquistaFormModal";
 import {
   ArrowLeft,
-  Sparkles,
+  Award,
   Settings,
   Users,
   CheckCircle2,
@@ -102,7 +102,7 @@ export default function AdminConquistaDetalhePage() {
 
           <div className="text-right">
             <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-              <Sparkles className="w-3 h-3 text-amber-600" />
+              <Award className="w-3 h-3 text-amber-600" />
               +{modelo.pontosRecompensa} pts
             </span>
             <span className="block text-[11px] text-slate-400 mt-1">Status: {modelo.status}</span>

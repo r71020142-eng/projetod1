@@ -22,7 +22,6 @@ import {
   Globe,
   Plus,
   Plane,
-  Sparkles,
   Search,
   Filter,
   ExternalLink,
@@ -298,7 +297,7 @@ export default function AlunoComunidadePage() {
         <div className="space-y-4">
           <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-3xl text-xs space-y-1">
             <h3 className="font-bold text-indigo-950 flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-indigo-600" />
+              <Globe className="w-4 h-4 text-indigo-600" />
               Programas de Imersão e Intercâmbio MTD
             </h3>
             <p className="text-indigo-800 leading-relaxed text-[11px]">

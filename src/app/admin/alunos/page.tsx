@@ -13,7 +13,7 @@ import {
   UserCheck,
   X,
   CheckCircle2,
-  Sparkles,
+  Database,
 } from "lucide-react";
 import { Aluno, NivelAluno, StatusCadastro } from "@/types";
 import { alunoRepository } from "@/data/alunoRepository";
@@ -216,7 +216,7 @@ export default function AdminAlunosPage() {
       <div className="rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/70 to-purple-50/40 p-4 text-xs text-indigo-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-2xs">
-            <Sparkles className="h-4 w-4" />
+            <Database className="h-4 w-4" />
           </div>
           <div>
             <p className="font-bold text-indigo-900">

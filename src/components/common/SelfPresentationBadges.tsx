@@ -7,7 +7,6 @@ import {
   AlertCircle,
   FileText,
   RotateCcw,
-  Sparkles,
   Award,
 } from "lucide-react";
 import { StatusSelfPresentation, TipoSelfPresentation } from "@/types";
@@ -45,7 +44,7 @@ export function StatusSelfPresentationBadge({
         <span
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 ${className}`}
         >
-          <Sparkles className="h-3.5 w-3.5 text-indigo-600 animate-pulse" />
+          <Clock className="h-3.5 w-3.5 text-indigo-600" />
           <span>Em Avaliação</span>
         </span>
       );

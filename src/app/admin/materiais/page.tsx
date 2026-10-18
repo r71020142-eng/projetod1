@@ -6,7 +6,7 @@ import {
   BookOpen,
   CheckSquare,
   FileCheck,
-  Sparkles,
+  CalendarDays,
   Plus,
   Search,
   Eye,
@@ -345,7 +345,7 @@ export default function AdminMateriaisPage() {
 
         <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center gap-3.5">
           <div className="h-11 w-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-            <Sparkles className="h-5 w-5" />
+            <CalendarDays className="h-5 w-5" />
           </div>
           <div>
             <p className="text-xs text-slate-500 font-medium">Conteúdos Agendados</p>
@@ -406,7 +406,7 @@ export default function AdminMateriaisPage() {
               : "border-transparent text-slate-500 hover:text-slate-800"
           }`}
         >
-          <Sparkles className="h-4 w-4" />
+          <CalendarDays className="h-4 w-4" />
           <span>Conteúdos Diários ({conteudosDiarios.length})</span>
         </button>
       </div>
@@ -767,7 +767,7 @@ export default function AdminMateriaisPage() {
         <div>
           {conteudosDiarios.length === 0 ? (
             <div className="p-12 text-center rounded-2xl bg-white border border-dashed border-slate-200 text-slate-500">
-              <Sparkles className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+              <CalendarDays className="h-8 w-8 text-slate-300 mx-auto mb-2" />
               <p className="text-sm font-semibold">Nenhum estímulo diário cadastrado</p>
             </div>
           ) : (

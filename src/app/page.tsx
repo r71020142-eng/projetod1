@@ -4,7 +4,7 @@ import {
   UserCheck,
   ShieldAlert,
   ArrowRight,
-  Sparkles,
+  GraduationCap,
   FileCode,
   CheckCircle2,
 } from "lucide-react";
@@ -22,7 +22,7 @@ export default function RootPage() {
 
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 border border-indigo-100">
-              <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+              <GraduationCap className="h-3.5 w-3.5 text-indigo-600" />
               Etapa 1 Concluída
             </span>
           </div>

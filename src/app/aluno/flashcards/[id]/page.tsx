@@ -20,7 +20,7 @@ import {
   ArrowLeft,
   Play,
   Clock,
-  Sparkles,
+  Layers,
   RotateCw,
   CheckCircle,
   Volume2,
@@ -196,7 +196,7 @@ export default function AlunoBaralhoDetalhePage() {
 
           <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-100 flex items-center gap-3">
             <div className="p-2.5 bg-emerald-100 text-emerald-700 rounded-xl">
-              <Sparkles className="w-5 h-5" />
+              <Layers className="w-5 h-5" />
             </div>
             <div>
               <div className="text-xl font-black text-emerald-900">

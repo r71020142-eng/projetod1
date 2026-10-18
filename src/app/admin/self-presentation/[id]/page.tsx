@@ -8,7 +8,7 @@ import {
   Video,
   ExternalLink,
   ShieldCheck,
-  Sparkles,
+  Target,
   RotateCcw,
   CheckCircle2,
   AlertTriangle,
@@ -523,7 +523,7 @@ export default function AdminSelfPresentationDetailPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 text-purple-700 text-xs font-bold mb-2">
-              <Sparkles className="h-3.5 w-3.5 text-purple-600" />
+              <Target className="h-3.5 w-3.5 text-purple-600" />
               <span>Rubrica de Avaliação Oral • Método Paulo</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">

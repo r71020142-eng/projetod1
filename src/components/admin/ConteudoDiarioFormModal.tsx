@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Sparkles, AlertCircle } from "lucide-react";
+import { X, CalendarDays, AlertCircle } from "lucide-react";
 import {
   ConteudoDiario,
   StatusConteudoDiario,
@@ -122,7 +122,7 @@ export function ConteudoDiarioFormModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
           <div className="flex items-center gap-2.5">
             <div className="h-9 w-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
-              <Sparkles className="h-5 w-5" />
+              <CalendarDays className="h-5 w-5" />
             </div>
             <div>
               <h2 id="diario-modal-title" className="text-base font-bold text-slate-800">

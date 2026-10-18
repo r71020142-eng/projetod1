@@ -12,7 +12,7 @@ import {
   MessageCircle,
   ThumbsUp,
   Heart,
-  Sparkles,
+  Trophy,
   ExternalLink,
   AlertTriangle,
   ShieldAlert,
@@ -282,7 +282,7 @@ export function PublicacaoCard({
             }`}
             title="Parabenizar (1 reação por usuário)"
           >
-            <Sparkles className={`w-3.5 h-3.5 ${reacaoUsuarioLocal === "parabens" ? "fill-amber-500 text-amber-500" : "text-amber-500"}`} />
+            <Trophy className={`w-3.5 h-3.5 ${reacaoUsuarioLocal === "parabens" ? "fill-amber-500 text-amber-500" : "text-amber-500"}`} />
             <span>Parabéns</span>
             {(reacoesLocais.parabens || 0) > 0 && (
               <span className="ml-0.5 font-bold text-slate-900">

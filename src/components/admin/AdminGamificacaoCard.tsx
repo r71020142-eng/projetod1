@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { MetricasGamificacaoAdmin } from "@/types";
 import { gamificacaoRepository } from "@/data/api";
-import { Trophy, Award, Sparkles, ArrowRight } from "lucide-react";
+import { Trophy, Award, Star, ArrowRight } from "lucide-react";
 
 export function AdminGamificacaoCard() {
   const [metricas, setMetricas] = useState<MetricasGamificacaoAdmin | null>(null);
@@ -62,7 +62,7 @@ export function AdminGamificacaoCard() {
 
           <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-0.5">
             <span className="text-[11px] text-slate-500 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-amber-600" />
+              <Star className="w-3 h-3 text-amber-600" />
               Pontos Distribuídos
             </span>
             <span className="text-lg font-bold text-slate-900">

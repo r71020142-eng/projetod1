@@ -11,7 +11,7 @@ import { SolicitarPlacaModal } from "@/components/gamificacao/SolicitarPlacaModa
 import {
   ArrowLeft,
   Trophy,
-  Sparkles,
+  Award,
   CheckCircle2,
   Lock,
 } from "lucide-react";
@@ -116,7 +116,7 @@ export default function AlunoConquistaDetalhePage() {
 
           <div className="text-right">
             <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-              <Sparkles className="w-3 h-3 text-amber-600" />
+              <Award className="w-3 h-3 text-amber-600" />
               +{modelo.pontosRecompensa} pts
             </span>
 

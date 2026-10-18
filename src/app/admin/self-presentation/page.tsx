@@ -6,7 +6,7 @@ import {
   Video,
   Search,
   Clock,
-  Sparkles,
+  UserCheck,
   RotateCcw,
   CheckCircle2,
   ArrowUpDown,
@@ -201,7 +201,7 @@ export default function AdminSelfPresentationPage() {
               Em Avaliação
             </span>
             <div className="p-2 rounded-xl bg-indigo-100 text-indigo-700">
-              <Sparkles className="h-4 w-4" />
+              <Clock className="h-4 w-4" />
             </div>
           </div>
           <div className="text-3xl font-black text-indigo-950">{metricas.emAvaliacao}</div>
@@ -428,7 +428,7 @@ export default function AdminSelfPresentationPage() {
                         disabled={loadingActionId === sp.id}
                         className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-2xs disabled:opacity-50"
                       >
-                        <Sparkles className="h-3.5 w-3.5" />
+                        <UserCheck className="h-3.5 w-3.5" />
                         <span>
                           {loadingActionId === sp.id
                             ? "Assumindo..."

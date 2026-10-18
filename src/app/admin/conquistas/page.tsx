@@ -16,7 +16,7 @@ import { GerenciarPlacaModal } from "@/components/gamificacao/GerenciarPlacaModa
 import {
   Trophy,
   Award,
-  Sparkles,
+  FileText,
   Plus,
   Search,
   Filter,
@@ -207,7 +207,7 @@ export default function AdminConquistasPage() {
 
         <div className="p-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs space-y-1">
           <span className="text-slate-500 text-[11px] font-semibold flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <FileText className="w-3.5 h-3.5 text-amber-500" />
             Total de Solicitações
           </span>
           <span className="text-xl font-extrabold text-slate-900">{placas.length}</span>

@@ -6,7 +6,7 @@ import {
   CheckSquare,
   Clock,
   AlertCircle,
-  Sparkles,
+  CalendarDays,
   ArrowRight,
   BookOpen,
 } from "lucide-react";
@@ -107,7 +107,7 @@ export function PedagogicalIndicatorsCard({ initialData }: PedagogicalIndicators
       label: "Conteúdos agendados",
       value: data.conteudosAgendados,
       subtext: "Estímulos diários futuros",
-      icon: Sparkles,
+      icon: CalendarDays,
       color: "text-sky-600 bg-sky-50 border-sky-100",
       badgeColor: "bg-sky-100 text-sky-700",
       href: "/admin/materiais",

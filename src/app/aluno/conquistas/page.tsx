@@ -25,7 +25,6 @@ import { SolicitarPlacaModal } from "@/components/gamificacao/SolicitarPlacaModa
 import {
   Trophy,
   Award,
-  Sparkles,
   Flame,
   Clock,
   X,
@@ -191,7 +190,7 @@ export default function AlunoConquistasPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
         <div className="p-4 bg-gradient-to-br from-indigo-950 to-slate-900 text-white rounded-3xl shadow-xs space-y-1">
           <span className="text-slate-300 text-[11px] font-semibold flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <Award className="w-3.5 h-3.5 text-amber-400" />
             Pontos de Dedicação
           </span>
           <span className="text-2xl font-extrabold text-amber-300">{pontos}</span>

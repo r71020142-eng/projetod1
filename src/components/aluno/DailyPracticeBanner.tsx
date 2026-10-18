@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { BookOpen, ArrowRight } from "lucide-react";
 import { ConteudoDiario } from "@/types";
 
 interface DailyPracticeBannerProps {
@@ -16,7 +16,7 @@ export function DailyPracticeBanner({ pratica }: DailyPracticeBannerProps) {
     <div className="rounded-2xl border border-purple-200/80 bg-gradient-to-r from-purple-50/90 via-indigo-50/50 to-white p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div className="flex items-start sm:items-center gap-3.5">
         <div className="p-2.5 rounded-xl bg-purple-600 text-white shadow-xs shrink-0">
-          <Sparkles className="h-5 w-5" />
+          <BookOpen className="h-5 w-5" />
         </div>
 
         <div className="space-y-1">

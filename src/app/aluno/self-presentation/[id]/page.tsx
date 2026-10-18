@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import {
   ArrowLeft,
   Video,
-  Sparkles,
+  Clock,
   RotateCcw,
   CheckCircle2,
   AlertTriangle,
@@ -269,7 +269,7 @@ export default function AlunoSelfPresentationDetailPage() {
         {/* In Progress Status (enviada or em_avaliacao) */}
         {(sp.status === "enviada" || sp.status === "em_avaliacao") && (
           <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-3">
-            <Sparkles className="h-8 w-8 text-purple-600 animate-pulse mx-auto" />
+            <Clock className="h-8 w-8 text-purple-600 mx-auto" />
             <div className="space-y-1 max-w-md mx-auto">
               <h3 className="text-base font-bold text-slate-900">
                 {sp.status === "em_avaliacao"

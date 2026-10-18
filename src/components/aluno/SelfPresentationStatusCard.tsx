@@ -6,7 +6,6 @@ import {
   Video,
   ArrowRight,
   Clock,
-  Sparkles,
   RotateCcw,
   CheckCircle2,
   Award,
@@ -152,7 +151,7 @@ export function SelfPresentationStatusCard({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-800 border border-indigo-200">
-              <Sparkles className="h-3 w-3 text-indigo-600 animate-pulse" />
+              <Clock className="h-3 w-3 text-indigo-600" />
               Em Avaliação Ativa
             </span>
             <span className="text-[10px] text-indigo-700 font-medium">

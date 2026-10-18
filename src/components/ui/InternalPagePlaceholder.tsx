@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { ArrowLeft, Clock, Sparkles, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle2 } from "lucide-react";
 import { PageHeader } from "./PageHeader";
 
 interface InternalPagePlaceholderProps {
@@ -54,7 +54,7 @@ export function InternalPagePlaceholder({
             </div>
             <div className="space-y-2">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 border border-amber-200/60">
-                <Sparkles className="h-3.5 w-3.5" />
+                <CheckCircle2 className="h-3.5 w-3.5" />
                 Estrutura visual preparada • {etapaPrevista}
               </span>
               <h2 className="text-lg font-bold text-slate-900">

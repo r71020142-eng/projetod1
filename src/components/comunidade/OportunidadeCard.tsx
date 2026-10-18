@@ -10,7 +10,7 @@ import {
   Calendar,
   ExternalLink,
   CheckCircle2,
-  Sparkles,
+  Compass,
 } from "lucide-react";
 
 interface OportunidadeCardProps {
@@ -134,7 +134,7 @@ export function OportunidadeCard({
                 onClick={() => setModalAberto(true)}
                 className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition inline-flex items-center gap-1.5"
               >
-                <Sparkles className="w-3.5 h-3.5" />
+                <Compass className="w-3.5 h-3.5" />
                 <span>Demonstrar Interesse</span>
               </button>
             )}

@@ -14,7 +14,6 @@ import {
   VolumeX,
   ExternalLink,
   RotateCw,
-  Sparkles,
 } from "lucide-react";
 
 interface FlashcardStudyCardProps {
@@ -224,7 +223,7 @@ export function FlashcardStudyCard({
               {/* Guia de Pronúncia / Fonética */}
               {cartao.pronuncia && (
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-600 font-mono">
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                  <Volume2 className="w-3.5 h-3.5 text-indigo-500" />
                   <span>Pronúncia: {cartao.pronuncia}</span>
                 </div>
               )}

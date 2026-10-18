@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { ModeloConquista, ConquistaConcedida } from "@/types";
 import { ConquistaBadge } from "./ConquistaBadge";
-import { CheckCircle2, Lock, Sparkles, Trophy, ExternalLink } from "lucide-react";
+import { CheckCircle2, Lock, Award, Trophy, ExternalLink } from "lucide-react";
 
 interface ConquistaCardProps {
   modelo: ModeloConquista;
@@ -56,7 +56,7 @@ export function ConquistaCard({
 
           <div className="text-right">
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-              <Sparkles className="w-3 h-3 text-amber-600" />
+              <Award className="w-3 h-3 text-amber-600" />
               +{modelo.pontosRecompensa} pts
             </span>
 
