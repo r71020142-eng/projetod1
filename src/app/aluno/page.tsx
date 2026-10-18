@@ -103,42 +103,45 @@ export default async function AlunoDashboardPage() {
   const acoesPlano = calcularPlanoDiario(contextoPlano);
 
   return (
-    <div className="space-y-4 max-w-[1360px] mx-auto pb-12 animate-in fade-in duration-200">
-      {/* 1. Primeira Seção: Boas-vindas compacta e institucional */}
-      <DashboardBoasVindas
-        nomeAluno={data.aluno.name}
-        totalAcoesHoje={acoesPlano.length}
-        streakWeeks={data.aluno.streakWeeks}
-        streakDays={data.flashcardsResumo?.sequenciaDias}
-      />
+    <div className="max-w-[1360px] mx-auto animate-in fade-in duration-200">
+      {/* 4 Seções Principais da Primeira Dobra */}
+      <div className="space-y-4">
+        {/* 1. Primeira Seção: Boas-vindas compacta e institucional */}
+        <DashboardBoasVindas
+          nomeAluno={data.aluno.name}
+          totalAcoesHoje={acoesPlano.length}
+          streakWeeks={data.aluno.streakWeeks}
+          streakDays={data.flashcardsResumo?.sequenciaDias}
+        />
 
-      {/* 2. Segunda Seção: Próxima Aula (~62%) e Meu Plano de Hoje (~38%) */}
-      <div className="flex flex-col lg:flex-row gap-4 items-stretch">
-        <div className="w-full lg:w-[62%] h-full">
-          <ProximaAulaCard aula={data.proximaAula} />
+        {/* 2. Segunda Seção: Próxima Aula (~62%) e Meu Plano de Hoje (~38%) */}
+        <div className="flex flex-col lg:flex-row gap-4 items-stretch">
+          <div className="w-full lg:w-[62%] h-full">
+            <ProximaAulaCard aula={data.proximaAula} />
+          </div>
+          <div className="w-full lg:w-[38%] h-full">
+            <MeuPlanoHojeCard acoes={acoesPlano} />
+          </div>
         </div>
-        <div className="w-full lg:w-[38%] h-full">
-          <MeuPlanoHojeCard acoes={acoesPlano} />
-        </div>
+
+        {/* 3. Terceira Seção: Faixa Única de Indicadores (4 colunas com divisores) */}
+        <ResumoRapidoGrid
+          percentualModulo={
+            data.progressoJornada?.percentualConclusaoModulo ?? data.aluno.journeyProgress
+          }
+          nomeModulo={data.progressoJornada?.moduloAtualNome ?? data.aluno.currentModule}
+          totalAtividadesPendentes={data.atividadesPendentes.filter((a) => !a.concluida).length}
+          totalFlashcardsParaRevisar={data.flashcardsResumo?.totalParaRevisarHoje ?? 0}
+          pontosTotais={pontosData.pontosTotais || 350}
+          streakWeeks={data.aluno.streakWeeks}
+        />
+
+        {/* 4. Quarta Seção: Faixa Horizontal Compacta Jornada MTD */}
+        <JornadaCompactCard progresso={data.progressoJornada} />
       </div>
 
-      {/* 3. Terceira Seção: Faixa Única de Indicadores (4 colunas com divisores) */}
-      <ResumoRapidoGrid
-        percentualModulo={
-          data.progressoJornada?.percentualConclusaoModulo ?? data.aluno.journeyProgress
-        }
-        nomeModulo={data.progressoJornada?.moduloAtualNome ?? data.aluno.currentModule}
-        totalAtividadesPendentes={data.atividadesPendentes.filter((a) => !a.concluida).length}
-        totalFlashcardsParaRevisar={data.flashcardsResumo?.totalParaRevisarHoje ?? 0}
-        pontosTotais={pontosData.pontosTotais || 350}
-        streakWeeks={data.aluno.streakWeeks}
-      />
-
-      {/* 4. Quarta Seção: Faixa Horizontal Compacta Jornada MTD */}
-      <JornadaCompactCard progresso={data.progressoJornada} />
-
-      {/* 5. Painel Complementar: Atualizações Recentes & Dedicação Semanal (100% Preservados) */}
-      <div className="pt-4 mt-6 border-t border-[#DDDDE5]/60 space-y-4">
+      {/* 5. Painel Complementar: Atualizações Recentes & Dedicação Semanal (Preservados) */}
+      <div className="pt-8 mt-28 border-t border-[#DDDDE5]/60 space-y-4 pb-12">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold text-[#60708F] uppercase tracking-[0.2em] font-sans">
             Histórico Pedagógico e Evolução

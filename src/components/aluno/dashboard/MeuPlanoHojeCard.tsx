@@ -3,16 +3,13 @@
 import React from "react";
 import Link from "next/link";
 import {
-  AlertTriangle,
-  AlertCircle,
   Video,
   FileCheck,
-  Calendar,
   Layers,
   Compass,
-  CheckCheck,
-  Award,
+  Check,
   ArrowRight,
+  ChevronRight,
   CheckCircle2,
   Clock,
 } from "lucide-react";
@@ -23,51 +20,64 @@ interface MeuPlanoHojeCardProps {
 }
 
 function renderAcaoIcon(icone: string) {
-  const iconProps = { className: "w-4 h-4 shrink-0" };
-
   switch (icone) {
-    case "AlertTriangle":
-      return <AlertTriangle {...iconProps} className="w-4 h-4 text-rose-600" />;
-    case "AlertCircle":
-      return <AlertCircle {...iconProps} className="w-4 h-4 text-rose-600" />;
-    case "Video":
-      return <Video {...iconProps} className="w-4 h-4 text-[#5B2FE8]" />;
-    case "FileCheck":
-      return <FileCheck {...iconProps} className="w-4 h-4 text-[#D79A24]" />;
-    case "Calendar":
-      return <Calendar {...iconProps} className="w-4 h-4 text-[#D79A24]" />;
     case "Layers":
-      return <Layers {...iconProps} className="w-4 h-4 text-[#5B2FE8]" />;
+      return (
+        <div className="w-8 h-8 rounded-lg bg-[#F3E8FF] text-[#7C3AED] flex items-center justify-center shrink-0">
+          <Layers className="w-4 h-4" />
+        </div>
+      );
     case "Compass":
-      return <Compass {...iconProps} className="w-4 h-4 text-emerald-600" />;
+      return (
+        <div className="w-8 h-8 rounded-lg bg-[#ECFDF5] text-[#059669] flex items-center justify-center shrink-0">
+          <Compass className="w-4 h-4" />
+        </div>
+      );
     case "CheckCheck":
-      return <CheckCheck {...iconProps} className="w-4 h-4 text-blue-600" />;
-    case "Award":
-      return <Award {...iconProps} className="w-4 h-4 text-[#D79A24]" />;
+    case "Check":
+      return (
+        <div className="w-8 h-8 rounded-lg bg-[#ECFDF5] text-[#059669] flex items-center justify-center shrink-0">
+          <Check className="w-4 h-4" />
+        </div>
+      );
+    case "Video":
+      return (
+        <div className="w-8 h-8 rounded-lg bg-[#EDE9FE] text-[#5B2FE8] flex items-center justify-center shrink-0">
+          <Video className="w-4 h-4" />
+        </div>
+      );
+    case "FileCheck":
+      return (
+        <div className="w-8 h-8 rounded-lg bg-[#FFFBEB] text-[#D97706] flex items-center justify-center shrink-0">
+          <FileCheck className="w-4 h-4" />
+        </div>
+      );
     default:
-      return <Clock {...iconProps} className="w-4 h-4 text-[#60708F]" />;
+      return (
+        <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+          <Clock className="w-4 h-4" />
+        </div>
+      );
   }
 }
 
 export function MeuPlanoHojeCard({ acoes }: MeuPlanoHojeCardProps) {
   return (
-    <div className="rounded-[14px] border border-[#DDDDE5] bg-white p-6 shadow-xs flex flex-col justify-between h-full relative group">
-      {/* Linha Lateral Dourada no Topo */}
-      <div className="absolute top-6 left-0 w-1.5 h-8 bg-[#D79A24] rounded-r" />
-
+    <div className="rounded-[14px] border border-[#DDDDE5] bg-white p-5 sm:p-6 shadow-xs flex flex-col justify-between h-full relative group">
       <div>
-        {/* Cabeçalho Editorial */}
+        {/* Cabeçalho Editorial com Barra Dourada */}
         <div className="flex items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2">
-            <h2 className="font-serif text-lg sm:text-xl font-bold text-[#07132E]">
-              Meu plano de hoje
+          <div className="flex items-center gap-2.5">
+            <span className="w-1 h-5 bg-[#EDB84E] rounded-full shrink-0" aria-hidden="true" />
+            <h2 className="font-serif text-base sm:text-lg font-bold tracking-wide text-[#07132E] uppercase">
+              MEU PLANO DE HOJE
             </h2>
-            <span className="inline-flex items-center justify-center ml-2 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#FAF8F3] text-[#D79A24] border border-[#D79A24]/30 whitespace-nowrap">
+            <span className="inline-flex items-center justify-center ml-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#EDE9FE] text-[#5B2FE8] whitespace-nowrap">
               {acoes.length} {acoes.length === 1 ? "ação" : "ações"}
             </span>
           </div>
 
-          <span className="text-[11px] font-semibold text-[#60708F] hidden sm:inline">
+          <span className="text-[11px] font-medium text-[#60708F] hidden sm:inline">
             Prioridade pedagógica
           </span>
         </div>
@@ -99,44 +109,55 @@ export function MeuPlanoHojeCard({ acoes }: MeuPlanoHojeCardProps) {
               return (
                 <div
                   key={`${acao.tipo}-${acao.id}`}
-                  className="relative z-10 flex items-center justify-between gap-3 p-2.5 rounded-[10px] hover:bg-[#FAF8F3] transition-colors group/item"
+                  className="relative z-10 flex items-center justify-between gap-3 p-2 rounded-xl hover:bg-[#FAF8F3] transition-colors group/item"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     {/* Numeração 01, 02, 03 */}
-                    <span className="w-7 h-7 rounded-[8px] bg-[#FAF8F3] border border-[#D79A24] text-[#D79A24] font-bold text-[11px] flex items-center justify-center shrink-0 shadow-2xs font-sans">
+                    <span className="w-7 h-7 rounded-lg bg-[#FFFBEB] border border-[#FDE68A] text-[#D97706] font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs font-sans">
                       {stepNumber}
                     </span>
 
-                    {/* Ícone Quadrado Discreto */}
-                    <div className="w-8 h-8 rounded-[8px] bg-slate-100 border border-slate-200/70 flex items-center justify-center shrink-0 text-slate-700 group-hover/item:border-[#5B2FE8]/30 group-hover/item:bg-[#5B2FE8]/10 transition-colors">
-                      {renderAcaoIcon(acao.icone)}
-                    </div>
+                    {/* Ícone Quadrado Colorido */}
+                    {renderAcaoIcon(acao.icone)}
 
-                    {/* Texto principal, categoria, duração ou quantidade */}
+                    {/* Texto principal e sublinha com badge */}
                     <div className="min-w-0">
                       <Link
                         href={acao.href}
-                        className="text-xs sm:text-sm font-semibold text-[#07132E] group-hover/item:text-[#5B2FE8] transition-colors truncate block"
+                        className="text-xs sm:text-[13px] font-bold text-[#07132E] group-hover/item:text-[#5B2FE8] transition-colors truncate block"
                       >
                         {acao.titulo}
                       </Link>
                       <div className="flex items-center gap-1.5 text-[11px] text-[#60708F] truncate mt-0.5">
                         <span className="truncate">{acao.contexto}</span>
-                        <span>•</span>
-                        <span className="text-[#07132E] font-medium shrink-0">
-                          {acao.prazoOuTempo}
-                        </span>
+                        {acao.tipo === "flashcards" ? (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#EDE9FE] text-[#6D28D9] shrink-0">
+                            4 cartões para hoje
+                          </span>
+                        ) : acao.tipo === "pratica_diaria" ? (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#ECFDF5] text-[#047857] shrink-0">
+                            5 min de foco
+                          </span>
+                        ) : acao.tipo === "feedback" ? (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#ECFDF5] text-[#047857] shrink-0">
+                            Disponível para leitura
+                          </span>
+                        ) : (
+                          <span className="text-[#07132E] font-medium shrink-0">
+                            • {acao.prazoOuTempo}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Botão de seta individual */}
+                  {/* Botão de seta individual ChevronRight */}
                   <Link
                     href={acao.href}
                     aria-label={`${acao.botaoTexto}: ${acao.titulo}`}
-                    className="w-8 h-8 rounded-[8px] border border-[#DDDDE5] hover:border-[#5B2FE8] hover:bg-[#5B2FE8] hover:text-white text-[#07132E] flex items-center justify-center shrink-0 transition-all shadow-2xs"
+                    className="w-8 h-8 rounded-xl border border-slate-200/80 bg-white hover:border-slate-400 flex items-center justify-center shrink-0 transition-all shadow-2xs"
                   >
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover/item:text-slate-700" />
                   </Link>
                 </div>
               );

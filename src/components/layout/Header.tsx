@@ -46,7 +46,7 @@ export function Header({
       : "Buscar alunos, professores, aulas...";
 
   return (
-    <header className="sticky top-0 z-30 flex h-20 w-full items-center justify-between border-b border-[#DDDDE5]/80 bg-white/85 backdrop-blur-md px-4 sm:px-6 lg:px-8 select-none transition-colors">
+    <header className="sticky top-0 z-30 flex h-20 w-full items-center justify-between border-b border-[#E5E2DA] bg-[#FAF8F3]/95 backdrop-blur-md px-4 sm:px-6 lg:px-8 select-none transition-colors">
       {/* Left side: Mobile Toggle & Brand (on mobile only, since desktop has persistent sidebar) */}
       <div className="flex items-center gap-3">
         <button
@@ -84,7 +84,7 @@ export function Header({
       </div>
 
       {/* Center: Search input matching reference */}
-      <div className="hidden md:flex flex-1 max-w-xl mx-4 lg:mx-8">
+      <div className="hidden md:flex flex-1 max-w-lg mx-auto px-4">
         <div className="relative w-full">
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-[#60708F]">
             <Search className="h-4 w-4" />
@@ -92,13 +92,13 @@ export function Header({
           <input
             type="search"
             placeholder={placeholderText}
-            className="w-full rounded-xl border border-[#DDDDE5] bg-white/70 py-2.5 pl-10 pr-4 text-xs sm:text-sm text-[#07132E] placeholder-[#60708F] focus:border-[#5B2FE8] focus:bg-white focus:outline-none transition-colors"
+            className="w-full rounded-xl border border-[#DDDDE5] bg-white py-2 pl-10 pr-4 text-xs sm:text-sm text-[#07132E] placeholder-[#60708F] focus:border-[#5B2FE8] focus:bg-white focus:outline-none transition-colors shadow-2xs"
           />
         </div>
       </div>
 
       {/* Right side: Notification Bell & User Profile matching reference */}
-      <div className="flex items-center gap-4 sm:gap-6">
+      <div className="flex items-center gap-4 sm:gap-6 shrink-0">
         {/* Notification Bell with red badge dot */}
         <button
           type="button"
@@ -136,7 +136,7 @@ export function Header({
             <span className="text-sm font-bold text-[#07132E] leading-tight group-hover:text-[#5B2FE8] transition-colors">
               {userName}
             </span>
-            {userRoleLabel && (
+            {variant === "admin" && userRoleLabel && (
               <span className="text-[11px] text-[#60708F] font-normal leading-tight mt-0.5">
                 {userRoleLabel}
               </span>

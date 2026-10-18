@@ -45,9 +45,9 @@ export function AlunoSidebar({ isOpenMobile, onCloseMobile }: AlunoSidebarProps)
 
   const sidebarInner = (
     <div className="relative h-full w-full overflow-hidden bg-[#06142C] text-white select-none flex flex-col justify-between">
-      {/* Decorative background in its own dedicated layer (FASE 4 - z-index: 0, pointer-events-none, aria-hidden) */}
+      {/* Decorative background in its own dedicated layer */}
       <div
-        className="sidebar-decoration absolute inset-0 z-0 pointer-events-none bg-[url('/assets/mtd/mtd-sidebar-background.svg')] bg-cover bg-center bg-no-repeat"
+        className="sidebar-decoration absolute inset-0 z-0 pointer-events-none bg-[url('/assets/mtd/mtd-sidebar-background.webp')] bg-cover bg-right bg-no-repeat"
         aria-hidden="true"
       />
 
@@ -138,22 +138,17 @@ export function AlunoSidebar({ isOpenMobile, onCloseMobile }: AlunoSidebarProps)
           </nav>
         </div>
 
-        {/* Exclusive Signature Area (sidebar-signature: relative z-2, margin: 24px 36px 32px, padding-top: 16px) */}
-        <div
-          className="sidebar-signature relative z-2 shrink-0 pt-4"
-          style={{ margin: "24px 36px 32px" }}
-        >
-          {/* Navy Mask & Subtle Backdrop so background gold lines never cross the letters */}
-          <div className="relative z-10 px-3.5 py-2.5 rounded-lg bg-[#06142C]/95 backdrop-blur-[2px] border border-[#12264B]/60 shadow-lg">
-            <div className="text-[10.5px] font-bold tracking-[0.24em] text-[#E7AD38] uppercase leading-tight font-sans">
-              Fluência
-            </div>
-            <div className="text-[10.5px] font-bold tracking-[0.24em] text-slate-100 uppercase leading-tight font-sans">
-              Transforma
-            </div>
-            <div className="text-[10.5px] font-bold tracking-[0.24em] text-slate-100 uppercase leading-tight font-sans">
-              Histórias
-            </div>
+        {/* Slogan Oficial: direto sobre a sidebar, alinhado à esquerda com linha dourada */}
+        <div className="sidebar-signature relative z-10 shrink-0 px-7 pb-8 pt-4">
+          <div className="w-6 h-0.5 bg-[#D79A24] mb-3" aria-hidden="true" />
+          <div className="text-[10px] font-bold tracking-[0.24em] text-[#EDB84E] uppercase leading-tight font-sans">
+            FLUÊNCIA
+          </div>
+          <div className="text-[10px] font-bold tracking-[0.24em] text-white uppercase leading-tight font-sans mt-0.5">
+            TRANSFORMA
+          </div>
+          <div className="text-[10px] font-bold tracking-[0.24em] text-white uppercase leading-tight font-sans mt-0.5">
+            HISTÓRIAS
           </div>
         </div>
       </div>

@@ -22,7 +22,7 @@ export default function AlunoLayout({
     <div className="student-main min-h-[100dvh] bg-[#F5F3EE] text-[#07132E] relative selection:bg-[#5B2FE8] selection:text-white">
       {/* Decoupled Fixed Background Layer (FASE 3 - pointer-events: none, z-index: 0, aria-hidden) */}
       <div
-        className="student-main-background fixed inset-0 pointer-events-none z-0 bg-[#F8F6F1] bg-[url('/assets/mtd/mtd-main-background.svg')] bg-cover bg-top bg-no-repeat"
+        className="student-main-background fixed inset-0 pointer-events-none z-0 bg-[#F8F6F1] bg-[url('/assets/mtd/mtd-main-background.webp')] bg-cover bg-top bg-no-repeat"
         aria-hidden="true"
       />
 
