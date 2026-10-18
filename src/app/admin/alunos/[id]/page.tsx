@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -294,9 +295,21 @@ export default function AdminAlunoDetalhesPage() {
             {/* Header with Avatar and Status */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-5">
               <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-2xl bg-[#5046E5]/10 text-[#5046E5] flex items-center justify-center font-bold text-lg border border-[#5046E5]/20 shadow-2xs">
-                  {aluno.nomeCompleto.slice(0, 2).toUpperCase()}
-                </div>
+                {aluno.avatarUrl ? (
+                  <div className="relative h-14 w-14 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-2xs shrink-0">
+                    <Image
+                      src={aluno.avatarUrl}
+                      alt={aluno.nomeCompleto}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  </div>
+                ) : (
+                  <div className="h-14 w-14 rounded-2xl bg-[#5046E5]/10 text-[#5046E5] flex items-center justify-center font-bold text-lg border border-[#5046E5]/20 shadow-2xs shrink-0">
+                    {aluno.nomeCompleto.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-lg font-bold text-slate-900">{aluno.nomeCompleto}</h2>

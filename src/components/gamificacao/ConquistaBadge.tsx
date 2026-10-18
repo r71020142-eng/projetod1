@@ -72,7 +72,7 @@ export function ConquistaBadge({
 
   return (
     <div
-      className={`${tamanhosMap[tamanho]} rounded-2xl bg-linear-to-br from-amber-400 via-amber-500 to-amber-600 text-white shadow-md shadow-amber-500/20 flex items-center justify-center shrink-0 ring-2 ring-amber-300/60 ${className}`}
+      className={`${tamanhosMap[tamanho]} rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 text-white shadow-md shadow-amber-500/20 flex items-center justify-center shrink-0 ring-2 ring-amber-300/60 ${className}`}
     >
       <IconComponent className={iconSizeMap[tamanho]} />
     </div>

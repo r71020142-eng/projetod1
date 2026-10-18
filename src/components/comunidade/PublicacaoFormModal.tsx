@@ -103,11 +103,11 @@ export function PublicacaoFormModal({
               <select
                 value={espacoId}
                 onChange={(e) => setEspacoId(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-slate-800 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                 required
               >
                 {espacosDisponiveis.map((esp) => (
-                  <option key={esp.id} value={esp.id}>
+                  <option key={esp.id} value={esp.id} className="bg-white text-slate-900">
                     {esp.nome}
                   </option>
                 ))}
@@ -121,13 +121,13 @@ export function PublicacaoFormModal({
               <select
                 value={tipo}
                 onChange={(e) => setTipo(e.target.value as TipoPublicacaoComunidade)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-slate-800 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               >
-                <option value="texto">Texto Geral</option>
-                <option value="dica">Dica de Estudo</option>
-                <option value="duvida">Dúvida para Colegas / Professor</option>
-                <option value="conquista">Compartilhar Conquista</option>
-                <option value="aviso">Aviso / Comunicado</option>
+                <option value="texto" className="bg-white text-slate-900">Texto Geral</option>
+                <option value="dica" className="bg-white text-slate-900">Dica de Estudo</option>
+                <option value="duvida" className="bg-white text-slate-900">Dúvida para Colegas / Professor</option>
+                <option value="conquista" className="bg-white text-slate-900">Compartilhar Conquista</option>
+                <option value="aviso" className="bg-white text-slate-900">Aviso / Comunicado</option>
               </select>
             </div>
           </div>
@@ -141,7 +141,7 @@ export function PublicacaoFormModal({
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
               placeholder="Ex: Minha experiência com a técnica FORD em viagens..."
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-slate-800 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              className="w-full px-3.5 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
             />
           </div>
 
@@ -154,7 +154,7 @@ export function PublicacaoFormModal({
               value={conteudo}
               onChange={(e) => setConteudo(e.target.value)}
               placeholder="Escreva sua mensagem, reflexão ou dúvida para a comunidade..."
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-slate-800 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none leading-relaxed"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none leading-relaxed"
               required
             />
           </div>
@@ -175,14 +175,14 @@ export function PublicacaoFormModal({
                 value={linkUrl}
                 onChange={(e) => setLinkUrl(e.target.value)}
                 placeholder="https://exemplo.com/artigo-ou-audio"
-                className="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-slate-800 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="w-full px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               />
               <input
                 type="text"
                 value={linkTitulo}
                 onChange={(e) => setLinkTitulo(e.target.value)}
                 placeholder="Título do link (Ex: Artigo BBC News)"
-                className="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-slate-800 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="w-full px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               />
             </div>
           </div>

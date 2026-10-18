@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import {
   Users,
@@ -461,9 +462,21 @@ export default function AdminTurmaDetailPage() {
                 className="p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/40 hover:bg-white hover:border-purple-200 transition-all flex items-center justify-between gap-3"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="h-9 w-9 rounded-xl bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center flex-shrink-0">
-                    {aluno.nomeCompleto.slice(0, 2).toUpperCase()}
-                  </div>
+                  {aluno.avatarUrl ? (
+                    <div className="relative h-9 w-9 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/80 shrink-0">
+                      <Image
+                        src={aluno.avatarUrl}
+                        alt={aluno.nomeCompleto}
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-9 w-9 rounded-xl bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center flex-shrink-0">
+                      {aluno.nomeCompleto.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
                   <div className="min-w-0">
                     <Link
                       href={`/admin/alunos/${aluno.id}`}

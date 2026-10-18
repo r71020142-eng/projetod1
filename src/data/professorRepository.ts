@@ -26,7 +26,17 @@ function loadFromStorage(): Professor[] {
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed as Professor[];
+      // Ensure avatars are populated even if storage was initialized previously
+      const merged = (parsed as Professor[]).map((p) => {
+        if (!p.avatarUrl) {
+          const seed = SEED_PROFESSORES.find((s) => s.id === p.id);
+          if (seed?.avatarUrl) {
+            return { ...p, avatarUrl: seed.avatarUrl };
+          }
+        }
+        return p;
+      });
+      return merged;
     }
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_PROFESSORES));
     return [...SEED_PROFESSORES];

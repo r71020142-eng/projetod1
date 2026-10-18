@@ -27,7 +27,7 @@ export function PlacaDigitalView({
   return (
     <div className="space-y-4">
       {/* Moldura da Placa Digital */}
-      <div className="relative p-8 sm:p-12 rounded-3xl bg-linear-to-b from-slate-900 via-indigo-950 to-slate-950 text-white shadow-2xl border-4 border-amber-400/80 ring-8 ring-amber-500/20 overflow-hidden text-center flex flex-col items-center justify-between min-h-[380px]">
+      <div className="relative p-8 sm:p-12 rounded-3xl bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-950 text-white shadow-2xl border-4 border-amber-400/80 ring-8 ring-amber-500/20 overflow-hidden text-center flex flex-col items-center justify-between min-h-[380px]">
         {/* Detalhes de Cantos Metálicos Decorativos */}
         <div className="absolute top-3 left-3 w-8 h-8 border-t-2 border-l-2 border-amber-400/60" />
         <div className="absolute top-3 right-3 w-8 h-8 border-t-2 border-r-2 border-amber-400/60" />
@@ -55,11 +55,11 @@ export function PlacaDigitalView({
             Homenagem conferida a:
           </p>
 
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-amber-200 via-amber-400 to-amber-100 tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-100 tracking-tight">
             {alunoNome}
           </h2>
 
-          <div className="h-0.5 w-24 bg-linear-to-r from-transparent via-amber-400 to-transparent mx-auto my-2" />
+          <div className="h-0.5 w-24 bg-gradient-to-r from-transparent via-amber-400 to-transparent mx-auto my-2" />
 
           <p className="text-sm font-semibold text-slate-200 uppercase tracking-wider">
             {marcoNome}
@@ -116,7 +116,7 @@ export function PlacaDigitalView({
 
       {/* Ação de Solicitação de Placa Física */}
       {elegivelPlacaFisica && onSolicitarPlacaFisica && (
-        <div className="p-5 rounded-2xl bg-linear-to-r from-amber-50 to-orange-50 border border-amber-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
           <div className="space-y-1">
             <h4 className="font-bold text-amber-950 flex items-center gap-1.5">
               <Trophy className="w-4 h-4 text-amber-600" />

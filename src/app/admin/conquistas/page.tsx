@@ -280,15 +280,15 @@ export default function AdminConquistasPage() {
               <select
                 value={filtroCategoria}
                 onChange={(e) => setFiltroCategoria(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                <option value="todas">Todas as Categorias</option>
-                <option value="aulas_frequencia">Aulas & Frequência</option>
-                <option value="flashcards_estudo">Flashcards & Hábitos</option>
-                <option value="avaliacoes_progresso">Avaliações & Módulos</option>
-                <option value="comunidade_engajamento">Comunidade</option>
-                <option value="nivel_marco">Marco de Nível Operacional</option>
-                <option value="placas_reconhecimento">Placas de Reconhecimento</option>
+                <option value="todas" className="bg-white text-slate-900">Todas as Categorias</option>
+                <option value="aulas_frequencia" className="bg-white text-slate-900">Aulas & Frequência</option>
+                <option value="flashcards_estudo" className="bg-white text-slate-900">Flashcards & Hábitos</option>
+                <option value="avaliacoes_progresso" className="bg-white text-slate-900">Avaliações & Módulos</option>
+                <option value="comunidade_engajamento" className="bg-white text-slate-900">Comunidade</option>
+                <option value="nivel_marco" className="bg-white text-slate-900">Marco de Nível Operacional</option>
+                <option value="placas_reconhecimento" className="bg-white text-slate-900">Placas de Reconhecimento</option>
               </select>
             </div>
           </div>

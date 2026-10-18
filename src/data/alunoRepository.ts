@@ -28,7 +28,17 @@ function loadFromStorage(): Aluno[] {
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed as Aluno[];
+      // Ensure avatars are populated even if storage was initialized previously
+      const merged = (parsed as Aluno[]).map((a) => {
+        if (!a.avatarUrl) {
+          const seed = SEED_ALUNOS.find((s) => s.id === a.id);
+          if (seed?.avatarUrl) {
+            return { ...a, avatarUrl: seed.avatarUrl };
+          }
+        }
+        return a;
+      });
+      return merged;
     }
     // If empty or invalid array, reseed
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_ALUNOS));

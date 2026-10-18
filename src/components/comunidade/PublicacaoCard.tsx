@@ -102,7 +102,7 @@ export function PublicacaoCard({
     <article
       className={`p-6 rounded-3xl bg-white border transition shadow-xs space-y-4 ${
         publicacao.fixada
-          ? "border-amber-300/80 bg-linear-to-b from-amber-50/20 to-white ring-1 ring-amber-300/40"
+          ? "border-amber-300/80 bg-gradient-to-b from-amber-50/20 to-white ring-1 ring-amber-300/40"
           : publicacao.status === "denunciada"
           ? "border-rose-300/80 bg-rose-50/10"
           : "border-slate-200/80 hover:border-slate-300"

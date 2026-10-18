@@ -173,6 +173,7 @@ export interface Aluno {
   status: StatusCadastro;
   dataCadastro: string; // ISO 8601
   observacoesPedagogicas?: string;
+  avatarUrl?: string;
 }
 
 export interface Professor {
@@ -184,6 +185,7 @@ export interface Professor {
   idiomasFalados: string[];
   status: StatusCadastro;
   dataCadastro: string; // ISO 8601
+  avatarUrl?: string;
 }
 
 export interface AlunoFilters {

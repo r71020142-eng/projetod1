@@ -179,7 +179,7 @@ export default function AlunoConquistasPage() {
         {conquistaMarcoB1 && (
           <button
             onClick={() => setPlacaDigitalAberta(conquistaMarcoB1)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs shadow-md shadow-amber-500/20 transition whitespace-nowrap"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs shadow-md shadow-amber-500/20 transition whitespace-nowrap cursor-pointer"
           >
             <Trophy className="w-4 h-4 text-amber-100" />
             <span>Visualizar Minha Placa Digital (B1)</span>
@@ -189,7 +189,7 @@ export default function AlunoConquistasPage() {
 
       {/* Cards de Métricas em Destaque */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-        <div className="p-4 bg-linear-to-br from-indigo-950 to-slate-900 text-white rounded-3xl shadow-xs space-y-1">
+        <div className="p-4 bg-gradient-to-br from-indigo-950 to-slate-900 text-white rounded-3xl shadow-xs space-y-1">
           <span className="text-slate-300 text-[11px] font-semibold flex items-center gap-1">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             Pontos de Dedicação
@@ -230,7 +230,7 @@ export default function AlunoConquistasPage() {
 
       {/* Card de Status da Placa Física */}
       {placaSolicitada && (
-        <div className="p-5 rounded-3xl bg-linear-to-r from-amber-500/10 via-amber-50 to-orange-50 border border-amber-300 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+        <div className="p-5 rounded-3xl bg-gradient-to-r from-amber-500/10 via-amber-50 to-orange-50 border border-amber-300 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-bold shadow-md shadow-amber-500/20 shrink-0">
               <Trophy className="w-6 h-6" />

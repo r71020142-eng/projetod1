@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   GraduationCap,
   Search,
@@ -372,9 +373,21 @@ export default function AdminProfessoresPage() {
                         {/* Name + Email */}
                         <td className="py-3.5 px-4">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white font-bold text-xs shadow-2xs">
-                              {initials}
-                            </div>
+                            {prof.avatarUrl ? (
+                              <div className="relative h-9 w-9 shrink-0 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/80 shadow-2xs">
+                                <Image
+                                  src={prof.avatarUrl}
+                                  alt={prof.nomeCompleto}
+                                  fill
+                                  className="object-cover"
+                                  unoptimized
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white font-bold text-xs shadow-2xs">
+                                {initials}
+                              </div>
+                            )}
                             <div className="min-w-0">
                               <Link
                                 href={`/admin/professores/${prof.id}`}
@@ -484,9 +497,21 @@ export default function AdminProfessoresPage() {
                   <div key={prof.id} className="p-4 space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white font-bold text-xs shadow-2xs">
-                          {initials}
-                        </div>
+                        {prof.avatarUrl ? (
+                          <div className="relative h-10 w-10 shrink-0 rounded-xl overflow-hidden bg-slate-100 border border-slate-200/80 shadow-2xs">
+                            <Image
+                              src={prof.avatarUrl}
+                              alt={prof.nomeCompleto}
+                              fill
+                              className="object-cover"
+                              unoptimized
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white font-bold text-xs shadow-2xs">
+                            {initials}
+                          </div>
+                        )}
                         <div className="min-w-0">
                           <Link
                             href={`/admin/professores/${prof.id}`}

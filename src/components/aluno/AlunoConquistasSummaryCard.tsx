@@ -41,7 +41,7 @@ export function AlunoConquistasSummaryCard({
   const placaAtiva = placas.find((p) => p.status !== "cancelado");
 
   return (
-    <div className="p-6 rounded-3xl bg-linear-to-br from-indigo-950 via-slate-900 to-indigo-900 text-white shadow-xs space-y-4">
+    <div className="p-6 rounded-3xl bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 text-white shadow-xs space-y-4">
       <div className="flex items-center justify-between border-b border-white/10 pb-3">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center font-bold">

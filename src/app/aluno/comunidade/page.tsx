@@ -205,11 +205,11 @@ export default function AlunoComunidadePage() {
               <select
                 value={filtroEspacoId}
                 onChange={(e) => setFiltroEspacoId(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                <option value="todos">Todos os meus canais</option>
+                <option value="todos" className="bg-white text-slate-900">Todos os meus canais</option>
                 {espacos.map((esp) => (
-                  <option key={esp.id} value={esp.id}>
+                  <option key={esp.id} value={esp.id} className="bg-white text-slate-900">
                     {esp.nome}
                   </option>
                 ))}
@@ -296,7 +296,7 @@ export default function AlunoComunidadePage() {
       {/* ABA 3: OPORTUNIDADES DE INTERCÂMBIO */}
       {abaAtiva === "oportunidades" && (
         <div className="space-y-4">
-          <div className="p-4 bg-linear-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-3xl text-xs space-y-1">
+          <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-3xl text-xs space-y-1">
             <h3 className="font-bold text-indigo-950 flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-indigo-600" />
               Programas de Imersão e Intercâmbio MTD

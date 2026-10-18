@@ -5,6 +5,20 @@
 :root {
   --background: #F8FAFC;
   --foreground: #0F172A;
+  color-scheme: light;
+}
+
+html {
+  color-scheme: light;
+}
+
+select, input, textarea, button {
+  color-scheme: light;
+}
+
+select, textarea, input[type="text"], input[type="search"], input[type="email"], input[type="url"], input[type="tel"] {
+  background-color: #ffffff;
+  color: #0f172a;
 }
 
 body {

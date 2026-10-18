@@ -271,6 +271,7 @@ export const SEED_ALUNOS: Aluno[] = [
     status: "ativo",
     dataCadastro: "2025-01-15T09:30:00.000Z",
     observacoesPedagogicas: "Ótima compreensão auditiva. Focar no destravamento de expressões idiomáticas e agilidade na Self Presentation.",
+    avatarUrl: "/mariana-avatar.png",
   },
   {
     id: "alu-002",
@@ -282,6 +283,7 @@ export const SEED_ALUNOS: Aluno[] = [
     status: "ativo",
     dataCadastro: "2025-01-20T14:15:00.000Z",
     observacoesPedagogicas: "Revisar rotina diária no SRS Flashcards. Ganhar confiança na pronúncia de verbos regulares no passado.",
+    avatarUrl: "/pedro-henrique.png",
   },
   {
     id: "alu-003",
@@ -293,6 +295,7 @@ export const SEED_ALUNOS: Aluno[] = [
     status: "ativo",
     dataCadastro: "2025-02-01T11:00:00.000Z",
     observacoesPedagogicas: "Recém-matriculado. Aguardando realização da primeira aula diagnóstica e envio da primeira Self Presentation.",
+    avatarUrl: "/lucas-almeida.png",
   },
   {
     id: "alu-004",
@@ -304,6 +307,7 @@ export const SEED_ALUNOS: Aluno[] = [
     status: "ativo",
     dataCadastro: "2025-02-10T16:45:00.000Z",
     observacoesPedagogicas: "Vocabulário técnico amplo. Trabalhar naturalidade de entonação e redução de hesitações em debates ao vivo.",
+    avatarUrl: "/beatriz-lima.png",
   },
   {
     id: "alu-005",
@@ -315,6 +319,7 @@ export const SEED_ALUNOS: Aluno[] = [
     status: "inativo",
     dataCadastro: "2024-11-05T10:20:00.000Z",
     observacoesPedagogicas: "Pausou o plano por motivos profissionais. Entrar em contato no início do próximo ciclo para reativação.",
+    avatarUrl: "/rafael-costa.png",
   },
   {
     id: "alu-006",
@@ -326,6 +331,7 @@ export const SEED_ALUNOS: Aluno[] = [
     status: "ativo",
     dataCadastro: "2025-02-18T08:00:00.000Z",
     observacoesPedagogicas: "Muito engajada na turma inicial. Estimular submissão das primeiras gravações guiadas com roteiro curto.",
+    avatarUrl: "/ana-clara.png",
   },
   {
     id: "alu-007",
@@ -337,6 +343,7 @@ export const SEED_ALUNOS: Aluno[] = [
     status: "ativo",
     dataCadastro: "2025-03-01T15:30:00.000Z",
     observacoesPedagogicas: "Iniciando jornada no Método Paulo. Nivelamento inicial agendado com o professor titular.",
+    avatarUrl: "/gabriel-martins.png",
   },
   {
     id: "alu-008",
@@ -348,6 +355,7 @@ export const SEED_ALUNOS: Aluno[] = [
     status: "ativo",
     dataCadastro: "2024-10-12T13:00:00.000Z",
     observacoesPedagogicas: "Excelente ritmo e pronúncia. Aluna atua ativamente na comunidade ajudando discentes de níveis A1 e A2.",
+    avatarUrl: "/isabela-ferreira.png",
   },
 ];
 
@@ -361,6 +369,7 @@ export const SEED_PROFESSORES: Professor[] = [
     idiomasFalados: ["Inglês (Fluente)", "Português (Nativo)"],
     status: "ativo",
     dataCadastro: "2024-01-10T08:00:00.000Z",
+    avatarUrl: "/teacher-avatar-hd.png",
   },
   {
     id: "prof-002",
@@ -371,6 +380,7 @@ export const SEED_PROFESSORES: Professor[] = [
     idiomasFalados: ["Inglês (Nativo)", "Português (Fluente)", "Espanhol (Básico)"],
     status: "ativo",
     dataCadastro: "2024-03-15T09:00:00.000Z",
+    avatarUrl: "/carla-avatar.png",
   },
   {
     id: "prof-003",
@@ -380,7 +390,8 @@ export const SEED_PROFESSORES: Professor[] = [
     biografiaCurta: "Foco pedagógico em acolhimento e quebra de bloqueio emocional em alunos iniciantes (A1/A2), priorizando confiança e segurança oral.",
     idiomasFalados: ["Inglês (Fluente)", "Português (Nativo)"],
     status: "ativo",
-    dataCadastro: "2024-06-01T10:30:00.000Z",
+    dataCadastro: "2024-05-20T10:30:00.000Z",
+    avatarUrl: "/teacher-hd.jpg",
   },
   {
     id: "prof-004",
@@ -391,6 +402,7 @@ export const SEED_PROFESSORES: Professor[] = [
     idiomasFalados: ["Inglês (Fluente)", "Francês (Intermediário)", "Português (Nativo)"],
     status: "inativo",
     dataCadastro: "2024-02-20T14:00:00.000Z",
+    avatarUrl: "/beatriz-lima.png",
   },
 ];
 
