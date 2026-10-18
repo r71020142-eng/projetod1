@@ -1,63 +1,93 @@
-# Kit Visual MTD — Dashboard do Aluno
+# Backgrounds oficiais MTD — versão fiel v4
 
-Estes assets reproduzem as camadas decorativas da referência aprovada sem transformar os componentes funcionais em imagens.
+Este pacote substitui os SVGs simplificados anteriores. Os arquivos foram reconstruídos diretamente a partir da referência visual aprovada.
 
-## Arquivos
+## Arquivos recomendados
 
-- `svg/mtd-main-background.svg`: fundo perolado e arquitetura institucional da área principal.
-- `svg/mtd-sidebar-background.svg`: fundo completo da sidebar, com fachada e curvas douradas.
-- `svg/mtd-class-card-background.svg`: fundo do cabeçalho da próxima aula, com mapa pontilhado e recortes geométricos.
-- `svg/mtd-journey-background.svg`: fundo decorativo da faixa “Sua Jornada MTD”.
-- `svg/mtd-logo-mark.svg`: símbolo dourado demonstrativo da marca.
-- `png/`: versões PNG prontas para ferramentas que não aceitem SVG.
-- `dashboard-referencia-aprovada.png`: referência visual que define composição, proporções e hierarquia.
+- `webp/mtd-main-background.webp`: fundo principal do portal do aluno.
+- `webp/mtd-sidebar-background.webp`: fundo vertical da sidebar.
+- `webp/mtd-class-card-background.webp`: fundo completo e aprovado do cabeçalho da próxima aula, já com mapa discreto.
+- `webp/mtd-class-card-base.webp`: mesma imagem sem mapa.
+- `webp/mtd-world-map-overlay.webp`: mapa separado para ajuste fino opcional.
+- `webp/mtd-journey-background.webp`: fundo da faixa Sua Jornada MTD.
+- `png/`: versões PNG em alta qualidade dos mesmos arquivos.
+- `dashboard-referencia-aprovada.png`: composição oficial a ser seguida.
 
-## Regra de implementação
+Use WebP na aplicação e mantenha PNG como fonte de alta qualidade/fallback.
 
-Os SVGs devem ser usados somente como `background-image`, `<img>` decorativa ou pseudo-elemento. Textos, números, botões, links, estados, fotos, barras de progresso e dados devem continuar sendo HTML/React dinâmico.
-
-Não usar o print completo como fundo da página e não recortar cards inteiros como imagens.
-
-## Aplicação sugerida
+## Aplicação
 
 ```css
 .student-shell {
-  background: #f8f6f1 url('/assets/mtd/mtd-main-background.svg') center top / cover no-repeat;
+  background-color: #f9f7f2;
+  background-image: url('/assets/mtd/mtd-main-background.webp');
+  background-position: top center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 .student-sidebar {
-  background: #06142c url('/assets/mtd/mtd-sidebar-background.svg') center / cover no-repeat;
+  background-color: #06142c;
+  background-image: url('/assets/mtd/mtd-sidebar-background.webp');
+  background-position: center right;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 
 .next-class-hero {
-  background: #06142c url('/assets/mtd/mtd-class-card-background.svg') center / cover no-repeat;
+  background-color: #06142c;
+  background-image: url('/assets/mtd/mtd-class-card-background.webp');
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 
-.journey-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: url('/assets/mtd/mtd-journey-background.svg') center / cover no-repeat;
-  pointer-events: none;
-  z-index: 0;
+.journey-card {
+  background-color: #faf8f3;
+  background-image: url('/assets/mtd/mtd-journey-background.webp');
+  background-position: center right;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 ```
 
-Todos os conteúdos do card da jornada devem usar `position: relative; z-index: 1`.
+## Mapa separado opcional
 
-## Cores principais
+O arquivo `mtd-class-card-background.webp` já contém o mapa na posição recomendada. Use a versão separada apenas se precisar de ajuste fino responsivo.
 
-- Navy: `#06142C`
-- Navy secundário: `#0B1D43`
-- Violeta: `#5B2FE8`
-- Dourado: `#D89A25`
-- Marfim: `#F8F6F1`
-- Texto: `#07132E`
-- Muted: `#60708F`
-- Sucesso: `#16A879`
+```css
+.next-class-hero {
+  position: relative;
+  overflow: hidden;
+  background-image: url('/assets/mtd/mtd-class-card-base.webp');
+}
 
-## Fontes
+.next-class-hero::after {
+  content: '';
+  position: absolute;
+  width: clamp(160px, 24%, 220px);
+  aspect-ratio: 2 / 1;
+  right: 16%;
+  top: 24%;
+  background: url('/assets/mtd/mtd-world-map-overlay.webp') center / contain no-repeat;
+  opacity: 0.2;
+  pointer-events: none;
+  z-index: 0;
+}
 
-- Títulos editoriais: `DM Serif Display` ou `Playfair Display`.
-- Interface: `Inter`.
+.next-class-hero > * {
+  position: relative;
+  z-index: 1;
+}
+```
+
+## Regras obrigatórias
+
+- Não aplicar filtros, gradientes ou overlays adicionais sobre estes backgrounds.
+- Não alterar cor, saturação, contraste ou opacidade do arquivo completo.
+- Não usar o dashboard inteiro como imagem de fundo.
+- Cards, textos, botões, ícones e dados continuam sendo HTML/React.
+- Assets decorativos devem usar `pointer-events: none` quando estiverem em pseudo-elementos.
+- Não reutilizar os SVGs simplificados das versões anteriores.
 
