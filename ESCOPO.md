@@ -407,6 +407,21 @@ A **ETAPA 8** implementou a camada social e de reconhecimento de mérito acadêm
 - **Validação E2E e Jornadas Integradas:**
   - `scripts/test-etapa9.mjs` validando com 100% de sucesso as 7 jornadas completas entre módulos e os filtros de permissão demonstrativa.
 
+### 3.11. Reorganização do Dashboard Inicial do Aluno (`/aluno`)
+- **Central Personalizada do Dia (Anti-Scroll):** Transformação da página inicial do aluno em um hub diário focado e compacto, eliminando duplicações de progresso e módulos gigantes empilhados.
+- **Estrutura Desktop em Grade de 12 Colunas:**
+  1. *Boas-vindas Compactas:* Saudação horária dinâmica (Bom dia / Boa tarde / Boa noite), nome do aluno, frase personalizada com contagem real de pendências, sequência de estudos compacta e data formatada.
+  2. *Próxima Aula e Meu Plano de Hoje:*
+     - *Próxima Aula (~7 colunas):* Título, data, horário, duração, turma, professor em thumbnail compacto (`w-11 h-11`), status do Zoom e link verificado, ou estado vazio inteligente quando não houver aula.
+     - *Meu Plano de Hoje (~5 colunas):* Motor pedagógico determinístico (`planoDiarioMotor.ts`) com até 3 ações prioritárias (1. Item atrasado/reenvio, 2. Aula em 24h, 3. Prazo em 3-5 dias, 4. Flashcards vencidos, 5. Prática diária, 6. Feedback/conquista) e link para `/aluno/atividades`.
+  3. *Resumo Rápido (4 cards compactos na mesma linha / 2 colunas no celular):* Progresso do módulo, Atividades pendentes, Flashcards para revisar e Pontos acumulados de dedicação.
+  4. *Continue Sua Jornada:* Módulo atual, percentual, até 2 critérios concluídos + próximo critério pendente destacado, sem poluição de critérios na home.
+  5. *Atualizações Recentes (2 cards lado a lado):*
+     - *Feedback Recente:* Nivelamento oral concluído, nível formatado como "B1 — Intermediário", parecer do docente e link para detalhes.
+     - *Conquista Recente:* Marco recente desbloqueado, pontos e link para galeria de conquistas.
+  6. *Minha Semana:* Tempo dedicado, entregas concluídas, dias de prática e gráfico de evolução semanal com resumo textual claro.
+- **Barra Lateral Fixa (Sticky Desktop):** Navegação lateral persistente durante a rolagem (`sticky top-20 h-[calc(100vh-5rem)]`), eliminando colunas em branco e desaparecimento do menu.
+
 ---
 
 ## 4. Decisões Estratégicas de Negócio e Regras Futuras Formalizadas

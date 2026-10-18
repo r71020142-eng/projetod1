@@ -18,7 +18,7 @@ Toda a persistência local (28 chaves em `localStorage`) está estritamente enca
 ### 2.1 Área do Aluno (`/aluno`)
 | Rota | Tipo | Finalidade Principal |
 | :--- | :--- | :--- |
-| `/aluno` | Estática / SSR | Dashboard principal: Próxima Aula com foto HD, Evolução semanal, Prática do dia, Anel de progresso, SRS e Conquistas. |
+| `/aluno` | Estática / SSR | Central diária personalizada: Boas-vindas horárias com ações do dia, Próxima aula com foto e link Zoom, Meu plano de hoje (motor determinístico com até 3 ações prioritárias), Resumo rápido em 4 cards, Continue sua jornada, Atualizações recentes (feedback pedagógico e conquista recente) e Minha semana. |
 | `/aluno/aulas` | Estática / SSR | Histórico de aulas concluídas e futuras, links manuais HTTPS do Zoom e status de presença. |
 | `/aluno/materiais` | Estática / SSR | Biblioteca pedagógica, atividades abertas para entrega e conteúdos diários de fixação. |
 | `/aluno/materiais/[id]` | Dinâmica | Visualização de material didático ou entrega de atividade pedagógica com versionamento. |

@@ -1,90 +1,155 @@
 import React from "react";
-import { getAlunoDashboardData } from "@/data/api";
-import { StreakBanner } from "@/components/aluno/StreakBanner";
-import { HeroClassCard } from "@/components/aluno/HeroClassCard";
-import { PendingActivitiesCard } from "@/components/aluno/PendingActivitiesCard";
-import { WeeklyEvolutionCard } from "@/components/aluno/WeeklyEvolutionCard";
-import { JourneyRingCard } from "@/components/aluno/JourneyRingCard";
-import { TeacherCard } from "@/components/aluno/TeacherCard";
-import { MotivationalBanner } from "@/components/aluno/MotivationalBanner";
-import { DailyPracticeBanner } from "@/components/aluno/DailyPracticeBanner";
-import { SelfPresentationStatusCard } from "@/components/aluno/SelfPresentationStatusCard";
-import { FlashcardsSummaryCard } from "@/components/aluno/FlashcardsSummaryCard";
-import { ProgressoJornadaCard } from "@/components/aluno/ProgressoJornadaCard";
-import { AlunoConquistasSummaryCard } from "@/components/aluno/AlunoConquistasSummaryCard";
+import { getAlunoDashboardData, gamificacaoRepository } from "@/data/api";
+import { DashboardBoasVindas } from "@/components/aluno/dashboard/DashboardBoasVindas";
+import { ProximaAulaCard } from "@/components/aluno/dashboard/ProximaAulaCard";
+import { MeuPlanoHojeCard } from "@/components/aluno/dashboard/MeuPlanoHojeCard";
+import { ResumoRapidoGrid } from "@/components/aluno/dashboard/ResumoRapidoGrid";
+import { JornadaCompactCard } from "@/components/aluno/dashboard/JornadaCompactCard";
+import { AtualizacoesRecentesGrid } from "@/components/aluno/dashboard/AtualizacoesRecentesGrid";
+import { MinhaSemanaCard } from "@/components/aluno/dashboard/MinhaSemanaCard";
+import { calcularPlanoDiario, ContextoPlanoDiario } from "@/data/planoDiarioMotor";
 
 export default async function AlunoDashboardPage() {
   const data = await getAlunoDashboardData();
 
+  const [pontosData, conquistasAluno] = await Promise.all([
+    gamificacaoRepository
+      .obterPontosAluno("alu-001")
+      .catch(() => ({ pontosTotais: 350, historicoEventos: [] })),
+    gamificacaoRepository.listarConquistasAluno("alu-001").catch(() => []),
+  ]);
+
+  const conquistaDestaque = conquistasAluno[0]
+    ? {
+        id: conquistasAluno[0].id,
+        nome: conquistasAluno[0].modeloNome,
+        descricao:
+          conquistasAluno[0].justificativaDocente ||
+          "Alcançou o marco pedagógico de proficiência e dedicação no Método Paulo.",
+        dataTexto: new Date(conquistasAluno[0].dataConcessao || Date.now()).toLocaleDateString(
+          "pt-BR"
+        ),
+        pontos: Number(conquistasAluno[0].pontosAtribuidos) || 50,
+        tipoPremio: conquistasAluno[0].tipoPremio || "badge",
+      }
+    : null;
+
+  // Monta contexto para o motor determinístico do plano diário (máximo 3 ações)
+  const contextoPlano: ContextoPlanoDiario = {
+    alunoId: "alu-001",
+    proximaAula: data.proximaAula
+      ? {
+          id: data.proximaAula.id,
+          titulo: data.proximaAula.titulo,
+          data: "2026-10-22",
+          horario: data.proximaAula.horario,
+          meetingUrl: data.proximaAula.meetingUrl,
+          turmaNome: data.proximaAula.modulo,
+        }
+      : null,
+    atividades: data.atividadesPendentes.map((atv) => ({
+      id: atv.id,
+      titulo: atv.titulo,
+      prazoEntrega: atv.duracaoTexto.includes("Prazo:")
+        ? atv.duracaoTexto.replace("Prazo: ", "").split("/").reverse().join("-")
+        : null,
+      concluida: atv.concluida,
+      atrasada: false,
+    })),
+    avaliacoesPendentes: data.progressoJornada?.proximaAvaliacaoPendente
+      ? [
+          {
+            id: data.progressoJornada.proximaAvaliacaoPendente.id,
+            titulo: data.progressoJornada.proximaAvaliacaoPendente.titulo,
+            tipo: data.progressoJornada.proximaAvaliacaoPendente.tipo,
+            prazo: data.progressoJornada.proximaAvaliacaoPendente.prazo,
+          },
+        ]
+      : [],
+    flashcards: data.flashcardsResumo
+      ? {
+          revisoesHoje: data.flashcardsResumo.totalParaRevisarHoje,
+          sequenciaDias: data.flashcardsResumo.sequenciaDias,
+        }
+      : null,
+    praticaDiaria: data.praticaDeHoje
+      ? {
+          id: data.praticaDeHoje.id,
+          titulo: data.praticaDeHoje.titulo,
+          duracaoMinutos: 5,
+        }
+      : null,
+    feedbackRecente:
+      data.selfPresentationAtiva && data.selfPresentationAtiva.status === "avaliada"
+        ? {
+            id: data.selfPresentationAtiva.id,
+            tipo: "self_presentation",
+            titulo: "Nivelamento oral concluído",
+            professorNome:
+              data.selfPresentationAtiva.avaliacao?.professorNome || "Prof. Lucas Ferreira",
+            linkDestino: `/aluno/self-presentation/${data.selfPresentationAtiva.id}`,
+          }
+        : null,
+    conquistaRecente: conquistaDestaque
+      ? {
+          id: conquistaDestaque.id,
+          nome: conquistaDestaque.nome,
+          pontos: conquistaDestaque.pontos,
+          linkDestino: "/aluno/conquistas",
+        }
+      : null,
+  };
+
+  const acoesPlano = calcularPlanoDiario(contextoPlano);
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
-      {/* Top Greeting & Streak Banner matching Image 1 */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-slate-900 leading-tight">
-            Olá, {data.aluno.name}!
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-            Continue avançando no Método Paulo
-          </p>
-        </div>
-
-        <div className="w-full sm:w-auto">
-          <StreakBanner weeks={data.aluno.streakWeeks} />
-        </div>
-      </div>
-
-      {/* Hero Class Card matching Image 1 */}
-      <HeroClassCard aula={data.proximaAula} />
-
-      {/* Jornada Pedagógica do Método Paulo (Etapa 7) */}
-      <ProgressoJornadaCard progresso={data.progressoJornada} />
-
-      {/* Daily Practice Stimulus (Etapa 4) */}
-      {data.praticaDeHoje && (
-        <DailyPracticeBanner pratica={data.praticaDeHoje} />
-      )}
-
-      {/* Self Presentation Status Card (Etapa 5) */}
-      <SelfPresentationStatusCard
-        initialSp={data.selfPresentationAtiva}
-        alunoId="alu-001"
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in duration-200">
+      {/* 1. Primeira Seção: Boas-vindas compacta */}
+      <DashboardBoasVindas
+        nomeAluno={data.aluno.name}
+        totalAcoesHoje={acoesPlano.length}
+        streakWeeks={data.aluno.streakWeeks}
+        streakDays={data.flashcardsResumo?.sequenciaDias}
       />
 
-      {/* Flashcards & Repetição Espaçada (Etapa 6) */}
-      <FlashcardsSummaryCard metricas={data.flashcardsMetricas} />
-
-      {/* Conquistas, Pontos & Placas (Etapa 8) */}
-      <AlunoConquistasSummaryCard alunoId="alu-001" />
-
-      {/* Main 3-Column Grid matching Image 1 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
-        {/* Column 1: Atividades pendentes */}
-        <div className="h-full">
-          <PendingActivitiesCard initialAtividades={data.atividadesPendentes} />
+      {/* 2. Segunda Seção: Próxima Aula (7 colunas) e Meu Plano de Hoje (5 colunas) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        <div className="lg:col-span-7 h-full">
+          <ProximaAulaCard aula={data.proximaAula} />
         </div>
-
-        {/* Column 2: Evolução semanal */}
-        <div className="h-full">
-          <WeeklyEvolutionCard
-            dias={data.evolucaoSemanal}
-            tempoEstudoTexto={data.aluno.studyHoursThisWeek}
-            atividadesConcluidasCount={data.aluno.completedActivitiesCount}
-          />
-        </div>
-
-        {/* Column 3: Stacked: Sua jornada + Seu professor */}
-        <div className="space-y-6">
-          <JourneyRingCard
-            progressPercentage={data.aluno.journeyProgress}
-            currentModuleName={data.aluno.currentModule}
-          />
-          <TeacherCard teacher={data.aluno.teacher} />
+        <div className="lg:col-span-5 h-full">
+          <MeuPlanoHojeCard acoes={acoesPlano} />
         </div>
       </div>
 
-      {/* Bottom Motivational Banner matching Image 1 */}
-      <MotivationalBanner />
+      {/* 3. Terceira Seção: Resumo Rápido (4 cards compactos na mesma linha) */}
+      <ResumoRapidoGrid
+        percentualModulo={
+          data.progressoJornada?.percentualConclusaoModulo ?? data.aluno.journeyProgress
+        }
+        nomeModulo={data.progressoJornada?.moduloAtualNome ?? data.aluno.currentModule}
+        totalAtividadesPendentes={data.atividadesPendentes.filter((a) => !a.concluida).length}
+        totalFlashcardsParaRevisar={data.flashcardsResumo?.totalParaRevisarHoje ?? 0}
+        pontosTotais={pontosData.pontosTotais || 350}
+        streakWeeks={data.aluno.streakWeeks}
+      />
+
+      {/* 4. Quarta Seção: Continue Sua Jornada */}
+      <JornadaCompactCard progresso={data.progressoJornada} />
+
+      {/* 5. Quinta Seção: Atualizações Recentes (Feedback + Conquista) */}
+      <AtualizacoesRecentesGrid
+        selfPresentation={data.selfPresentationAtiva}
+        conquistas={data.conquistasRecentes}
+        conquistaConcedidaDestaque={conquistaDestaque}
+      />
+
+      {/* 6. Sexta Seção: Minha Semana */}
+      <MinhaSemanaCard
+        tempoEstudoTexto={data.aluno.studyHoursThisWeek}
+        atividadesConcluidasCount={data.aluno.completedActivitiesCount}
+        dias={data.evolucaoSemanal}
+      />
     </div>
   );
 }

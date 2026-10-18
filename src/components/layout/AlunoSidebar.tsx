@@ -10,25 +10,28 @@ import {
   CheckSquare,
   FileText,
   BarChart3,
+  Video,
+  Layers,
   MessageSquare,
   Award,
-  HelpCircle,
+  User,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Exact menu items from Image 1:
-// Início, Minha jornada, Aulas, Atividades, Materiais, Progresso, Mensagens (2), Certificados, Suporte
+// Navegação oficial do aluno
 const ALUNO_NAV_ITEMS = [
   { title: "Início", href: "/aluno", icon: Home, exact: true },
   { title: "Minha jornada", href: "/aluno/jornada", icon: TrendingUp },
   { title: "Aulas", href: "/aluno/aulas", icon: PlaySquare },
   { title: "Atividades", href: "/aluno/atividades", icon: CheckSquare },
   { title: "Materiais", href: "/aluno/materiais", icon: FileText },
-  { title: "Progresso", href: "/aluno/avaliacoes", icon: BarChart3 },
-  { title: "Mensagens", href: "/aluno/comunidade", icon: MessageSquare, badge: 2 },
-  { title: "Certificados", href: "/aluno/conquistas", icon: Award },
-  { title: "Suporte", href: "/aluno/perfil", icon: HelpCircle },
+  { title: "Avaliações", href: "/aluno/avaliacoes", icon: BarChart3 },
+  { title: "Self Presentation", href: "/aluno/self-presentation", icon: Video },
+  { title: "Flashcards", href: "/aluno/flashcards", icon: Layers },
+  { title: "Comunidade", href: "/aluno/comunidade", icon: MessageSquare, badge: 2 },
+  { title: "Conquistas", href: "/aluno/conquistas", icon: Award },
+  { title: "Meu perfil", href: "/aluno/perfil", icon: User },
 ];
 
 interface AlunoSidebarProps {
@@ -102,7 +105,7 @@ export function AlunoSidebar({ isOpenMobile, onCloseMobile }: AlunoSidebarProps)
   return (
     <>
       {/* Desktop permanent sidebar */}
-      <aside className="hidden lg:flex lg:w-56 lg:flex-col min-h-[calc(100vh-4.5rem)] pt-2 select-none shrink-0">
+      <aside className="hidden lg:flex lg:w-56 lg:flex-col sticky top-20 h-[calc(100vh-5rem)] overflow-y-auto shrink-0 border-r border-slate-200/70 pt-2 select-none bg-white">
         {navContent}
       </aside>
 
