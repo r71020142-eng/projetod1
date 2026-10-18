@@ -29,7 +29,7 @@ export function PendingActivitiesCard({ initialAtividades }: PendingActivitiesCa
             Atividades pendentes
           </h3>
           <Link
-            href="/aluno/materiais"
+            href="/aluno/atividades"
             className="text-slate-400 hover:text-slate-600 transition-colors"
             aria-label="Ver todas as atividades"
           >

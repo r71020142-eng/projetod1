@@ -320,11 +320,11 @@ export default function AlunoMaterialDetalhesPage() {
       {/* Navigation Breadcrumb */}
       <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
         <Link
-          href="/aluno/materiais"
+          href="/aluno/atividades"
           className="hover:text-purple-600 flex items-center gap-1 transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Materiais e Atividades
+          Minhas Atividades
         </Link>
         <span>/</span>
         <span className="text-slate-400">Atividades</span>

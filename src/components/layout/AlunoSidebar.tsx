@@ -21,9 +21,9 @@ import { cn } from "@/lib/utils";
 // Início, Minha jornada, Aulas, Atividades, Materiais, Progresso, Mensagens (2), Certificados, Suporte
 const ALUNO_NAV_ITEMS = [
   { title: "Início", href: "/aluno", icon: Home, exact: true },
-  { title: "Minha jornada", href: "/aluno/aulas", icon: TrendingUp },
+  { title: "Minha jornada", href: "/aluno/jornada", icon: TrendingUp },
   { title: "Aulas", href: "/aluno/aulas", icon: PlaySquare },
-  { title: "Atividades", href: "/aluno/materiais", icon: CheckSquare },
+  { title: "Atividades", href: "/aluno/atividades", icon: CheckSquare },
   { title: "Materiais", href: "/aluno/materiais", icon: FileText },
   { title: "Progresso", href: "/aluno/avaliacoes", icon: BarChart3 },
   { title: "Mensagens", href: "/aluno/comunidade", icon: MessageSquare, badge: 2 },
@@ -59,8 +59,10 @@ export function AlunoSidebar({ isOpenMobile, onCloseMobile }: AlunoSidebarProps)
 
         {/* Navigation items matching Image 1 */}
         <nav className="space-y-1 px-3" aria-label="Navegação do Aluno">
-          {ALUNO_NAV_ITEMS.map((item, idx) => {
-            const active = idx === 0 ? pathname === "/aluno" : pathname.startsWith(item.href);
+          {ALUNO_NAV_ITEMS.map((item) => {
+            const active = item.exact
+              ? pathname === item.href
+              : pathname === item.href || (item.href !== "/aluno" && pathname.startsWith(item.href + "/"));
             const Icon = item.icon;
 
             return (
