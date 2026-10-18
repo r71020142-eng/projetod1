@@ -37,7 +37,10 @@ export function TeacherCard({ teacher }: TeacherCardProps) {
 
           {/* Teacher Profile Info */}
           <div className="flex items-center gap-3.5 mb-3">
-            <div className="relative h-11 w-11 rounded-full overflow-hidden bg-slate-100 shrink-0">
+            <div
+              className="relative h-11 w-11 rounded-full overflow-hidden bg-slate-100 shrink-0"
+              style={{ width: 44, height: 44, position: "relative" }}
+            >
               <Image
                 src={teacher.avatarUrl}
                 alt={teacher.name}

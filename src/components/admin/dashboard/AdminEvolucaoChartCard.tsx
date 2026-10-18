@@ -70,7 +70,10 @@ export function AdminEvolucaoChartCard({ pontos }: AdminEvolucaoChartCardProps) 
         <div className="relative w-full overflow-hidden mt-2">
           <svg
             viewBox={`0 0 ${width} ${height}`}
+            width={width}
+            height={height}
             className="w-full h-36 overflow-visible select-none"
+            style={{ maxHeight: 144 }}
           >
             <defs>
               <linearGradient id="adminChartGrad" x1="0" y1="0" x2="0" y2="1">

@@ -66,6 +66,8 @@ export function StudentGrowthChart({ pontos }: StudentGrowthChartProps) {
       <div className="w-full overflow-hidden">
         <svg
           viewBox={`0 0 ${width} ${height}`}
+          width={width}
+          height={height}
           className="w-full h-auto overflow-visible select-none"
         >
           <defs>

@@ -44,7 +44,10 @@ export function AdminAlunosAtencaoCard({ alunos }: AdminAlunosAtencaoCardProps) 
                 className="group flex items-center justify-between gap-3 p-3 rounded-2xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50/70 transition-all"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="relative w-9 h-9 rounded-xl overflow-hidden shrink-0 border border-slate-200/80 bg-slate-100 shadow-2xs">
+                  <div
+                    className="relative w-9 h-9 rounded-xl overflow-hidden shrink-0 border border-slate-200/80 bg-slate-100 shadow-2xs"
+                    style={{ width: 36, height: 36, position: "relative" }}
+                  >
                     <Image
                       src={aluno.avatarUrl || "/ana-clara.png"}
                       alt={aluno.nome}

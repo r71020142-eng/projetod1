@@ -290,3 +290,57 @@ A plataforma conta com um conjunto completo de especificações para a migraçã
 * **`DECISAO_DE_INFRAESTRUTURA.md`**: Análise comparativa imparcial dos 14 critérios entre Vercel+Supabase e OneX VPS.
 * **`.env.example`**: Modelo de variáveis de ambiente sem credenciais ou segredos.
 
+---
+
+## 7. Pipeline de Estilização, Tailwind CSS e Resolução de Falhas
+
+### 7.1. Como o CSS Global é Carregado
+- O arquivo raiz `src/app/layout.tsx` contém uma importação estática, incondicional e síncrona no topo:
+  ```typescript
+  import "./globals.css";
+  ```
+- O arquivo `src/app/globals.css` declara as diretivas fundamentais do Tailwind:
+  ```css
+  @tailwind base;
+  @tailwind components;
+  @tailwind utilities;
+  ```
+- O compilador Next.js extrai e agrupa o CSS em `/_next/static/css/app/layout.css`, injetando a tag `<link rel="stylesheet">` no `<head>` do HTML servido.
+
+### 7.2. Versão do Tailwind CSS
+- **Versão:** Tailwind CSS `v3.4.1` (Tailwind 3).
+- **Processamento:** PostCSS 8 gerenciado por `postcss.config.mjs`:
+  ```javascript
+  const config = { plugins: { tailwindcss: {} } };
+  export default config;
+  ```
+- **Escaneamento de Conteúdo (`tailwind.config.ts`):** Mapeia estritamente:
+  `./src/pages/**/*.{js,ts,jsx,tsx,mdx}`, `./src/components/**/*.{js,ts,jsx,tsx,mdx}` e `./src/app/**/*.{js,ts,jsx,tsx,mdx}`.
+
+### 7.3. Conflitos de Portas e Servidores Concorrentes
+- Se um processo `next dev` for iniciado enquanto outro já estiver rodando, o novo processo vinculará automaticamente à porta `3001` (ou superior).
+- **Risco:** Dois servidores lendo e gravando simultaneamente na mesma pasta `.next/` corrompem o cache do webpack e invalidam os hashes de CSS.
+- **Diagnóstico:**
+  ```bash
+  lsof -i :3000
+  lsof -i :3001
+  ```
+- **Resolução:** Encerrar instâncias órfãs (`kill <PID>`) antes de iniciar um novo servidor.
+
+### 7.4. Quando e Como Utilizar `npm run dev:fresh`
+- Quando houver erro de chunk desatualizado (ex: `Cannot find module './XXXX.js'`) ou quando arquivos de estilo retornarem `404`:
+  ```bash
+  npm run dev:fresh
+  ```
+- O script seguro `scripts/clean-next-cache.mjs` valida a integridade do caminho e remove **exclusivamente** a pasta `.next` do projeto antes de inicializar o `next dev`.
+
+### 7.5. Diagnóstico de Falha de CSS pela Aba Network
+1. Abrir o DevTools (F12) > Aba **Network** > Filtrar por **CSS**.
+2. Recarregar a página com *Hard Refresh* (`Cmd+Shift+R` ou `Ctrl+F5`).
+3. Verificar a requisição para `/_next/static/css/...`:
+   - **Status 200 OK (MIME `text/css`):** Estilos compilados e aplicados com sucesso.
+   - **Status 404 Not Found:** Cache do webpack dessincronizado após build concorrente ou término incorreto do servidor dev. Executar `npm run dev:fresh`.
+   - **Status 500:** Falha de compilação em página ou módulo do Next.js.
+4. Verificar se há tentativa de requisição de `sw.js` (Service Worker órfão no navegador de outro projeto na porta 3000): limpar dados do site em DevTools > Application > Storage > Clear site data.
+
+

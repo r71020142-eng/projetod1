@@ -114,12 +114,16 @@ export function Header({
 
         {/* User Profile */}
         <div className="flex items-center gap-2.5 cursor-pointer group">
-          <div className="relative h-9 w-9 rounded-full overflow-hidden bg-slate-200 shrink-0 border border-slate-200/60 shadow-2xs">
+          <div
+            className="relative h-9 w-9 rounded-full overflow-hidden bg-slate-200 shrink-0 border border-slate-200/60 shadow-2xs"
+            style={{ width: 36, height: 36, position: "relative" }}
+          >
             <Image
               src={userAvatar}
               alt={userName}
               fill
               className="object-cover object-center"
+              sizes="36px"
               unoptimized
             />
           </div>

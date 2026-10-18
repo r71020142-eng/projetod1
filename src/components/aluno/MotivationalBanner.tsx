@@ -21,7 +21,7 @@ export function MotivationalBanner() {
 
       {/* Mountain Illustration with red flag on summit matching Image 1 */}
       <div className="relative w-44 h-16 shrink-0 hidden sm:block">
-        <svg viewBox="0 0 180 70" className="w-full h-full">
+        <svg viewBox="0 0 180 70" width="180" height="70" className="w-full h-full">
           {/* Background hills */}
           <path
             d="M50 70 L110 20 L160 70 Z"

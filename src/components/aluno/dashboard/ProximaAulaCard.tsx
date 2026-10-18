@@ -109,7 +109,10 @@ export function ProximaAulaCard({ aula }: ProximaAulaCardProps) {
 
         {/* Professor Compacto (Foto menor e elegante, não ocupa metade da tela) */}
         <div className="flex items-center gap-3 mt-4 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-          <div className="relative w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-slate-200/80 shadow-xs bg-slate-200">
+          <div
+            className="relative w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-slate-200/80 shadow-xs bg-slate-200"
+            style={{ width: 44, height: 44, position: "relative" }}
+          >
             <Image
               src={aula.professorAvatar || "/teacher-hd.jpg"}
               alt={aula.professorNome}

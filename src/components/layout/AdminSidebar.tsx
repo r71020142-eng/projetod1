@@ -61,6 +61,8 @@ export function AdminSidebar({ isOpenMobile, onCloseMobile }: AdminSidebarProps)
             {/* Logo icon matching Image 2: butterfly / abstract double wing icon */}
             <svg
               className="w-7 h-7 text-[#6366F1]"
+              width="28"
+              height="28"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -142,7 +144,7 @@ export function AdminSidebar({ isOpenMobile, onCloseMobile }: AdminSidebarProps)
 
           {/* Clean Vector Character with Laptop matching Image 2 */}
           <div className="relative w-16 h-16 shrink-0">
-            <svg viewBox="0 0 80 80" className="w-full h-full">
+            <svg viewBox="0 0 80 80" width="64" height="64" className="w-full h-full">
               {/* Person head */}
               <circle cx="50" cy="28" r="9" fill="#FFC999" />
               {/* Hair */}
