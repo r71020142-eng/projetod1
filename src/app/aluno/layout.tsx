@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { AlunoSidebar } from "@/components/layout/AlunoSidebar";
-import { DemoRoleSwitcher } from "@/components/layout/DemoRoleSwitcher";
 import { isDemoMode } from "@/lib/demoMode";
 import { ModoProducaoAviso } from "@/components/auth/ModoProducaoAviso";
 
@@ -19,7 +18,7 @@ export default function AlunoLayout({
   }
 
   return (
-    <div className="student-main min-h-[100dvh] bg-[#F5F3EE] text-[#07132E] relative selection:bg-[#5B2FE8] selection:text-white">
+    <div className="student-main min-h-[100dvh] bg-[#F5F3EE] text-[#07132E] relative overflow-x-hidden selection:bg-[#5B2FE8] selection:text-white">
       {/* Decoupled Fixed Background Layer (FASE 3 - pointer-events: none, z-index: 0, aria-hidden) */}
       <div
         className="student-main-background fixed inset-0 pointer-events-none z-0 bg-[#F8F6F1] bg-[url('/assets/mtd/mtd-main-background.webp')] bg-cover bg-top bg-no-repeat"
@@ -44,13 +43,10 @@ export default function AlunoLayout({
         />
 
         {/* Page Content: .student-page-content (relative z-10, min-w-0, padding horizontal de 32px) */}
-        <main className="student-page-content relative z-10 flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
-          <div className="max-w-[1360px] mx-auto">{children}</div>
+        <main className="student-page-content relative z-10 flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 overflow-x-hidden">
+          <div className="w-full max-w-[1360px] mx-auto min-w-0">{children}</div>
         </main>
       </div>
-
-      {/* Floating Demo Viewport Switcher */}
-      <DemoRoleSwitcher variant="floating" />
     </div>
   );
 }

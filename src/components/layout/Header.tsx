@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { Search, Bell, Menu, X, ChevronDown } from "lucide-react";
 import { NotificacoesDrawer } from "@/components/notificacoes/NotificacoesDrawer";
+import { DemoRoleSwitcher } from "@/components/layout/DemoRoleSwitcher";
 import { gamificacaoRepository } from "@/data/api";
 
 interface HeaderProps {
@@ -46,9 +47,9 @@ export function Header({
       : "Buscar alunos, professores, aulas...";
 
   return (
-    <header className="sticky top-0 z-30 flex h-20 w-full items-center justify-between border-b border-[#E5E2DA] bg-[#FAF8F3]/95 backdrop-blur-md px-4 sm:px-6 lg:px-8 select-none transition-colors">
+    <header className="sticky top-0 z-30 flex h-16 sm:h-20 w-full items-center justify-between border-b border-[#E5E2DA] bg-[#FAF8F3]/95 backdrop-blur-md px-4 sm:px-6 lg:px-8 select-none transition-colors">
       {/* Left side: Mobile Toggle & Brand (on mobile only, since desktop has persistent sidebar) */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         <button
           onClick={onToggleMobileMenu}
           type="button"
@@ -56,27 +57,27 @@ export function Header({
           className="inline-flex items-center justify-center rounded-xl p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
         >
           {isMobileMenuOpen ? (
-            <X className="h-6 w-6 text-slate-800" />
+            <X className="h-5 w-5 text-slate-800" />
           ) : (
-            <Menu className="h-6 w-6 text-slate-800" />
+            <Menu className="h-5 w-5 text-slate-800" />
           )}
         </button>
 
         {/* Logo: Displayed on mobile only when sidebar is closed/in drawer */}
-        <div className="flex lg:hidden items-center gap-2">
+        <div className="flex lg:hidden items-center gap-1.5 sm:gap-2">
           <Image
             src="/assets/mtd/mtd-logo-mark.svg"
             alt="Símbolo DEMOSTRATIVO MTD"
             width={24}
             height={24}
-            className="w-6 h-6 object-contain shrink-0"
+            className="w-5 h-5 sm:w-6 sm:h-6 object-contain shrink-0"
             unoptimized
           />
           <div className="flex items-center gap-1">
-            <span className="font-extrabold tracking-tight text-[#07132E] text-base sm:text-lg">
+            <span className="font-extrabold tracking-tight text-[#07132E] text-sm sm:text-base">
               DEMOSTRATIVO
             </span>
-            <span className="text-[#5B2FE8] font-extrabold text-base sm:text-lg">
+            <span className="text-[#5B2FE8] font-extrabold text-sm sm:text-base">
               MTD
             </span>
           </div>
@@ -97,8 +98,10 @@ export function Header({
         </div>
       </div>
 
-      {/* Right side: Notification Bell & User Profile matching reference */}
-      <div className="flex items-center gap-4 sm:gap-6 shrink-0">
+      {/* Right side: Demo Switcher (desktop), Notification Bell & User Profile */}
+      <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
+        <DemoRoleSwitcher variant="inline" className="hidden sm:flex" />
+
         {/* Notification Bell with red badge dot */}
         <button
           type="button"
@@ -117,10 +120,9 @@ export function Header({
         </button>
 
         {/* User Profile */}
-        <div className="flex items-center gap-2.5 cursor-pointer group">
+        <div className="flex items-center gap-2 cursor-pointer group">
           <div
-            className="relative h-9 w-9 rounded-full overflow-hidden bg-slate-200 shrink-0 border border-[#DDDDE5] shadow-2xs"
-            style={{ width: 36, height: 36, position: "relative" }}
+            className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full overflow-hidden bg-slate-200 shrink-0 border border-[#DDDDE5] shadow-2xs"
           >
             <Image
               src={userAvatar}
@@ -132,7 +134,7 @@ export function Header({
             />
           </div>
 
-          <div className="flex flex-col text-left">
+          <div className="hidden sm:flex flex-col text-left">
             <span className="text-sm font-bold text-[#07132E] leading-tight group-hover:text-[#5B2FE8] transition-colors">
               {userName}
             </span>
@@ -144,7 +146,7 @@ export function Header({
           </div>
 
           {/* Chevron down */}
-          <ChevronDown className="h-4 w-4 text-[#60708F] group-hover:text-[#07132E] transition-colors" />
+          <ChevronDown className="hidden sm:block h-4 w-4 text-[#60708F] group-hover:text-[#07132E] transition-colors" />
         </div>
       </div>
 

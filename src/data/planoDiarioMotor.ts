@@ -66,6 +66,12 @@ export interface ContextoPlanoDiario {
     revisoesHoje: number;
     sequenciaDias: number;
   } | null;
+  selfPresentationPendente?: {
+    id: string;
+    titulo?: string;
+    reenvioSolicitado?: boolean;
+    linkDestino?: string;
+  } | null;
   praticaDiaria?: {
     id: string;
     titulo: string;
@@ -152,6 +158,21 @@ export function calcularPlanoDiario(contexto: ContextoPlanoDiario): AcaoPlanoDia
         });
       }
     }
+  }
+
+  if (contexto.selfPresentationPendente?.reenvioSolicitado) {
+    adicionarAcao({
+      id: contexto.selfPresentationPendente.id,
+      prioridade: 1,
+      tipo: "item_atrasado",
+      titulo: "Reenviar Self Presentation",
+      contexto: "Ajuste solicitado pelo professor",
+      prazoOuTempo: "Ajuste pendente",
+      href: contexto.selfPresentationPendente.linkDestino || "/aluno/self-presentation",
+      botaoTexto: "Reenviar",
+      icone: "Video",
+      urgencia: "critica",
+    });
   }
 
   // -------------------------------------------------------------
@@ -244,6 +265,22 @@ export function calcularPlanoDiario(contexto: ContextoPlanoDiario): AcaoPlanoDia
         }
       }
     }
+  }
+
+  // 3.3 Self Presentation pendente de envio
+  if (contexto.selfPresentationPendente && !contexto.selfPresentationPendente.reenvioSolicitado) {
+    adicionarAcao({
+      id: contexto.selfPresentationPendente.id,
+      prioridade: 3,
+      tipo: "prazo_proximo",
+      titulo: contexto.selfPresentationPendente.titulo || "Gravar Self Presentation",
+      contexto: "Rito de nivelamento oral",
+      prazoOuTempo: "Pendente de envio",
+      href: contexto.selfPresentationPendente.linkDestino || "/aluno/self-presentation",
+      botaoTexto: "Gravar agora",
+      icone: "Video",
+      urgencia: "alta",
+    });
   }
 
   // -------------------------------------------------------------

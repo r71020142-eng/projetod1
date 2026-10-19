@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DemoRoleSwitcher } from "@/components/layout/DemoRoleSwitcher";
 
 // Navegação oficial do aluno preservada
 const ALUNO_NAV_ITEMS = [
@@ -136,6 +137,11 @@ export function AlunoSidebar({ isOpenMobile, onCloseMobile }: AlunoSidebarProps)
               );
             })}
           </nav>
+        </div>
+
+        {/* Seletor Demonstrativo no Menu Mobile (sem sobrepor conteúdo) */}
+        <div className="px-5 py-2 lg:hidden shrink-0">
+          <DemoRoleSwitcher variant="inline" className="w-full justify-center bg-slate-900 border-slate-700 text-white" />
         </div>
 
         {/* Slogan Oficial: direto sobre a sidebar, alinhado à esquerda com linha dourada */}

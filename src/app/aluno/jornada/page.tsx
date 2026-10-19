@@ -9,15 +9,17 @@ import {
   ArrowRight,
   AlertCircle,
 } from "lucide-react";
-import { ProgressoJornadaAluno, Aluno } from "@/types";
+import { ProgressoJornadaAluno, Aluno, AlunoDashboardData } from "@/types";
 import { alunoRepository, getAlunoDashboardData } from "@/data/api";
 import { ProgressoJornadaCard } from "@/components/aluno/ProgressoJornadaCard";
+import { MinhaSemanaCard } from "@/components/aluno/dashboard/MinhaSemanaCard";
 
 const DEMO_ALUNO_ID = "alu-001";
 
 export default function AlunoJornadaPage() {
   const [progressoJornada, setProgressoJornada] = useState<ProgressoJornadaAluno | undefined>();
   const [aluno, setAluno] = useState<Aluno | null>(null);
+  const [dashData, setDashData] = useState<AlunoDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +33,7 @@ export default function AlunoJornadaPage() {
       ]);
       if (!mounted) return;
       setAluno(alunoData || null);
+      setDashData(dashData);
       setProgressoJornada(dashData.progressoJornada);
     } catch (err: unknown) {
       if (mounted) {
@@ -98,6 +101,15 @@ export default function AlunoJornadaPage() {
 
       {/* Card Principal da Jornada do Método Paulo */}
       <ProgressoJornadaCard progresso={progressoJornada} />
+
+      {/* Dedicação Semanal e Gráfico de Estudos */}
+      {dashData && (
+        <MinhaSemanaCard
+          tempoEstudoTexto={dashData.aluno.studyHoursThisWeek}
+          atividadesConcluidasCount={dashData.aluno.completedActivitiesCount}
+          dias={dashData.evolucaoSemanal}
+        />
+      )}
 
       {/* Quick Action Navigation Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
