@@ -10,9 +10,13 @@ import {
   ContextNotificationData,
 } from "@/components/aluno/dashboard/DashboardContextNotification";
 import { calcularPlanoDiario, ContextoPlanoDiario } from "@/data/planoDiarioMotor";
+import { getServerIdentity } from "@/lib/auth/session";
 
 export default async function AlunoDashboardPage() {
-  const data = await getAlunoDashboardData();
+  const [data, identity] = await Promise.all([
+    getAlunoDashboardData(),
+    getServerIdentity("aluno"),
+  ]);
 
   const conquistasAluno = await gamificacaoRepository
     .listarConquistasAluno("alu-001")
@@ -115,7 +119,7 @@ export default async function AlunoDashboardPage() {
 
       {/* 2. Saudação Compacta */}
       <StudentDashboardGreeting
-        nomeAluno={data.aluno.name}
+        nomeAluno={identity ? identity.nomeCompleto : data.aluno.name}
         totalAcoesHoje={acoesPlano.length}
       />
 

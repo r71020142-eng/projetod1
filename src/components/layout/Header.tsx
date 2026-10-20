@@ -11,7 +11,10 @@ interface HeaderProps {
   variant: "aluno" | "admin";
   userName: string;
   userRoleLabel?: string;
-  userAvatar: string;
+  userAvatar?: string | null;
+  userInitials?: string;
+  userEmail?: string;
+  isRealAuth?: boolean;
   onToggleMobileMenu: () => void;
   isMobileMenuOpen: boolean;
 }
@@ -21,6 +24,9 @@ export function Header({
   userName,
   userRoleLabel,
   userAvatar,
+  userInitials,
+  userEmail,
+  isRealAuth = false,
   onToggleMobileMenu,
   isMobileMenuOpen,
 }: HeaderProps) {
@@ -113,9 +119,9 @@ export function Header({
         </div>
       </div>
 
-      {/* Right side: Demo Switcher (desktop), Notification Bell & User Profile */}
+      {/* Right side: Demo Switcher (desktop se não for real auth), Notification Bell & User Profile */}
       <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
-        <DemoRoleSwitcher variant="inline" className="hidden sm:flex" />
+        {!isRealAuth && <DemoRoleSwitcher variant="inline" className="hidden sm:flex" />}
 
         {/* Notification Bell with red badge dot */}
         <button
@@ -143,15 +149,20 @@ export function Header({
             aria-haspopup="true"
             className="flex items-center gap-2 cursor-pointer group focus:outline-none"
           >
-            <div className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full overflow-hidden bg-slate-200 shrink-0 border border-[#DDDDE5] shadow-2xs">
-              <Image
-                src={userAvatar}
-                alt={userName}
-                fill
-                className="object-cover object-center"
-                sizes="36px"
-                unoptimized
-              />
+            {/* Avatar com imagem ou placeholder resiliente de iniciais */}
+            <div className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full overflow-hidden shrink-0 border border-[#DDDDE5] shadow-2xs flex items-center justify-center font-bold text-xs select-none bg-[#1F1B38] text-[#D4AF37] border-[#D4AF37]/30">
+              {userAvatar ? (
+                <Image
+                  src={userAvatar}
+                  alt={userName}
+                  fill
+                  className="object-cover object-center"
+                  sizes="36px"
+                  unoptimized
+                />
+              ) : (
+                <span className="tracking-wider">{userInitials || "RP"}</span>
+              )}
             </div>
 
             <div className="hidden sm:flex flex-col text-left">
@@ -171,22 +182,27 @@ export function Header({
           {isUserMenuOpen && (
             <div
               role="menu"
-              className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 z-50 text-slate-800 animate-in fade-in"
+              className="absolute right-0 mt-2 w-52 sm:w-56 bg-white border border-slate-200 rounded-xl shadow-xl py-1.5 z-50 text-slate-800 animate-in fade-in"
             >
-              <div className="px-3.5 py-2 border-b border-slate-100">
-                <p className="text-xs font-semibold text-slate-900 truncate">
+              <div className="px-3.5 py-2.5 border-b border-slate-100">
+                <p className="text-xs font-bold text-slate-900 truncate">
                   {userName}
                 </p>
-                <p className="text-[11px] text-slate-500">
+                {userEmail && (
+                  <p className="text-[11px] text-slate-500 truncate mt-0.5 font-mono">
+                    {userEmail}
+                  </p>
+                )}
+                <span className="inline-block mt-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-semibold rounded-md uppercase tracking-wider">
                   {userRoleLabel || (variant === "admin" ? "Administrador" : "Aluno")}
-                </p>
+                </span>
               </div>
 
               <form action="/api/auth/logout" method="POST" className="p-1">
                 <button
                   type="submit"
                   role="menuitem"
-                  className="w-full text-left px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 rounded-lg flex items-center gap-2 transition-colors font-medium"
+                  className="w-full text-left px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 rounded-lg flex items-center gap-2 transition-colors font-medium cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5 shrink-0" />
                   <span>Sair da conta</span>

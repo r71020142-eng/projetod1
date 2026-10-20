@@ -14,9 +14,13 @@ import { EsteiraPedagogicaGrid } from "@/components/admin/dashboard/EsteiraPedag
 import { AdminAlunosAtencaoCard } from "@/components/admin/dashboard/AdminAlunosAtencaoCard";
 import { AdminEvolucaoChartCard } from "@/components/admin/dashboard/AdminEvolucaoChartCard";
 import { calcularPendenciasAdmin, ContextoPendenciasAdmin } from "@/data/adminPendenciasMotor";
+import { getServerIdentity } from "@/lib/auth/session";
 
 export default async function AdminDashboardPage() {
-  const data = await getAdminDashboardData();
+  const [data, identity] = await Promise.all([
+    getAdminDashboardData(),
+    getServerIdentity("admin"),
+  ]);
 
   // Busca dados complementares da esteira operacional
   const [denuncias, placas, turmas, proximasAulas] = await Promise.all([
@@ -59,7 +63,7 @@ export default async function AdminDashboardPage() {
     <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in duration-200">
       {/* 1. Primeira Seção: Cabeçalho Executivo */}
       <AdminDashboardHeader
-        userName="Carla Mendes"
+        userName={identity?.nomeCompleto || "Carla Mendes"}
         totalPendencias={pendenciasPrioritarias.length}
         mesReferencia={data.mesReferencia}
       />

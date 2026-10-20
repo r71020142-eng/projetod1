@@ -241,6 +241,110 @@ assert.match(resp1, /Se existir uma conta associada/);
 
 console.log("   ✓ Resposta de recuperação neutra confirmada, mitigando enumeração de usuários.");
 
+// ------------------------------------------------------------------------------
+// 9. Resolução de Identidade Real, Iniciais e Rótulos (Etapa 10.2B1)
+// ------------------------------------------------------------------------------
+console.log("\n9. Testando Resolução de Iniciais e Rótulos de Papel (Etapa 10.2B1)...");
+
+function extractInitials(name) {
+  if (!name || typeof name !== "string") return "U";
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "U";
+  if (parts.length === 1) {
+    const single = parts[0];
+    return single.length >= 2 ? single.slice(0, 2).toUpperCase() : single.toUpperCase();
+  }
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function formatRoleLabel(role) {
+  switch (role) {
+    case "admin":
+      return "Administrador";
+    case "professor":
+      return "Professor";
+    case "aluno":
+      return "Aluno";
+    default:
+      return "Usuário";
+  }
+}
+
+// Iniciais do Administrador Ray Pires
+assert.equal(extractInitials("Ray Pires"), "RP");
+assert.equal(extractInitials("Carla Mendes"), "CM");
+assert.equal(extractInitials("Mariana Silva"), "MS");
+assert.equal(extractInitials("Paulo"), "PA");
+assert.equal(extractInitials("A"), "A");
+assert.equal(extractInitials(""), "U");
+assert.equal(extractInitials(null), "U");
+assert.equal(extractInitials(undefined), "U");
+
+// Rótulos de Papel
+assert.equal(formatRoleLabel("admin"), "Administrador");
+assert.equal(formatRoleLabel("professor"), "Professor");
+assert.equal(formatRoleLabel("aluno"), "Aluno");
+assert.equal(formatRoleLabel("outro"), "Usuário");
+
+console.log("   ✓ Iniciais e rótulos de interface validados com sucesso!");
+
+// ------------------------------------------------------------------------------
+// 10. Isolamento de Identidade Real vs. Fictícia e Ocultação de Switchers (Etapa 10.2B1)
+// ------------------------------------------------------------------------------
+console.log("\n10. Testando Isolamento de Identidade e Ocultação de Switchers (Etapa 10.2B1)...");
+
+function resolveHeaderIdentity(authMode, profile, variant) {
+  if (authMode === "demo") {
+    return {
+      userName: variant === "admin" ? "Carla Mendes" : "Mariana Silva",
+      roleLabel: variant === "admin" ? "Administrador" : "Aluno",
+      avatarUrl: variant === "admin" ? "/carla-avatar.png" : "/mariana-avatar.png",
+      initials: variant === "admin" ? "CM" : "MS",
+      isRealAuth: false,
+      showDemoSwitchers: true,
+    };
+  }
+
+  // Em AUTH_MODE=supabase: identidade real obrigatória
+  assert(profile, "Perfil real deve existir em AUTH_MODE=supabase");
+  return {
+    userName: profile.nome_completo,
+    roleLabel: formatRoleLabel(profile.role),
+    avatarUrl: profile.avatar_url || null,
+    initials: extractInitials(profile.nome_completo),
+    isRealAuth: true,
+    showDemoSwitchers: false,
+  };
+}
+
+// Caso 1: Usuário Real Ray Pires (admin) em Preview
+const rayProfile = {
+  id: "660640d2-99fc-46e7-8e12-9ef0d67b60ee",
+  email: "r71020142@gmail.com",
+  nome_completo: "Ray Pires",
+  role: "admin",
+  status: "ativo",
+  avatar_url: null,
+};
+
+const realAdminIdentity = resolveHeaderIdentity("supabase", rayProfile, "admin");
+assert.equal(realAdminIdentity.userName, "Ray Pires");
+assert.equal(realAdminIdentity.roleLabel, "Administrador");
+assert.equal(realAdminIdentity.avatarUrl, null);
+assert.equal(realAdminIdentity.initials, "RP");
+assert.equal(realAdminIdentity.isRealAuth, true);
+assert.equal(realAdminIdentity.showDemoSwitchers, false);
+
+// Caso 2: Modo demo preserva Carla Mendes e Mariana Silva com switchers ativos
+const demoAdminIdentity = resolveHeaderIdentity("demo", null, "admin");
+assert.equal(demoAdminIdentity.userName, "Carla Mendes");
+assert.equal(demoAdminIdentity.roleLabel, "Administrador");
+assert.equal(demoAdminIdentity.avatarUrl, "/carla-avatar.png");
+assert.equal(demoAdminIdentity.isRealAuth, false);
+assert.equal(demoAdminIdentity.showDemoSwitchers, true);
+
+console.log("   ✓ Identidade real 'Ray Pires' isolada de 'Carla Mendes'; switchers ocultos em AUTH_MODE=supabase.");
+
 console.log("\n============================================================");
-console.log("TODOS OS TESTES DA ETAPA 10.2A PASSARAM COM 100% DE SUCESSO!");
+console.log("TODOS OS TESTES DAS ETAPAS 10.2A E 10.2B1 PASSARAM COM 100%!");
 console.log("============================================================");

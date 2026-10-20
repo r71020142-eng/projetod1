@@ -39,9 +39,10 @@ const ALUNO_NAV_ITEMS = [
 interface AlunoSidebarProps {
   isOpenMobile: boolean;
   onCloseMobile: () => void;
+  isRealAuth?: boolean;
 }
 
-export function AlunoSidebar({ isOpenMobile, onCloseMobile }: AlunoSidebarProps) {
+export function AlunoSidebar({ isOpenMobile, onCloseMobile, isRealAuth = false }: AlunoSidebarProps) {
   const pathname = usePathname();
 
   const sidebarInner = (
@@ -139,10 +140,12 @@ export function AlunoSidebar({ isOpenMobile, onCloseMobile }: AlunoSidebarProps)
           </nav>
         </div>
 
-        {/* Seletor Demonstrativo no Menu Mobile (sem sobrepor conteúdo) */}
-        <div className="px-5 py-2 lg:hidden shrink-0">
-          <DemoRoleSwitcher variant="inline" className="w-full justify-center bg-slate-900 border-slate-700 text-white" />
-        </div>
+        {/* Seletor Demonstrativo no Menu Mobile (sem sobrepor conteúdo) - Exclusivo do modo demo */}
+        {!isRealAuth && (
+          <div className="px-5 py-2 lg:hidden shrink-0">
+            <DemoRoleSwitcher variant="inline" className="w-full justify-center bg-slate-900 border-slate-700 text-white" />
+          </div>
+        )}
 
         {/* Slogan Oficial: direto sobre a sidebar, alinhado à esquerda com linha dourada */}
         <div className="sidebar-signature relative z-10 shrink-0 px-7 pb-8 pt-4">

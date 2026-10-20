@@ -9,14 +9,15 @@ import { isDemoMode } from "@/lib/demoMode";
 interface DemoRoleSwitcherProps {
   className?: string;
   variant?: "inline" | "floating";
+  isRealAuth?: boolean;
 }
 
-export function DemoRoleSwitcher({ className, variant = "inline" }: DemoRoleSwitcherProps) {
+export function DemoRoleSwitcher({ className, variant = "inline", isRealAuth = false }: DemoRoleSwitcherProps) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
   const isAluno = pathname.startsWith("/aluno");
 
-  if (!isDemoMode()) {
+  if (isRealAuth || !isDemoMode()) {
     return null;
   }
 

@@ -1,0 +1,56 @@
+"use client";
+
+import React, { useState } from "react";
+import { Header } from "@/components/layout/Header";
+import { AlunoSidebar } from "@/components/layout/AlunoSidebar";
+import { UserIdentity } from "@/lib/auth/session";
+
+interface AlunoLayoutClientProps {
+  children: React.ReactNode;
+  identity: UserIdentity;
+}
+
+export function AlunoLayoutClient({
+  children,
+  identity,
+}: AlunoLayoutClientProps) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  return (
+    <div className="student-main min-h-[100dvh] bg-[#F5F3EE] text-[#07132E] relative overflow-x-hidden selection:bg-[#5B2FE8] selection:text-white">
+      {/* Decoupled Fixed Background Layer */}
+      <div
+        className="student-main-background fixed inset-0 pointer-events-none z-0 bg-[#F8F6F1] bg-[url('/assets/mtd/mtd-main-background.webp')] bg-cover bg-top bg-no-repeat"
+        aria-hidden="true"
+      />
+
+      {/* Aluno Sidebar - Fixed full-height on desktop (294px), drawer on mobile */}
+      <AlunoSidebar
+        isOpenMobile={isMobileMenuOpen}
+        onCloseMobile={() => setIsMobileMenuOpen(false)}
+        isRealAuth={identity.isRealAuth}
+      />
+
+      {/* Main Content Column offset by desktop sidebar width (294px) */}
+      <div className="relative z-10 flex flex-col min-h-[100dvh] min-w-0 lg:pl-[294px]">
+        {/* Top Header */}
+        <Header
+          variant="aluno"
+          userName={identity.nomeCompleto}
+          userRoleLabel={identity.roleLabel}
+          userAvatar={identity.avatarUrl}
+          userInitials={identity.initials}
+          userEmail={identity.email}
+          isRealAuth={identity.isRealAuth}
+          onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          isMobileMenuOpen={isMobileMenuOpen}
+        />
+
+        {/* Page Content */}
+        <main className="student-page-content relative z-10 flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 overflow-x-hidden">
+          <div className="w-full max-w-[1360px] mx-auto min-w-0">{children}</div>
+        </main>
+      </div>
+    </div>
+  );
+}
