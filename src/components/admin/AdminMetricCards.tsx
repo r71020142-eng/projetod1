@@ -52,13 +52,15 @@ export function AdminMetricCards({ metricas: initialMetricas }: AdminMetricCards
 
     syncCounts();
 
-    const handleStorageUpdate = () => {
+    const handleUpdate = () => {
       syncCounts();
     };
 
-    window.addEventListener("mtd_storage_updated", handleStorageUpdate);
+    window.addEventListener("mtd_storage_updated", handleUpdate);
+    window.addEventListener("mtd_core_users_updated", handleUpdate);
     return () => {
-      window.removeEventListener("mtd_storage_updated", handleStorageUpdate);
+      window.removeEventListener("mtd_storage_updated", handleUpdate);
+      window.removeEventListener("mtd_core_users_updated", handleUpdate);
     };
   }, []);
 

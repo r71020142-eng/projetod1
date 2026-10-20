@@ -73,6 +73,7 @@ export interface IProfessorRepository {
   inativar(id: string): Promise<OperationResult<Professor>>;
   reativar(id: string): Promise<OperationResult<Professor>>;
   contarAtivos(): Promise<number>;
+  contarTotal?(): Promise<number>;
 }
 
 export interface ITurmaRepository {

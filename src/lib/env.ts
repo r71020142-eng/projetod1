@@ -21,12 +21,14 @@ export interface ClientEnv {
   supabasePublishableKey: string;
   isDemoClient: boolean;
   isAuthTestBannerVisible: boolean;
+  coreUsersDataSource: DataSource;
 }
 
 export interface ServerEnv extends ClientEnv {
   appMode: AppMode;
   authMode: AuthMode;
   dataSource: DataSource;
+  coreUsersDataSource: DataSource;
   isAuthTestWithLocalData: boolean;
   supabaseSecretKey: string;
 }
@@ -67,6 +69,17 @@ export function getServerEnv(): ServerEnv {
     );
   }
   const dataSource: DataSource = rawDataSource;
+
+  const rawCoreUsers =
+    process.env.CORE_USERS_DATA_SOURCE ||
+    process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE ||
+    dataSource;
+  if (rawCoreUsers !== "local" && rawCoreUsers !== "supabase") {
+    throw new Error(
+      `[Configuração MTD] CORE_USERS_DATA_SOURCE inválido: "${rawCoreUsers}". Esperado: "local" ou "supabase".`
+    );
+  }
+  const coreUsersDataSource: DataSource = rawCoreUsers;
 
   const isVercelProduction = process.env.VERCEL_ENV === "production";
   const isAuthTestWithLocalData =
@@ -115,6 +128,7 @@ export function getServerEnv(): ServerEnv {
     appMode,
     authMode,
     dataSource,
+    coreUsersDataSource,
     isAuthTestWithLocalData,
     supabaseUrl,
     supabasePublishableKey,
@@ -134,11 +148,14 @@ export function getClientEnv(): ClientEnv {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
   const isDemo = process.env.NEXT_PUBLIC_DEMO_MODE !== "false";
   const isAuthTestBanner = process.env.NEXT_PUBLIC_AUTH_TEST_BANNER === "true";
+  const coreUsersDataSource: DataSource =
+    (process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE as DataSource) || "local";
 
   return {
     supabaseUrl,
     supabasePublishableKey,
     isDemoClient: isDemo,
     isAuthTestBannerVisible: isAuthTestBanner,
+    coreUsersDataSource,
   };
 }

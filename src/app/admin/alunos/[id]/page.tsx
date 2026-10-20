@@ -148,7 +148,11 @@ export default function AdminAlunoDetalhesPage() {
     };
 
     window.addEventListener("mtd_storage_updated", handleStorageUpdate);
-    return () => window.removeEventListener("mtd_storage_updated", handleStorageUpdate);
+    window.addEventListener("mtd_core_users_updated", handleStorageUpdate);
+    return () => {
+      window.removeEventListener("mtd_storage_updated", handleStorageUpdate);
+      window.removeEventListener("mtd_core_users_updated", handleStorageUpdate);
+    };
   }, [alunoId, carregarDados]);
 
   const handleInativarConfirm = async () => {
@@ -398,6 +402,13 @@ export default function AdminAlunoDetalhesPage() {
                 <BookOpen className="h-4 w-4 text-purple-600" />
                 <span>Turmas Atuais ({turmas.length})</span>
               </h3>
+            </div>
+
+            <div className="rounded-xl bg-amber-50/70 p-3 border border-amber-200/60 text-[11px] text-amber-900 flex items-start gap-2">
+              <Info className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+              <p>
+                <strong>Isolamento Modular:</strong> Os dados cadastrais e pedagógicos deste discente são gerenciados no Supabase. Os vínculos com turmas, aulas e frequência permanecem em armazenamento local e serão migrados nas etapas seguintes.
+              </p>
             </div>
 
             {turmas.length === 0 ? (

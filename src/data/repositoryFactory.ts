@@ -1,27 +1,19 @@
 /**
- * Fábrica Central de Repositórios do DEMOSTRATIVO MTD (Etapa 10.1).
+ * Fábrica Central de Repositórios do DEMOSTRATIVO MTD (Etapa 10.2B2).
  *
- * Gerencia a resolução da camada de dados de acordo com o APP_MODE:
- * - Em modo 'demo': resolve para os repositórios em localStorage (dados semente).
- * - Em modo 'production': resolve para os adaptadores do Supabase (quando implementados).
- * - Bloqueio estrito: em produção, NUNCA ocorre fallback silencioso para localStorage.
+ * Gerencia a resolução da camada de dados de acordo com o APP_MODE e fontes granulares:
+ * - DATA_SOURCE: 'local' | 'supabase' (fonte geral da aplicação)
+ * - CORE_USERS_DATA_SOURCE: 'local' | 'supabase' (fonte específica para Alunos e Professores)
+ * - Na Etapa 10.2B2: CORE_USERS_DATA_SOURCE=supabase ativa os adaptadores de Alunos e Professores
+ *   no Supabase PostgreSQL remoto com RLS, mantendo os demais módulos locais/demonstrativos.
  */
 
-import { getServerEnv } from "@/lib/env";
+import { getServerEnv, getClientEnv, DataSource } from "@/lib/env";
+import { alunoLocalStorageRepository } from "./alunoLocalStorageRepository";
+import { professorLocalStorageRepository } from "./professorLocalStorageRepository";
+import { alunoSupabaseRepository } from "./alunoSupabaseRepository";
+import { professorSupabaseRepository } from "./professorSupabaseRepository";
 
-export function isLocalDataSource(): boolean {
-  if (typeof window === "undefined") {
-    try {
-      const env = getServerEnv();
-      return env.dataSource === "local";
-    } catch {
-      return true;
-    }
-  }
-  return true;
-}
-import { alunoRepository } from "./alunoRepository";
-import { professorRepository } from "./professorRepository";
 import { turmaRepository } from "./turmaRepository";
 import { aulaRepository } from "./aulaRepository";
 import { materialRepository } from "./materialRepository";
@@ -47,6 +39,38 @@ import {
   IGamificacaoRepository,
 } from "./contracts/repositoryContracts";
 
+export function isLocalDataSource(): boolean {
+  if (typeof window === "undefined") {
+    try {
+      const env = getServerEnv();
+      return env.dataSource === "local";
+    } catch {
+      return true;
+    }
+  }
+  return true;
+}
+
+/**
+ * Retorna a fonte de dados configurada para os módulos de usuários centrais (Alunos e Professores).
+ */
+export function getCoreUsersDataSource(): DataSource {
+  if (typeof window === "undefined") {
+    try {
+      const env = getServerEnv();
+      return env.coreUsersDataSource;
+    } catch {
+      return "local";
+    }
+  }
+  try {
+    const clientEnv = getClientEnv();
+    return clientEnv.coreUsersDataSource || "local";
+  } catch {
+    return "local";
+  }
+}
+
 export class UnimplementedSupabaseRepositoryError extends Error {
   constructor(nomeRepositorio: string, etapaPlanejada: string) {
     super(
@@ -62,21 +86,20 @@ export class UnimplementedSupabaseRepositoryError extends Error {
  * Retorna o repositório de Alunos ativo para o ambiente.
  */
 export function getAlunoRepository(): IAlunoRepository {
-  if (isLocalDataSource()) {
-    return alunoRepository;
+  if (getCoreUsersDataSource() === "supabase") {
+    return alunoSupabaseRepository;
   }
-  // Na Etapa 10.2B, aqui será instanciado o SupabaseAlunoRepository
-  throw new UnimplementedSupabaseRepositoryError("AlunoRepository", "Etapa 10.2B");
+  return alunoLocalStorageRepository;
 }
 
 /**
  * Retorna o repositório de Professores ativo para o ambiente.
  */
 export function getProfessorRepository(): IProfessorRepository {
-  if (isLocalDataSource()) {
-    return professorRepository;
+  if (getCoreUsersDataSource() === "supabase") {
+    return professorSupabaseRepository;
   }
-  throw new UnimplementedSupabaseRepositoryError("ProfessorRepository", "Etapa 10.2B");
+  return professorLocalStorageRepository;
 }
 
 /**
@@ -86,7 +109,7 @@ export function getTurmaRepository(): ITurmaRepository {
   if (isLocalDataSource()) {
     return turmaRepository;
   }
-  throw new UnimplementedSupabaseRepositoryError("TurmaRepository", "Etapa 10.2B");
+  throw new UnimplementedSupabaseRepositoryError("TurmaRepository", "Etapa 10.3");
 }
 
 /**
@@ -96,7 +119,7 @@ export function getAulaRepository(): IAulaRepository {
   if (isLocalDataSource()) {
     return aulaRepository;
   }
-  throw new UnimplementedSupabaseRepositoryError("AulaRepository", "Etapa 10.2B");
+  throw new UnimplementedSupabaseRepositoryError("AulaRepository", "Etapa 10.3");
 }
 
 /**
@@ -106,7 +129,7 @@ export function getMaterialRepository(): IMaterialRepository {
   if (isLocalDataSource()) {
     return materialRepository;
   }
-  throw new UnimplementedSupabaseRepositoryError("MaterialRepository", "Etapa 10.3");
+  throw new UnimplementedSupabaseRepositoryError("MaterialRepository", "Etapa 10.4");
 }
 
 /**
@@ -116,7 +139,7 @@ export function getAtividadeRepository(): IAtividadeRepository {
   if (isLocalDataSource()) {
     return atividadeRepository;
   }
-  throw new UnimplementedSupabaseRepositoryError("AtividadeRepository", "Etapa 10.3");
+  throw new UnimplementedSupabaseRepositoryError("AtividadeRepository", "Etapa 10.4");
 }
 
 /**
@@ -126,7 +149,7 @@ export function getEntregaRepository(): IEntregaRepository {
   if (isLocalDataSource()) {
     return entregaRepository;
   }
-  throw new UnimplementedSupabaseRepositoryError("EntregaRepository", "Etapa 10.3");
+  throw new UnimplementedSupabaseRepositoryError("EntregaRepository", "Etapa 10.4");
 }
 
 /**
@@ -136,7 +159,7 @@ export function getSelfPresentationRepository(): ISelfPresentationRepository {
   if (isLocalDataSource()) {
     return selfPresentationRepository;
   }
-  throw new UnimplementedSupabaseRepositoryError("SelfPresentationRepository", "Etapa 10.3");
+  throw new UnimplementedSupabaseRepositoryError("SelfPresentationRepository", "Etapa 10.4");
 }
 
 /**
@@ -146,7 +169,7 @@ export function getBaralhoRepository(): IBaralhoRepository {
   if (isLocalDataSource()) {
     return baralhoRepo;
   }
-  throw new UnimplementedSupabaseRepositoryError("BaralhoRepository", "Etapa 10.4");
+  throw new UnimplementedSupabaseRepositoryError("BaralhoRepository", "Etapa 10.5");
 }
 
 /**
@@ -156,7 +179,7 @@ export function getAvaliacaoRepository(): IAvaliacaoRepository {
   if (isLocalDataSource()) {
     return avaliacaoRepository;
   }
-  throw new UnimplementedSupabaseRepositoryError("AvaliacaoRepository", "Etapa 10.4");
+  throw new UnimplementedSupabaseRepositoryError("AvaliacaoRepository", "Etapa 10.5");
 }
 
 /**
@@ -166,7 +189,7 @@ export function getComunidadeRepository(): IComunidadeRepository {
   if (isLocalDataSource()) {
     return comunidadeRepository;
   }
-  throw new UnimplementedSupabaseRepositoryError("ComunidadeRepository", "Etapa 10.5");
+  throw new UnimplementedSupabaseRepositoryError("ComunidadeRepository", "Etapa 10.6");
 }
 
 /**
@@ -176,5 +199,5 @@ export function getGamificacaoRepository(): IGamificacaoRepository {
   if (isLocalDataSource()) {
     return gamificacaoRepository;
   }
-  throw new UnimplementedSupabaseRepositoryError("GamificacaoRepository", "Etapa 10.5");
+  throw new UnimplementedSupabaseRepositoryError("GamificacaoRepository", "Etapa 10.6");
 }

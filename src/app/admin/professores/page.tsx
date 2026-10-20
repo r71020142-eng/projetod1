@@ -73,8 +73,10 @@ export default function AdminProfessoresPage() {
     };
 
     window.addEventListener("mtd_storage_updated", handleStorageUpdate);
+    window.addEventListener("mtd_core_users_updated", handleStorageUpdate);
     return () => {
       window.removeEventListener("mtd_storage_updated", handleStorageUpdate);
+      window.removeEventListener("mtd_core_users_updated", handleStorageUpdate);
     };
   }, [carregarProfessores]);
 
