@@ -55,6 +55,7 @@ import {
 } from "@/components/admin/AvaliacaoBadges";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
 import { AlunoFormModal } from "@/components/admin/AlunoFormModal";
+import { executeWithTimeout } from "@/lib/asyncUtils";
 
 export default function AdminAlunoDetalhesPage() {
   const params = useParams();
@@ -158,25 +159,51 @@ export default function AdminAlunoDetalhesPage() {
   const handleInativarConfirm = async () => {
     if (!aluno) return;
     setIsProcessing(true);
-    const res = await alunoRepository.inativar(aluno.id);
-    setIsProcessing(false);
-    setIsConfirmInativarOpen(false);
 
-    if (res.success && res.data) {
-      setAluno(res.data);
-      setFeedback(`O discente "${res.data.nomeCompleto}" foi inativado.`);
+    try {
+      const res = await executeWithTimeout(
+        alunoRepository.inativar(aluno.id),
+        15000,
+        "Tempo limite excedido ao inativar aluno. Tente novamente."
+      );
+
+      if (res.success && res.data) {
+        setAluno(res.data);
+        setFeedback(`O discente "${res.data.nomeCompleto}" foi inativado.`);
+      } else {
+        alert(res.error || "Erro ao inativar aluno.");
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro inesperado ao inativar aluno.";
+      alert(msg);
+    } finally {
+      setIsProcessing(false);
+      setIsConfirmInativarOpen(false);
     }
   };
 
   const handleReativar = async () => {
     if (!aluno) return;
     setIsProcessing(true);
-    const res = await alunoRepository.reativar(aluno.id);
-    setIsProcessing(false);
 
-    if (res.success && res.data) {
-      setAluno(res.data);
-      setFeedback(`O discente "${res.data.nomeCompleto}" foi reativado com sucesso!`);
+    try {
+      const res = await executeWithTimeout(
+        alunoRepository.reativar(aluno.id),
+        15000,
+        "Tempo limite excedido ao reativar aluno. Tente novamente."
+      );
+
+      if (res.success && res.data) {
+        setAluno(res.data);
+        setFeedback(`O discente "${res.data.nomeCompleto}" foi reativado com sucesso!`);
+      } else {
+        alert(res.error || "Erro ao reativar aluno.");
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro inesperado ao reativar aluno.";
+      alert(msg);
+    } finally {
+      setIsProcessing(false);
     }
   };
 

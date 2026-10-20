@@ -67,6 +67,7 @@ export function ConteudoDiarioFormModal({
       }
       setError(null);
       setFieldErrors({});
+      setIsSubmitting(false);
     }
   }, [isOpen, conteudoParaEditar]);
 

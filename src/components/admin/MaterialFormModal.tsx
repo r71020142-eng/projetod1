@@ -98,6 +98,7 @@ export function MaterialFormModal({
       }
       setError(null);
       setFieldErrors({});
+      setIsSubmitting(false);
     }
   }, [isOpen, materialParaEditar]);
 

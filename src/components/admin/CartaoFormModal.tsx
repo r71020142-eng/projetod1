@@ -56,6 +56,7 @@ export function CartaoFormModal({
       setStatus("ativo");
     }
     setErros({});
+    setSalvando(false);
   }, [cartaoParaEditar, isOpen]);
 
   if (!isOpen) return null;

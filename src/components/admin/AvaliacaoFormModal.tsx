@@ -175,6 +175,7 @@ export function AvaliacaoFormModal({
       setPermitirLink(true);
     }
     setErro("");
+    setLoading(false);
   }, [avaliacaoParaEditar, isOpen, programas, etapas, modulos, professores]);
 
   if (!isOpen) return null;

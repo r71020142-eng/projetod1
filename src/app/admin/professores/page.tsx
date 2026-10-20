@@ -23,6 +23,7 @@ import { getCoreUsersDataSource } from "@/data/repositoryFactory";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
 import { ProfessorFormModal } from "@/components/admin/ProfessorFormModal";
+import { executeWithTimeout } from "@/lib/asyncUtils";
 
 export default function AdminProfessoresPage() {
   const [professores, setProfessores] = useState<Professor[]>([]);
@@ -166,25 +167,45 @@ export default function AdminProfessoresPage() {
     if (!professorParaInativar) return;
     setIsConfirmingInativar(true);
 
-    const res = await professorRepository.inativar(professorParaInativar.id);
-    setIsConfirmingInativar(false);
-    setProfessorParaInativar(null);
+    try {
+      const res = await executeWithTimeout(
+        professorRepository.inativar(professorParaInativar.id),
+        15000,
+        "Tempo limite excedido ao inativar professor. Tente novamente."
+      );
 
-    if (res.success) {
-      carregarProfessores();
-      showToast(`Professor "${professorParaInativar.nomeCompleto}" inativado.`, "info");
-    } else {
-      alert(res.error || "Erro ao inativar professor.");
+      if (res.success) {
+        carregarProfessores();
+        showToast(`Professor "${professorParaInativar.nomeCompleto}" inativado.`, "info");
+      } else {
+        alert(res.error || "Erro ao inativar professor.");
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro inesperado ao inativar professor.";
+      alert(msg);
+    } finally {
+      setIsConfirmingInativar(false);
+      setProfessorParaInativar(null);
     }
   };
 
   const handleReativar = async (professor: Professor) => {
-    const res = await professorRepository.reativar(professor.id);
-    if (res.success) {
-      carregarProfessores();
-      showToast(`Professor "${professor.nomeCompleto}" reativado com sucesso!`);
-    } else {
-      alert(res.error || "Erro ao reativar professor.");
+    try {
+      const res = await executeWithTimeout(
+        professorRepository.reativar(professor.id),
+        15000,
+        "Tempo limite excedido ao reativar professor. Tente novamente."
+      );
+
+      if (res.success) {
+        carregarProfessores();
+        showToast(`Professor "${professor.nomeCompleto}" reativado com sucesso!`);
+      } else {
+        alert(res.error || "Erro ao reativar professor.");
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro inesperado ao reativar professor.";
+      alert(msg);
     }
   };
 

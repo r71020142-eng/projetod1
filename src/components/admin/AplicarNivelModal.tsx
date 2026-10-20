@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, Award, AlertCircle, CheckCircle2, ArrowRight } from "lucide-react";
 import { NivelAluno, Aluno } from "@/types";
 import { NivelBadge } from "@/components/common/NivelBadge";
@@ -26,6 +26,13 @@ export function AplicarNivelModal({
 }: AplicarNivelModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsSubmitting(false);
+      setError(null);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

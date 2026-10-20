@@ -23,6 +23,7 @@ import { NivelBadge } from "@/components/common/NivelBadge";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
 import { AlunoFormModal } from "@/components/admin/AlunoFormModal";
+import { executeWithTimeout } from "@/lib/asyncUtils";
 
 export default function AdminAlunosPage() {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
@@ -169,28 +170,45 @@ export default function AdminAlunosPage() {
   };
 
   const handleConfirmarInativacao = async () => {
-    if (!alunoParaInativar) return;
+    if (!alunoParaInativar || isConfirmingInativar) return;
     setIsConfirmingInativar(true);
 
-    const res = await alunoRepository.inativar(alunoParaInativar.id);
-    setIsConfirmingInativar(false);
-    setAlunoParaInativar(null);
+    try {
+      const res = await executeWithTimeout(
+        alunoRepository.inativar(alunoParaInativar.id)
+      );
 
-    if (res.success) {
-      carregarAlunos();
-      showToast(`Aluno "${alunoParaInativar.nomeCompleto}" foi inativado.`, "info");
-    } else {
-      alert(res.error || "Erro ao inativar aluno.");
+      if (res.success) {
+        carregarAlunos();
+        showToast(`Aluno "${alunoParaInativar.nomeCompleto}" foi inativado.`, "info");
+      } else {
+        alert(res.error || "Erro ao inativar aluno.");
+      }
+    } catch (err: unknown) {
+      console.error("[AdminAlunosPage] Erro ao inativar discente:", err);
+      const msg = err instanceof Error ? err.message : "Erro inesperado ao inativar discente.";
+      alert(msg);
+    } finally {
+      setIsConfirmingInativar(false);
+      setAlunoParaInativar(null);
     }
   };
 
   const handleReativar = async (aluno: Aluno) => {
-    const res = await alunoRepository.reativar(aluno.id);
-    if (res.success) {
-      carregarAlunos();
-      showToast(`Aluno "${aluno.nomeCompleto}" reativado com sucesso!`);
-    } else {
-      alert(res.error || "Erro ao reativar aluno.");
+    try {
+      const res = await executeWithTimeout(
+        alunoRepository.reativar(aluno.id)
+      );
+      if (res.success) {
+        carregarAlunos();
+        showToast(`Aluno "${aluno.nomeCompleto}" reativado com sucesso!`);
+      } else {
+        alert(res.error || "Erro ao reativar aluno.");
+      }
+    } catch (err: unknown) {
+      console.error("[AdminAlunosPage] Erro ao reativar discente:", err);
+      const msg = err instanceof Error ? err.message : "Erro inesperado ao reativar discente.";
+      alert(msg);
     }
   };
 

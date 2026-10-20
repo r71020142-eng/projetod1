@@ -79,6 +79,7 @@ export function CorrigirTentativaPraticaModal({
       }
     }
     setErro("");
+    setLoading(false);
   }, [tentativa, avaliacao, isOpen]);
 
   if (!isOpen || !tentativa || !avaliacao) return null;

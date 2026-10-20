@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { X, AlertCircle, Info, CheckCircle2, Plus } from "lucide-react";
 import { Professor, StatusCadastro } from "@/types";
 import { professorRepository } from "@/data/professorRepository";
 import { FormPersistenceNotice } from "@/components/common/FormPersistenceNotice";
+import { executeWithTimeout } from "@/lib/asyncUtils";
 
 interface ProfessorFormModalProps {
   isOpen: boolean;
@@ -45,30 +46,53 @@ export function ProfessorFormModal({
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Proteção contra desmontagem e requisições concorrentes defasadas
+  const isMountedRef = useRef(true);
+  const activeRequestIdRef = useRef(0);
+
   useEffect(() => {
-    if (professorParaEditar) {
-      setFormData({
-        nomeCompleto: professorParaEditar.nomeCompleto,
-        email: professorParaEditar.email,
-        telefone: professorParaEditar.telefone || "",
-        biografiaCurta: professorParaEditar.biografiaCurta,
-        idiomasFalados: [...professorParaEditar.idiomasFalados],
-        status: professorParaEditar.status,
-      });
-    } else {
-      setFormData({
-        nomeCompleto: "",
-        email: "",
-        telefone: "",
-        biografiaCurta: "",
-        idiomasFalados: ["Inglês (Fluente)", "Português (Nativo)"],
-        status: "ativo",
-      });
-    }
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Reset obrigatório de estado ao abrir, fechar ou trocar de professor
+  useEffect(() => {
+    activeRequestIdRef.current += 1;
+    setIsSubmitting(false);
     setNovoIdiomaInput("");
     setErrors({});
     setGeneralError(null);
+
+    if (isOpen) {
+      if (professorParaEditar) {
+        setFormData({
+          nomeCompleto: professorParaEditar.nomeCompleto,
+          email: professorParaEditar.email,
+          telefone: professorParaEditar.telefone || "",
+          biografiaCurta: professorParaEditar.biografiaCurta,
+          idiomasFalados: [...professorParaEditar.idiomasFalados],
+          status: professorParaEditar.status,
+        });
+      } else {
+        setFormData({
+          nomeCompleto: "",
+          email: "",
+          telefone: "",
+          biografiaCurta: "",
+          idiomasFalados: ["Inglês (Fluente)", "Português (Nativo)"],
+          status: "ativo",
+        });
+      }
+    }
   }, [professorParaEditar, isOpen]);
+
+  const handleClose = () => {
+    activeRequestIdRef.current += 1;
+    setIsSubmitting(false);
+    onClose();
+  };
 
   if (!isOpen) return null;
 
@@ -103,51 +127,78 @@ export function ProfessorFormModal({
     e.preventDefault();
     if (isSubmitting) return;
 
+    activeRequestIdRef.current += 1;
+    const currentRequestId = activeRequestIdRef.current;
+
     setIsSubmitting(true);
     setGeneralError(null);
 
     try {
       if (isEditing && professorParaEditar) {
-        const res = await professorRepository.atualizar(professorParaEditar.id, {
-          nomeCompleto: formData.nomeCompleto,
-          email: formData.email,
-          telefone: formData.telefone || undefined,
-          biografiaCurta: formData.biografiaCurta,
-          idiomasFalados: formData.idiomasFalados,
-          status: formData.status,
-        });
+        const res = await executeWithTimeout(
+          professorRepository.atualizar(professorParaEditar.id, {
+            nomeCompleto: formData.nomeCompleto,
+            email: formData.email,
+            telefone: formData.telefone || undefined,
+            biografiaCurta: formData.biografiaCurta,
+            idiomasFalados: formData.idiomasFalados,
+            status: formData.status,
+          })
+        );
+
+        if (!isMountedRef.current || currentRequestId !== activeRequestIdRef.current) {
+          return;
+        }
 
         if (!res.success) {
           if (res.fieldErrors) setErrors(res.fieldErrors);
-          setGeneralError(res.error || "Erro ao atualizar dados do professor.");
-          setIsSubmitting(false);
+          setGeneralError(
+            res.error || "Erro ao atualizar dados do professor. Verifique os campos e tente novamente."
+          );
           return;
         }
 
         onSuccess(res.data!, false);
       } else {
-        const res = await professorRepository.criar({
-          nomeCompleto: formData.nomeCompleto,
-          email: formData.email,
-          telefone: formData.telefone || undefined,
-          biografiaCurta: formData.biografiaCurta,
-          idiomasFalados: formData.idiomasFalados,
-          status: formData.status,
-        });
+        const res = await executeWithTimeout(
+          professorRepository.criar({
+            nomeCompleto: formData.nomeCompleto,
+            email: formData.email,
+            telefone: formData.telefone || undefined,
+            biografiaCurta: formData.biografiaCurta,
+            idiomasFalados: formData.idiomasFalados,
+            status: formData.status,
+          })
+        );
+
+        if (!isMountedRef.current || currentRequestId !== activeRequestIdRef.current) {
+          return;
+        }
 
         if (!res.success) {
           if (res.fieldErrors) setErrors(res.fieldErrors);
-          setGeneralError(res.error || "Erro ao cadastrar novo professor.");
-          setIsSubmitting(false);
+          setGeneralError(
+            res.error || "Erro ao cadastrar novo professor. Verifique os campos e tente novamente."
+          );
           return;
         }
 
         onSuccess(res.data!, true);
       }
-    } catch (err) {
-      console.error(err);
-      setGeneralError("Ocorreu um erro inesperado ao salvar os dados.");
-      setIsSubmitting(false);
+    } catch (err: unknown) {
+      if (!isMountedRef.current || currentRequestId !== activeRequestIdRef.current) {
+        return;
+      }
+      console.error("[ProfessorFormModal] Erro ao salvar:", err);
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Ocorreu um erro inesperado ao salvar os dados. Por favor, tente novamente.";
+      setGeneralError(msg);
+    } finally {
+      if (isMountedRef.current && currentRequestId === activeRequestIdRef.current) {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -172,7 +223,7 @@ export function ProfessorFormModal({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={isSubmitting}
             aria-label="Fechar formulário"
             className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
@@ -443,7 +494,7 @@ export function ProfessorFormModal({
           <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               disabled={isSubmitting}
               className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
             >

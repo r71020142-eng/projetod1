@@ -28,6 +28,7 @@ export function MatricularAlunoModal({
   useEffect(() => {
     async function carregarAlunos() {
       if (!isOpen || !turma) return;
+      setIsSubmitting(false);
       setLoading(true);
       setError(null);
       setSelectedAlunoId("");

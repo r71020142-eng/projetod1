@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, RotateCcw, AlertTriangle, Calendar, User } from "lucide-react";
 import { SolicitacaoReenvio, Professor } from "@/types";
 
@@ -29,6 +29,16 @@ export function SolicitarReenvioModal({
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsSubmitting(false);
+      setError(null);
+      setMotivo("");
+      setOrientacoes("");
+      setPrazoSugerido("");
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

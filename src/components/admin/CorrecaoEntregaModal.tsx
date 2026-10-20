@@ -50,6 +50,7 @@ export function CorrecaoEntregaModal({
       setMotivoReenvio("");
       setModoReenvio(false);
       setError(null);
+      setIsSubmitting(false);
     }
   }, [isOpen, entrega]);
 

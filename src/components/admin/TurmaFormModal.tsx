@@ -82,6 +82,7 @@ export function TurmaFormModal({
     }
     setErrors({});
     setGeneralError(null);
+    setIsSubmitting(false);
   }, [turmaParaEditar, isOpen]);
 
   if (!isOpen) return null;

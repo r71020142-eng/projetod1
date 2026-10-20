@@ -102,6 +102,7 @@ export function AulaFormModal({
     setErrors({});
     setGeneralError(null);
     setConflitos([]);
+    setIsSubmitting(false);
   }, [isOpen, aulaParaEditar, turmaIdPreselecionada]);
 
   // Derived selected turma and professor

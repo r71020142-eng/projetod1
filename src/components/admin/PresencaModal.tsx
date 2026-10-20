@@ -38,6 +38,7 @@ export function PresencaModal({ isOpen, aula, onClose, onSuccess }: PresencaModa
   useEffect(() => {
     async function loadData() {
       if (!isOpen || !aula) return;
+      setIsSubmitting(false);
       setLoading(true);
       setError(null);
 

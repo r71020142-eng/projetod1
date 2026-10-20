@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { X, AlertCircle, Info, CheckCircle2 } from "lucide-react";
 import { Aluno, NivelAluno, StatusCadastro } from "@/types";
 import { alunoRepository } from "@/data/alunoRepository";
 import { FormPersistenceNotice } from "@/components/common/FormPersistenceNotice";
+import { executeWithTimeout } from "@/lib/asyncUtils";
 
 interface AlunoFormModalProps {
   isOpen: boolean;
@@ -35,32 +36,54 @@ export function AlunoFormModal({
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load data when opening or switching student
+  // Proteção contra desmontagem e requisições concorrentes defasadas
+  const isMountedRef = useRef(true);
+  const activeRequestIdRef = useRef(0);
+
   useEffect(() => {
-    if (alunoParaEditar) {
-      setFormData({
-        nomeCompleto: alunoParaEditar.nomeCompleto,
-        email: alunoParaEditar.email,
-        telefone: alunoParaEditar.telefone || "",
-        objetivoIngles: alunoParaEditar.objetivoIngles,
-        nivel: alunoParaEditar.nivel,
-        status: alunoParaEditar.status,
-        observacoesPedagogicas: alunoParaEditar.observacoesPedagogicas || "",
-      });
-    } else {
-      setFormData({
-        nomeCompleto: "",
-        email: "",
-        telefone: "",
-        objetivoIngles: "",
-        nivel: "nao_avaliado",
-        status: "ativo",
-        observacoesPedagogicas: "",
-      });
-    }
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Reset obrigatório de estado ao abrir, fechar ou trocar de aluno
+  useEffect(() => {
+    activeRequestIdRef.current += 1;
+    setIsSubmitting(false);
     setErrors({});
     setGeneralError(null);
+
+    if (isOpen) {
+      if (alunoParaEditar) {
+        setFormData({
+          nomeCompleto: alunoParaEditar.nomeCompleto,
+          email: alunoParaEditar.email,
+          telefone: alunoParaEditar.telefone || "",
+          objetivoIngles: alunoParaEditar.objetivoIngles,
+          nivel: alunoParaEditar.nivel,
+          status: alunoParaEditar.status,
+          observacoesPedagogicas: alunoParaEditar.observacoesPedagogicas || "",
+        });
+      } else {
+        setFormData({
+          nomeCompleto: "",
+          email: "",
+          telefone: "",
+          objetivoIngles: "",
+          nivel: "nao_avaliado",
+          status: "ativo",
+          observacoesPedagogicas: "",
+        });
+      }
+    }
   }, [alunoParaEditar, isOpen]);
+
+  const handleClose = () => {
+    activeRequestIdRef.current += 1;
+    setIsSubmitting(false);
+    onClose();
+  };
 
   if (!isOpen) return null;
 
@@ -84,57 +107,84 @@ export function AlunoFormModal({
     e.preventDefault();
     if (isSubmitting) return;
 
+    activeRequestIdRef.current += 1;
+    const currentRequestId = activeRequestIdRef.current;
+
     setIsSubmitting(true);
     setGeneralError(null);
 
     try {
       if (isEditing && alunoParaEditar) {
-        const res = await alunoRepository.atualizar(alunoParaEditar.id, {
-          nomeCompleto: formData.nomeCompleto,
-          email: formData.email,
-          telefone: formData.telefone || undefined,
-          objetivoIngles: formData.objetivoIngles,
-          nivel: formData.nivel,
-          status: formData.status,
-          observacoesPedagogicas: formData.observacoesPedagogicas || undefined,
-        });
+        const res = await executeWithTimeout(
+          alunoRepository.atualizar(alunoParaEditar.id, {
+            nomeCompleto: formData.nomeCompleto,
+            email: formData.email,
+            telefone: formData.telefone || undefined,
+            objetivoIngles: formData.objetivoIngles,
+            nivel: formData.nivel,
+            status: formData.status,
+            observacoesPedagogicas: formData.observacoesPedagogicas || undefined,
+          })
+        );
+
+        if (!isMountedRef.current || currentRequestId !== activeRequestIdRef.current) {
+          return;
+        }
 
         if (!res.success) {
           if (res.fieldErrors) {
             setErrors(res.fieldErrors);
           }
-          setGeneralError(res.error || "Erro ao salvar alterações do aluno.");
-          setIsSubmitting(false);
+          setGeneralError(
+            res.error || "Erro ao salvar alterações do aluno. Verifique os campos e tente novamente."
+          );
           return;
         }
 
         onSuccess(res.data!, false);
       } else {
-        const res = await alunoRepository.criar({
-          nomeCompleto: formData.nomeCompleto,
-          email: formData.email,
-          telefone: formData.telefone || undefined,
-          objetivoIngles: formData.objetivoIngles,
-          nivel: formData.nivel,
-          status: formData.status,
-          observacoesPedagogicas: formData.observacoesPedagogicas || undefined,
-        });
+        const res = await executeWithTimeout(
+          alunoRepository.criar({
+            nomeCompleto: formData.nomeCompleto,
+            email: formData.email,
+            telefone: formData.telefone || undefined,
+            objetivoIngles: formData.objetivoIngles,
+            nivel: formData.nivel,
+            status: formData.status,
+            observacoesPedagogicas: formData.observacoesPedagogicas || undefined,
+          })
+        );
+
+        if (!isMountedRef.current || currentRequestId !== activeRequestIdRef.current) {
+          return;
+        }
 
         if (!res.success) {
           if (res.fieldErrors) {
             setErrors(res.fieldErrors);
           }
-          setGeneralError(res.error || "Erro ao cadastrar novo aluno.");
-          setIsSubmitting(false);
+          setGeneralError(
+            res.error || "Erro ao cadastrar novo aluno. Verifique os campos e tente novamente."
+          );
           return;
         }
 
         onSuccess(res.data!, true);
       }
-    } catch (err) {
-      console.error(err);
-      setGeneralError("Ocorreu um erro inesperado ao processar os dados.");
-      setIsSubmitting(false);
+    } catch (err: unknown) {
+      if (!isMountedRef.current || currentRequestId !== activeRequestIdRef.current) {
+        return;
+      }
+      console.error("[AlunoFormModal] Erro ao salvar:", err);
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Ocorreu um erro inesperado ao processar os dados. Por favor, tente novamente.";
+      setGeneralError(msg);
+    } finally {
+      if (isMountedRef.current && currentRequestId === activeRequestIdRef.current) {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -159,7 +209,7 @@ export function AlunoFormModal({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={isSubmitting}
             aria-label="Fechar formulário"
             className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
@@ -386,7 +436,7 @@ export function AlunoFormModal({
           <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               disabled={isSubmitting}
               className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
             >

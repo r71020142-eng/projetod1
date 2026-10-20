@@ -108,6 +108,7 @@ export function AtividadeFormModal({
       }
       setError(null);
       setFieldErrors({});
+      setIsSubmitting(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, atividadeParaEditar]);

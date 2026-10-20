@@ -79,6 +79,7 @@ export function BaralhoFormModal({
       setStatus("publicado");
     }
     setErros({});
+    setSalvando(false);
   }, [baralhoParaEditar, isOpen, professores]);
 
   if (!isOpen) return null;
