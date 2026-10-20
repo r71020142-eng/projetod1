@@ -375,6 +375,201 @@ async function main() {
     assert(res.output.includes("OK_BARRADO_PROF_INATIVO"), `Banco permitiu professor inativo: ${res.output}`);
   });
 
+  // 7.1. Bloqueio total de DELETE direto para todos os papéis (anon, aluno, professor, admin)
+  test("Exclusão direta: DELETE em turmas e matriculas_turmas é bloqueado para anon, aluno, professor e admin", () => {
+    const res = runLinkedQuery(`
+      DO $tdel$
+      DECLARE
+        v_prof UUID := gen_random_uuid();
+        v_aluno UUID := gen_random_uuid();
+        v_turma UUID := gen_random_uuid();
+        v_mat UUID := gen_random_uuid();
+        v_user_aluno UUID := gen_random_uuid();
+        v_user_prof UUID := gen_random_uuid();
+        v_err TEXT;
+      BEGIN
+        INSERT INTO public.professores (id, nome_completo, email, idiomas_falados, status)
+        VALUES (v_prof, 'Prof Del', 'prof.del@mtd.com', ARRAY['Inglês'], 'ativo');
+        INSERT INTO public.alunos (id, nome_completo, email, objetivo, nivel_operacional, status)
+        VALUES (v_aluno, 'Aluno Del', 'al.del@mtd.com', 'Geral', 'A1', 'ativo');
+        INSERT INTO public.turmas (id, nome, modalidade, professor_id, capacidade, status)
+        VALUES (v_turma, 'Turma Del', 'individual', v_prof, 1, 'ativa');
+        INSERT INTO public.matriculas_turmas (id, turma_id, aluno_id, status)
+        VALUES (v_mat, v_turma, v_aluno, 'ativa');
+
+        INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+        VALUES (v_user_aluno, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'aluno.del2@mtd.com', 'hash', now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now()),
+               (v_user_prof, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'prof.del2@mtd.com', 'hash', now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now());
+        UPDATE public.perfis SET role = 'aluno', status = 'ativo' WHERE id = v_user_aluno;
+        UPDATE public.perfis SET role = 'professor', status = 'ativo' WHERE id = v_user_prof;
+
+        -- anon tenta DELETE
+        BEGIN
+          SET LOCAL ROLE anon;
+          DELETE FROM public.turmas WHERE id = v_turma;
+          RAISE EXCEPTION 'FALHA_ANON_DELETE_TURMA';
+        EXCEPTION WHEN OTHERS THEN
+          IF SQLERRM NOT LIKE '%permission denied for table turmas%' THEN RAISE EXCEPTION 'anon turmas: %', SQLERRM; END IF;
+        END;
+
+        BEGIN
+          SET LOCAL ROLE anon;
+          DELETE FROM public.matriculas_turmas WHERE id = v_mat;
+          RAISE EXCEPTION 'FALHA_ANON_DELETE_MAT';
+        EXCEPTION WHEN OTHERS THEN
+          IF SQLERRM NOT LIKE '%permission denied for table matriculas_turmas%' THEN RAISE EXCEPTION 'anon mat: %', SQLERRM; END IF;
+        END;
+        RESET ROLE;
+
+        -- aluno tenta DELETE
+        BEGIN
+          SET LOCAL ROLE authenticated;
+          PERFORM set_config('request.jwt.claim.sub', v_user_aluno::text, true);
+          DELETE FROM public.turmas WHERE id = v_turma;
+          RAISE EXCEPTION 'FALHA_ALUNO_DELETE_TURMA';
+        EXCEPTION WHEN OTHERS THEN
+          IF SQLERRM NOT LIKE '%permission denied for table turmas%' THEN RAISE EXCEPTION 'aluno turmas: %', SQLERRM; END IF;
+        END;
+
+        BEGIN
+          SET LOCAL ROLE authenticated;
+          PERFORM set_config('request.jwt.claim.sub', v_user_aluno::text, true);
+          DELETE FROM public.matriculas_turmas WHERE id = v_mat;
+          RAISE EXCEPTION 'FALHA_ALUNO_DELETE_MAT';
+        EXCEPTION WHEN OTHERS THEN
+          IF SQLERRM NOT LIKE '%permission denied for table matriculas_turmas%' THEN RAISE EXCEPTION 'aluno mat: %', SQLERRM; END IF;
+        END;
+        RESET ROLE;
+
+        -- professor tenta DELETE
+        BEGIN
+          SET LOCAL ROLE authenticated;
+          PERFORM set_config('request.jwt.claim.sub', v_user_prof::text, true);
+          DELETE FROM public.turmas WHERE id = v_turma;
+          RAISE EXCEPTION 'FALHA_PROF_DELETE_TURMA';
+        EXCEPTION WHEN OTHERS THEN
+          IF SQLERRM NOT LIKE '%permission denied for table turmas%' THEN RAISE EXCEPTION 'prof turmas: %', SQLERRM; END IF;
+        END;
+
+        BEGIN
+          SET LOCAL ROLE authenticated;
+          PERFORM set_config('request.jwt.claim.sub', v_user_prof::text, true);
+          DELETE FROM public.matriculas_turmas WHERE id = v_mat;
+          RAISE EXCEPTION 'FALHA_PROF_DELETE_MAT';
+        EXCEPTION WHEN OTHERS THEN
+          IF SQLERRM NOT LIKE '%permission denied for table matriculas_turmas%' THEN RAISE EXCEPTION 'prof mat: %', SQLERRM; END IF;
+        END;
+        RESET ROLE;
+
+        -- admin tenta DELETE
+        BEGIN
+          SET LOCAL ROLE authenticated;
+          PERFORM set_config('request.jwt.claim.sub', '660640d2-99fc-46e7-8e12-9ef0d67b60ee', true);
+          DELETE FROM public.turmas WHERE id = v_turma;
+          RAISE EXCEPTION 'FALHA_ADMIN_DELETE_TURMA';
+        EXCEPTION WHEN OTHERS THEN
+          IF SQLERRM NOT LIKE '%permission denied for table turmas%' AND SQLERRM NOT LIKE '%Exclusão física bloqueada%' THEN
+            RAISE EXCEPTION 'admin turmas: %', SQLERRM;
+          END IF;
+        END;
+
+        BEGIN
+          SET LOCAL ROLE authenticated;
+          PERFORM set_config('request.jwt.claim.sub', '660640d2-99fc-46e7-8e12-9ef0d67b60ee', true);
+          DELETE FROM public.matriculas_turmas WHERE id = v_mat;
+          RAISE EXCEPTION 'FALHA_ADMIN_DELETE_MAT';
+        EXCEPTION WHEN OTHERS THEN
+          IF SQLERRM NOT LIKE '%permission denied for table matriculas_turmas%' AND SQLERRM NOT LIKE '%Exclusão física bloqueada%' THEN
+            RAISE EXCEPTION 'admin mat: %', SQLERRM;
+          END IF;
+        END;
+        RESET ROLE;
+
+        RAISE EXCEPTION 'OK_TODOS_ROLES_BLOQUEADOS_DELETE';
+      END $tdel$;
+    `);
+    assert(res.output.includes("OK_TODOS_ROLES_BLOQUEADOS_DELETE"), `Falha no bloqueio de DELETE: ${res.output}`);
+  });
+
+  // 7.2. Auditoria rigorosa de ACL em pg_proc para todas as funções acadêmicas
+  test("Auditoria ACL: PUBLIC e anon sem EXECUTE, search_path seguro e SECURITY DEFINER em todas as RPCs acadêmicas", () => {
+    const res = runLinkedQuery(`
+      SELECT
+        p.proname,
+        p.prosecdef,
+        p.proconfig,
+        pg_catalog.array_to_string(p.proacl, ', ') AS acl,
+        (p.proacl::text ~ '(^|[,{])=X/') AS public_has_execute,
+        (p.proacl::text ~ '(^|[,{])anon=X/') AS anon_has_execute
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      WHERE n.nspname = 'public'
+        AND p.proname IN (
+          'matricular_aluno_turma',
+          'encerrar_matricula_aluno',
+          'alterar_capacidade_turma',
+          'trocar_professor_turma',
+          'get_current_professor_id',
+          'get_current_aluno_id',
+          'check_matricula_integridade',
+          'check_turma_integridade',
+          'prevent_client_physical_delete',
+          'aluno_has_turma',
+          'professor_has_matricula'
+        );
+    `);
+    assert(res.success, `Falha ao consultar pg_proc: ${res.output}`);
+
+    // Garante que nenhuma função tem execute para PUBLIC ou anon
+    assert(!res.output.includes('"public_has_execute": true'), "Nenhuma função acadêmica deve ter EXECUTE para PUBLIC");
+    assert(!res.output.includes('"anon_has_execute": true'), "Nenhuma função acadêmica deve ter EXECUTE para anon");
+    assert(res.output.includes("authenticated=X"), "Funções devem ser acessíveis para authenticated");
+    assert(res.output.includes("service_role=X"), "Funções devem ser acessíveis para service_role");
+    assert(!res.output.includes('"prosecdef": false'), "Todas as funções devem ser SECURITY DEFINER");
+  });
+
+  // 7.3. Usuários não administradores são bloqueados internamente de executar mutações
+  test("Autorização RBAC interna: discentes e docentes recebem acesso negado ao tentar invocar RPCs transacionais", () => {
+    const res = runLinkedQuery(`
+      DO $trbac$
+      DECLARE
+        v_user_aluno UUID := gen_random_uuid();
+        v_user_prof UUID := gen_random_uuid();
+        v_turma UUID := gen_random_uuid();
+        v_aluno UUID := gen_random_uuid();
+      BEGIN
+        INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+        VALUES (v_user_aluno, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'a.rbac@mtd.com', 'hash', now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now()),
+               (v_user_prof, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'p.rbac@mtd.com', 'hash', now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now());
+        UPDATE public.perfis SET role = 'aluno', status = 'ativo' WHERE id = v_user_aluno;
+        UPDATE public.perfis SET role = 'professor', status = 'ativo' WHERE id = v_user_prof;
+
+        -- Aluno tenta matricular
+        BEGIN
+          SET LOCAL ROLE authenticated;
+          PERFORM set_config('request.jwt.claim.sub', v_user_aluno::text, true);
+          PERFORM public.matricular_aluno_turma(v_turma, v_aluno, 'Tentativa Aluno');
+          RAISE EXCEPTION 'FALHA_ALUNO_MATRICULA';
+        EXCEPTION WHEN OTHERS THEN
+          IF SQLERRM NOT LIKE '%apenas administradores ativos%' THEN RAISE EXCEPTION 'aluno mat: %', SQLERRM; END IF;
+        END;
+
+        -- Professor tenta alterar capacidade
+        BEGIN
+          SET LOCAL ROLE authenticated;
+          PERFORM set_config('request.jwt.claim.sub', v_user_prof::text, true);
+          PERFORM public.alterar_capacidade_turma(v_turma, 10);
+          RAISE EXCEPTION 'FALHA_PROF_CAPACIDADE';
+        EXCEPTION WHEN OTHERS THEN
+          IF SQLERRM NOT LIKE '%apenas administradores ativos%' THEN RAISE EXCEPTION 'prof cap: %', SQLERRM; END IF;
+        END;
+
+        RAISE EXCEPTION 'OK_RPCS_BLOQUEIAM_NAO_ADMINS';
+      END $trbac$;
+    `);
+    assert(res.output.includes("OK_RPCS_BLOQUEIAM_NAO_ADMINS"), `Falha no RBAC interno das RPCs: ${res.output}`);
+  });
+
   // ----------------------------------------------------------------------------
   // PARTE 2 — CONCORRÊNCIA REAL VIA CONEXÕES INDEPENDENTES
   // ----------------------------------------------------------------------------
