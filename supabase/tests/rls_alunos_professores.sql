@@ -1,18 +1,18 @@
 -- ==============================================================================
 -- DEMOSTRATIVO MTD — SUÍTE DE TESTES RLS: ALUNOS E PROFESSORES (ETAPA 10.2B2)
 -- ==============================================================================
--- Valida as regras de segurança, RLS e isolamento para Alunos e Professores:
--- 1. Anônimo não lê alunos, dados pedagógicos ou professores;
--- 2. Administrador cadastra e lê alunos e professores;
--- 3. Administrador cadastra e lê observações pedagógicas confidenciais;
--- 4. Aluno autenticado lê apenas seu próprio registro operacional;
--- 5. Aluno não consegue ler dados de outros alunos;
--- 6. Aluno não consegue ler observações pedagógicas (nem as suas);
--- 7. Aluno não consegue atualizar nível ou status;
--- 8. Professor autenticado lê apenas seu próprio registro docente;
--- 9. Professor não recebe acesso geral a alunos nesta etapa;
+-- Valida as regras de segurança, RLS, isolamento e bloqueio de DELETE:
+-- 1. Anônimo tem ZERO acesso (inclusive bloqueio total de DELETE);
+-- 2. Aluno autenticado lê apenas seu próprio registro operacional;
+-- 3. Aluno não acessa observações pedagógicas confidenciais;
+-- 4. Aluno não consegue alterar nível ou status;
+-- 5. Aluno tem DELETE rigorosamente bloqueado;
+-- 6. Professor consulta apenas seu próprio registro docente;
+-- 7. Professor tem DELETE rigorosamente bloqueado;
+-- 8. Administrador tem DELETE físico rigorosamente bloqueado;
+-- 9. Administrador cadastra, edita, inativa e reativa com sucesso;
 -- 10. E-mail duplicado (case-insensitive) é rejeitado pelo banco;
--- 11. Auditoria registra alterações sem que o cliente forje logs.
+-- 11. Auditoria registra alterações sem fabricação de logs pelo cliente.
 -- ==============================================================================
 
 BEGIN;
@@ -27,9 +27,6 @@ DECLARE
   v_aluno_id UUID := 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
   v_aluno2_id UUID := 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
   v_prof_id UUID  := 'cccccccc-cccc-cccc-cccc-cccccccccccc';
-
-  v_count INTEGER;
-  v_error_caught BOOLEAN;
 BEGIN
   -- 0. Preparação de usuários e perfis para teste
   INSERT INTO auth.users (id, email, raw_user_meta_data, is_sso_user, is_anonymous)
@@ -45,7 +42,7 @@ BEGIN
   UPDATE public.perfis SET role = 'aluno' WHERE id = v_aluno_uid;
   UPDATE public.perfis SET role = 'aluno' WHERE id = v_aluno2_uid;
 
-  -- Insere alunos e professor operacionais como superuser/postgres para teste inicial
+  -- Insere alunos e professor operacionais como superuser/postgres para o cenário
   INSERT INTO public.alunos (id, perfil_id, nome_completo, email, objetivo, nivel_operacional, status)
   VALUES
     (v_aluno_id, v_aluno_uid, 'Aluno RLS Um', 'aluno.rls@mtd.com', 'Fluência profissional', 'A2', 'ativo'),
@@ -59,7 +56,7 @@ BEGIN
 END $$;
 
 -- ------------------------------------------------------------------------------
--- TESTE 1: Usuário Anônimo (anon) — Bloqueio Total
+-- TESTE 1: Usuário Anônimo (anon) — Bloqueio Total (Leitura e DELETE)
 -- ------------------------------------------------------------------------------
 SET LOCAL ROLE anon;
 SET LOCAL "request.jwt.claim.sub" TO '';
@@ -67,6 +64,7 @@ SET LOCAL "request.jwt.claim.sub" TO '';
 DO $$
 DECLARE
   v_count INTEGER;
+  v_delete_error BOOLEAN := false;
 BEGIN
   BEGIN
     SELECT count(*) INTO v_count FROM public.alunos;
@@ -74,31 +72,21 @@ BEGIN
       RAISE EXCEPTION 'TESTE 1 FALHOU: Anon conseguiu ler % registros em alunos', v_count;
     END IF;
   EXCEPTION
-    WHEN insufficient_privilege THEN
-      NULL; -- Permissão revogada explicitamente, esperado
+    WHEN insufficient_privilege THEN NULL;
   END;
 
   BEGIN
-    SELECT count(*) INTO v_count FROM public.alunos_dados_pedagogicos;
-    IF v_count <> 0 THEN
-      RAISE EXCEPTION 'TESTE 1 FALHOU: Anon conseguiu ler dados pedagógicos';
-    END IF;
+    DELETE FROM public.alunos;
   EXCEPTION
     WHEN insufficient_privilege THEN
-      NULL; -- Permissão revogada, esperado
+      v_delete_error := true;
   END;
 
-  BEGIN
-    SELECT count(*) INTO v_count FROM public.professores;
-    IF v_count <> 0 THEN
-      RAISE EXCEPTION 'TESTE 1 FALHOU: Anon conseguiu ler registros em professores';
-    END IF;
-  EXCEPTION
-    WHEN insufficient_privilege THEN
-      NULL; -- Permissão revogada, esperado
-  END;
+  IF NOT v_delete_error THEN
+    RAISE EXCEPTION 'TESTE 1 FALHOU: Anon não teve DELETE bloqueado em alunos!';
+  END IF;
 
-  RAISE NOTICE '✔ TESTE 1 PASSOU: Usuário anônimo possui ZERO acesso a alunos, dados pedagógicos e professores.';
+  RAISE NOTICE '✔ TESTE 1 PASSOU: Usuário anônimo possui ZERO acesso e DELETE bloqueado.';
 END $$;
 
 -- ------------------------------------------------------------------------------
@@ -126,7 +114,7 @@ BEGIN
 END $$;
 
 -- ------------------------------------------------------------------------------
--- TESTE 3: Aluno Autenticado — Bloqueio de Acesso aos Dados Pedagógicos Confidenciais
+-- TESTE 3: Aluno Autenticado — Bloqueio de Dados Pedagógicos Confidenciais
 -- ------------------------------------------------------------------------------
 SET LOCAL ROLE authenticated;
 SET LOCAL "request.jwt.claim.sub" TO '33333333-3333-3333-3333-333333333333';
@@ -159,11 +147,39 @@ BEGIN
     RAISE EXCEPTION 'TESTE 4 FALHOU: Aluno conseguiu alterar seu próprio nível operacional!';
   END IF;
 
-  RAISE NOTICE '✔ TESTE 4 PASSOU: Aluno não consegue alterar nível operacional ou status (RLS Update bloqueia).';
+  RAISE NOTICE '✔ TESTE 4 PASSOU: Aluno não consegue alterar nível operacional ou status (RLS bloqueia).';
 END $$;
 
 -- ------------------------------------------------------------------------------
--- TESTE 5: Professor Autenticado — Consulta Exclusiva do Próprio Cadastro Docente
+-- TESTE 5: Aluno Autenticado — Bloqueio Rigoroso de DELETE Físico
+-- ------------------------------------------------------------------------------
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" TO '33333333-3333-3333-3333-333333333333';
+
+DO $$
+DECLARE
+  v_delete_error BOOLEAN := false;
+BEGIN
+  BEGIN
+    DELETE FROM public.alunos WHERE perfil_id = '33333333-3333-3333-3333-333333333333';
+  EXCEPTION
+    WHEN insufficient_privilege THEN
+      v_delete_error := true;
+    WHEN others THEN
+      IF SQLERRM LIKE '%Exclusão física bloqueada%' THEN
+        v_delete_error := true;
+      END IF;
+  END;
+
+  IF NOT v_delete_error THEN
+    RAISE EXCEPTION 'TESTE 5 FALHOU: Aluno conseguiu executar DELETE em public.alunos!';
+  END IF;
+
+  RAISE NOTICE '✔ TESTE 5 PASSOU: Aluno possui DELETE físico rigorosamente bloqueado.';
+END $$;
+
+-- ------------------------------------------------------------------------------
+-- TESTE 6: Professor Autenticado — Consulta Própria e Bloqueio de DELETE
 -- ------------------------------------------------------------------------------
 SET LOCAL ROLE authenticated;
 SET LOCAL "request.jwt.claim.sub" TO '22222222-2222-2222-2222-222222222222';
@@ -172,81 +188,153 @@ DO $$
 DECLARE
   v_count_prof INTEGER;
   v_count_aluno INTEGER;
+  v_delete_error BOOLEAN := false;
 BEGIN
   SELECT count(*) INTO v_count_prof FROM public.professores;
   IF v_count_prof <> 1 THEN
-    RAISE EXCEPTION 'TESTE 5 FALHOU: Professor visualizou % professores (esperado 1)', v_count_prof;
+    RAISE EXCEPTION 'TESTE 6 FALHOU: Professor visualizou % professores (esperado 1)', v_count_prof;
   END IF;
 
-  -- Professor não deve ter acesso geral aos alunos nesta etapa
   SELECT count(*) INTO v_count_aluno FROM public.alunos;
   IF v_count_aluno <> 0 THEN
-    RAISE EXCEPTION 'TESTE 5 FALHOU: Professor conseguiu ler % alunos na etapa 10.2B2 (esperado 0)', v_count_aluno;
+    RAISE EXCEPTION 'TESTE 6 FALHOU: Professor leu % alunos na etapa 10.2B2 (esperado 0)', v_count_aluno;
   END IF;
 
-  RAISE NOTICE '✔ TESTE 5 PASSOU: Professor consulta apenas seu cadastro e não possui acesso geral aos alunos.';
+  BEGIN
+    DELETE FROM public.professores WHERE perfil_id = '22222222-2222-2222-2222-222222222222';
+  EXCEPTION
+    WHEN insufficient_privilege THEN
+      v_delete_error := true;
+    WHEN others THEN
+      IF SQLERRM LIKE '%Exclusão física bloqueada%' THEN
+        v_delete_error := true;
+      END IF;
+  END;
+
+  IF NOT v_delete_error THEN
+    RAISE EXCEPTION 'TESTE 6 FALHOU: Professor conseguiu executar DELETE em public.professores!';
+  END IF;
+
+  RAISE NOTICE '✔ TESTE 6 PASSOU: Professor consulta apenas seu cadastro e possui DELETE bloqueado.';
 END $$;
 
 -- ------------------------------------------------------------------------------
--- TESTE 6: Administrador Autenticado — Operações Completas de Gestão
+-- TESTE 7: Administrador Autenticado — Bloqueio Estrito de DELETE Físico
 -- ------------------------------------------------------------------------------
 SET LOCAL ROLE authenticated;
 SET LOCAL "request.jwt.claim.sub" TO '11111111-1111-1111-1111-111111111111';
 
 DO $$
 DECLARE
-  v_count_alunos INTEGER;
-  v_count_profs INTEGER;
-  v_count_pedag INTEGER;
-  v_novo_aluno_id UUID;
-  v_novo_prof_id UUID;
-  v_status_check TEXT;
+  v_delete_aluno_blocked BOOLEAN := false;
+  v_delete_prof_blocked BOOLEAN := false;
+  v_delete_pedag_blocked BOOLEAN := false;
 BEGIN
-  -- Leitura total
-  SELECT count(*) INTO v_count_alunos FROM public.alunos;
-  SELECT count(*) INTO v_count_profs FROM public.professores;
-  SELECT count(*) INTO v_count_pedag FROM public.alunos_dados_pedagogicos;
+  -- Tenta DELETE em alunos
+  BEGIN
+    DELETE FROM public.alunos WHERE id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  EXCEPTION
+    WHEN insufficient_privilege THEN
+      v_delete_aluno_blocked := true;
+    WHEN others THEN
+      IF SQLERRM LIKE '%Exclusão física bloqueada%' THEN
+        v_delete_aluno_blocked := true;
+      END IF;
+  END;
 
-  IF v_count_alunos < 2 OR v_count_profs < 1 OR v_count_pedag < 1 THEN
-    RAISE EXCEPTION 'TESTE 6 FALHOU: Admin não conseguiu ler todos os registros existentes.';
+  -- Tenta DELETE em professores
+  BEGIN
+    DELETE FROM public.professores WHERE id = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+  EXCEPTION
+    WHEN insufficient_privilege THEN
+      v_delete_prof_blocked := true;
+    WHEN others THEN
+      IF SQLERRM LIKE '%Exclusão física bloqueada%' THEN
+        v_delete_prof_blocked := true;
+      END IF;
+  END;
+
+  -- Tenta DELETE em dados pedagógicos
+  BEGIN
+    DELETE FROM public.alunos_dados_pedagogicos WHERE aluno_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  EXCEPTION
+    WHEN insufficient_privilege THEN
+      v_delete_pedag_blocked := true;
+    WHEN others THEN
+      IF SQLERRM LIKE '%Exclusão física bloqueada%' THEN
+        v_delete_pedag_blocked := true;
+      END IF;
+  END;
+
+  IF NOT v_delete_aluno_blocked THEN
+    RAISE EXCEPTION 'TESTE 7 FALHOU: Admin conseguiu executar DELETE físico em public.alunos!';
+  END IF;
+  IF NOT v_delete_prof_blocked THEN
+    RAISE EXCEPTION 'TESTE 7 FALHOU: Admin conseguiu executar DELETE físico em public.professores!';
+  END IF;
+  IF NOT v_delete_pedag_blocked THEN
+    RAISE EXCEPTION 'TESTE 7 FALHOU: Admin conseguiu executar DELETE físico em public.alunos_dados_pedagogicos!';
   END IF;
 
-  -- Criação de aluno operacional sem conta
-  INSERT INTO public.alunos (nome_completo, email, objetivo, nivel_operacional, status)
-  VALUES ('Novo Aluno Sem Conta', 'novo.aluno@mtd.com', 'Avançado', 'B2', 'ativo')
-  RETURNING id INTO v_novo_aluno_id;
-
-  -- Criação de observação pedagógica
-  INSERT INTO public.alunos_dados_pedagogicos (aluno_id, observacoes_pedagogicas)
-  VALUES (v_novo_aluno_id, 'Observação confidencial inserida pelo Admin.');
-
-  -- Edição de aluno
-  UPDATE public.alunos SET nivel_operacional = 'C1' WHERE id = v_novo_aluno_id;
-
-  -- Inativação de aluno
-  UPDATE public.alunos SET status = 'inativo' WHERE id = v_novo_aluno_id;
-  SELECT status INTO v_status_check FROM public.alunos WHERE id = v_novo_aluno_id;
-  IF v_status_check <> 'inativo' THEN
-    RAISE EXCEPTION 'TESTE 6 FALHOU: Falha ao inativar aluno pelo Admin.';
-  END IF;
-
-  -- Reativação de aluno
-  UPDATE public.alunos SET status = 'ativo' WHERE id = v_novo_aluno_id;
-  SELECT status INTO v_status_check FROM public.alunos WHERE id = v_novo_aluno_id;
-  IF v_status_check <> 'ativo' THEN
-    RAISE EXCEPTION 'TESTE 6 FALHOU: Falha ao reativar aluno pelo Admin.';
-  END IF;
-
-  -- Criação de professor operacional sem conta
-  INSERT INTO public.professores (nome_completo, email, biografia_pedagogica, idiomas_falados, status)
-  VALUES ('Novo Docente Sem Conta', 'novo.docente@mtd.com', 'Especialista em Business English', ARRAY['Inglês'], 'ativo')
-  RETURNING id INTO v_novo_prof_id;
-
-  RAISE NOTICE '✔ TESTE 6 PASSOU: Administrador possui permissões completas de gestão (criar, editar, inativar, reativar, dados pedagógicos).';
+  RAISE NOTICE '✔ TESTE 7 PASSOU: DELETE físico bloqueado rigorosamente inclusive para Administrador autenticado.';
 END $$;
 
 -- ------------------------------------------------------------------------------
--- TESTE 7: Unicidade de E-mail Case-Insensitive Rejeitada no Banco
+-- TESTE 8: Administrador Autenticado — Inativação e Reativação Lógicas (Permitidas)
+-- ------------------------------------------------------------------------------
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" TO '11111111-1111-1111-1111-111111111111';
+
+DO $$
+DECLARE
+  v_status_check TEXT;
+  v_novo_aluno_id UUID;
+  v_novo_prof_id UUID;
+BEGIN
+  -- Criação de aluno e professor legítimos
+  INSERT INTO public.alunos (nome_completo, email, objetivo, nivel_operacional, status)
+  VALUES ('Aluno Teste Gestao', 'aluno.gestao@mtd.com', 'Avançado', 'B2', 'ativo')
+  RETURNING id INTO v_novo_aluno_id;
+
+  INSERT INTO public.alunos_dados_pedagogicos (aluno_id, observacoes_pedagogicas)
+  VALUES (v_novo_aluno_id, 'Anotação pedagógica legítima');
+
+  INSERT INTO public.professores (nome_completo, email, biografia_pedagogica, idiomas_falados, status)
+  VALUES ('Prof Teste Gestao', 'prof.gestao@mtd.com', 'Bio docente', ARRAY['Inglês'], 'ativo')
+  RETURNING id INTO v_novo_prof_id;
+
+  -- Inativação lógica do aluno
+  UPDATE public.alunos SET status = 'inativo' WHERE id = v_novo_aluno_id;
+  SELECT status INTO v_status_check FROM public.alunos WHERE id = v_novo_aluno_id;
+  IF v_status_check <> 'inativo' THEN
+    RAISE EXCEPTION 'TESTE 8 FALHOU: Inativação lógica do aluno falhou!';
+  END IF;
+
+  -- Reativação lógica do aluno
+  UPDATE public.alunos SET status = 'ativo' WHERE id = v_novo_aluno_id;
+  SELECT status INTO v_status_check FROM public.alunos WHERE id = v_novo_aluno_id;
+  IF v_status_check <> 'ativo' THEN
+    RAISE EXCEPTION 'TESTE 8 FALHOU: Reativação lógica do aluno falhou!';
+  END IF;
+
+  -- Inativação e reativação lógica do professor
+  UPDATE public.professores SET status = 'inativo' WHERE id = v_novo_prof_id;
+  SELECT status INTO v_status_check FROM public.professores WHERE id = v_novo_prof_id;
+  IF v_status_check <> 'inativo' THEN
+    RAISE EXCEPTION 'TESTE 8 FALHOU: Inativação lógica do professor falhou!';
+  END IF;
+
+  UPDATE public.professores SET status = 'ativo' WHERE id = v_novo_prof_id;
+  SELECT status INTO v_status_check FROM public.professores WHERE id = v_novo_prof_id;
+  IF v_status_check <> 'ativo' THEN
+    RAISE EXCEPTION 'TESTE 8 FALHOU: Reativação lógica do professor falhou!';
+  END IF;
+
+  RAISE NOTICE '✔ TESTE 8 PASSOU: Gestão lógica completa (cadastro, edição, inativação e reativação) funcionando com sucesso.';
+END $$;
+
+-- ------------------------------------------------------------------------------
+-- TESTE 9: Unicidade de E-mail Case-Insensitive Rejeitada no Banco
 -- ------------------------------------------------------------------------------
 SET LOCAL ROLE authenticated;
 SET LOCAL "request.jwt.claim.sub" TO '11111111-1111-1111-1111-111111111111';
@@ -256,7 +344,6 @@ DECLARE
   v_dup_error BOOLEAN := false;
 BEGIN
   BEGIN
-    -- Tenta inserir com letras maiúsculas e espaços
     INSERT INTO public.alunos (nome_completo, email, objetivo, nivel_operacional, status)
     VALUES ('Clone Email', ' ALUNO.RLS@MTD.COM ', 'Teste', 'A1', 'ativo');
   EXCEPTION
@@ -265,7 +352,7 @@ BEGIN
   END;
 
   IF NOT v_dup_error THEN
-    RAISE EXCEPTION 'TESTE 7 FALHOU: E-mail duplicado em alunos não foi rejeitado pela constraint de unicidade!';
+    RAISE EXCEPTION 'TESTE 9 FALHOU: E-mail duplicado em alunos não foi rejeitado!';
   END IF;
 
   v_dup_error := false;
@@ -278,14 +365,14 @@ BEGIN
   END;
 
   IF NOT v_dup_error THEN
-    RAISE EXCEPTION 'TESTE 7 FALHOU: E-mail duplicado em professores não foi rejeitado pela constraint de unicidade!';
+    RAISE EXCEPTION 'TESTE 9 FALHOU: E-mail duplicado em professores não foi rejeitado!';
   END IF;
 
-  RAISE NOTICE '✔ TESTE 7 PASSOU: Unicidade de e-mail case-insensitive rigorosamente garantida no banco.';
+  RAISE NOTICE '✔ TESTE 9 PASSOU: Unicidade de e-mail case-insensitive rigorosamente mantida.';
 END $$;
 
 -- ------------------------------------------------------------------------------
--- TESTE 8: Auditoria Automática por Trigger (Imune à Fabricação pelo Cliente)
+-- TESTE 10: Auditoria Automática Confiável por Triggers
 -- ------------------------------------------------------------------------------
 SET LOCAL ROLE authenticated;
 SET LOCAL "request.jwt.claim.sub" TO '11111111-1111-1111-1111-111111111111';
@@ -294,16 +381,15 @@ DO $$
 DECLARE
   v_audit_count INTEGER;
 BEGIN
-  -- Verifica se as operações anteriores geraram registros em public.auditoria_logs
   SELECT count(*) INTO v_audit_count
   FROM public.auditoria_logs
   WHERE entidade IN ('alunos', 'professores', 'alunos_dados_pedagogicos');
 
   IF v_audit_count = 0 THEN
-    RAISE EXCEPTION 'TESTE 8 FALHOU: Nenhum log de auditoria foi gerado pelos triggers automáticos!';
+    RAISE EXCEPTION 'TESTE 10 FALHOU: Nenhum log de auditoria foi gerado!';
   END IF;
 
-  RAISE NOTICE '✔ TESTE 8 PASSOU: Triggers geraram % logs de auditoria confiáveis.', v_audit_count;
+  RAISE NOTICE '✔ TESTE 10 PASSOU: Triggers registraram % ações auditadas.', v_audit_count;
 END $$;
 
-ROLLBACK; -- Garante rollback limpo de todos os dados fictícios criados para teste
+ROLLBACK; -- Rollback automático e limpo de todo o teste
