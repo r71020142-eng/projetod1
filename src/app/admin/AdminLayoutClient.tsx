@@ -1,10 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { createContext, useContext, useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { AdminSidebar } from "@/components/layout/AdminSidebar";
 import { DemoRoleSwitcher } from "@/components/layout/DemoRoleSwitcher";
 import { UserIdentity } from "@/lib/auth/session";
+
+const AdminIdentityContext = createContext<UserIdentity | null>(null);
+
+export function useAdminIdentity(): UserIdentity | null {
+  return useContext(AdminIdentityContext);
+}
 
 interface AdminLayoutClientProps {
   children: React.ReactNode;
@@ -18,37 +24,39 @@ export function AdminLayoutClient({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex">
-      {/* Dark Permanent Admin Sidebar on Desktop / Drawer on Mobile */}
-      <AdminSidebar
-        isOpenMobile={isMobileMenuOpen}
-        onCloseMobile={() => setIsMobileMenuOpen(false)}
-        userRole={identity.role}
-      />
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Header com Identidade Real Autenticada */}
-        <Header
-          variant="admin"
-          userName={identity.nomeCompleto}
-          userRoleLabel={identity.roleLabel}
-          userAvatar={identity.avatarUrl}
-          userInitials={identity.initials}
-          userEmail={identity.email}
-          isRealAuth={identity.isRealAuth}
-          onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          isMobileMenuOpen={isMobileMenuOpen}
+    <AdminIdentityContext.Provider value={identity}>
+      <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex">
+        {/* Dark Permanent Admin Sidebar on Desktop / Drawer on Mobile */}
+        <AdminSidebar
+          isOpenMobile={isMobileMenuOpen}
+          onCloseMobile={() => setIsMobileMenuOpen(false)}
+          userRole={identity.role}
         />
 
-        {/* Page Body */}
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-          <div className="max-w-7xl mx-auto">{children}</div>
-        </main>
-      </div>
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Top Header com Identidade Real Autenticada */}
+          <Header
+            variant="admin"
+            userName={identity.nomeCompleto}
+            userRoleLabel={identity.roleLabel}
+            userAvatar={identity.avatarUrl}
+            userInitials={identity.initials}
+            userEmail={identity.email}
+            isRealAuth={identity.isRealAuth}
+            onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            isMobileMenuOpen={isMobileMenuOpen}
+          />
 
-      {/* Floating Demo Viewport Switcher - Exibido EXCLUSIVAMENTE em modo demo */}
-      {!identity.isRealAuth && <DemoRoleSwitcher variant="floating" />}
-    </div>
+          {/* Page Body */}
+          <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+            <div className="max-w-7xl mx-auto">{children}</div>
+          </main>
+        </div>
+
+        {/* Floating Demo Viewport Switcher - Exibido EXCLUSIVAMENTE em modo demo */}
+        {!identity.isRealAuth && <DemoRoleSwitcher variant="floating" />}
+      </div>
+    </AdminIdentityContext.Provider>
   );
 }

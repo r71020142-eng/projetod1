@@ -22,6 +22,7 @@ export interface ClientEnv {
   isDemoClient: boolean;
   isAuthTestBannerVisible: boolean;
   coreUsersDataSource: DataSource;
+  academicCoreDataSource: DataSource;
 }
 
 export interface ServerEnv extends ClientEnv {
@@ -29,6 +30,7 @@ export interface ServerEnv extends ClientEnv {
   authMode: AuthMode;
   dataSource: DataSource;
   coreUsersDataSource: DataSource;
+  academicCoreDataSource: DataSource;
   isAuthTestWithLocalData: boolean;
   supabaseSecretKey: string;
 }
@@ -104,6 +106,40 @@ export function getServerEnv(): ServerEnv {
   }
   const coreUsersDataSource: DataSource = rawCoreUsers;
 
+  const serverAcademicCore = process.env.ACADEMIC_CORE_DATA_SOURCE;
+  const clientAcademicCore = process.env.NEXT_PUBLIC_ACADEMIC_CORE_DATA_SOURCE;
+
+  // Validação estrita de divergência entre ACADEMIC_CORE_DATA_SOURCE e NEXT_PUBLIC_ACADEMIC_CORE_DATA_SOURCE
+  if (
+    serverAcademicCore &&
+    clientAcademicCore &&
+    serverAcademicCore !== clientAcademicCore
+  ) {
+    throw new Error(
+      `[Configuração MTD] Divergência crítica detectada entre ACADEMIC_CORE_DATA_SOURCE ("${serverAcademicCore}") e NEXT_PUBLIC_ACADEMIC_CORE_DATA_SOURCE ("${clientAcademicCore}"). Ambas as variáveis devem ser estritamente idênticas ('supabase' ou 'local') para garantir consistência entre o servidor e o navegador.`
+    );
+  }
+
+  if (serverAcademicCore === "supabase" && clientAcademicCore !== "supabase") {
+    throw new Error(
+      `[Configuração MTD] ACADEMIC_CORE_DATA_SOURCE está configurada como 'supabase', mas NEXT_PUBLIC_ACADEMIC_CORE_DATA_SOURCE não é 'supabase' (atual: "${clientAcademicCore || "indefinida"}"). Configure ambas com o mesmo valor.`
+    );
+  }
+
+  if (clientAcademicCore === "supabase" && serverAcademicCore !== "supabase") {
+    throw new Error(
+      `[Configuração MTD] NEXT_PUBLIC_ACADEMIC_CORE_DATA_SOURCE está configurada como 'supabase', mas ACADEMIC_CORE_DATA_SOURCE não é 'supabase' (atual: "${serverAcademicCore || "indefinida"}"). Configure ambas com o mesmo valor.`
+    );
+  }
+
+  const rawAcademicCore = serverAcademicCore || clientAcademicCore || dataSource;
+  if (rawAcademicCore !== "local" && rawAcademicCore !== "supabase") {
+    throw new Error(
+      `[Configuração MTD] ACADEMIC_CORE_DATA_SOURCE inválido: "${rawAcademicCore}". Esperado: "local" ou "supabase".`
+    );
+  }
+  const academicCoreDataSource: DataSource = rawAcademicCore;
+
   const isVercelProduction = process.env.VERCEL_ENV === "production";
   const isAuthTestWithLocalData =
     authMode === "supabase" && dataSource === "local";
@@ -152,6 +188,7 @@ export function getServerEnv(): ServerEnv {
     authMode,
     dataSource,
     coreUsersDataSource,
+    academicCoreDataSource,
     isAuthTestWithLocalData,
     supabaseUrl,
     supabasePublishableKey,
@@ -173,6 +210,8 @@ export function getClientEnv(): ClientEnv {
   const isAuthTestBanner = process.env.NEXT_PUBLIC_AUTH_TEST_BANNER === "true";
   const coreUsersDataSource: DataSource =
     (process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE as DataSource) || "local";
+  const academicCoreDataSource: DataSource =
+    (process.env.NEXT_PUBLIC_ACADEMIC_CORE_DATA_SOURCE as DataSource) || "local";
 
   return {
     supabaseUrl,
@@ -180,5 +219,6 @@ export function getClientEnv(): ClientEnv {
     isDemoClient: isDemo,
     isAuthTestBannerVisible: isAuthTestBanner,
     coreUsersDataSource,
+    academicCoreDataSource,
   };
 }

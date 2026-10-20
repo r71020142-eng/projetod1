@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import {
   Users,
@@ -13,20 +13,56 @@ import {
   ChevronRight,
   UserPlus,
   Edit,
+  Database,
+  AlertTriangle,
+  RotateCcw,
 } from "lucide-react";
 import { Turma, Professor, Aula } from "@/types";
 import { turmaRepository } from "@/data/turmaRepository";
 import { professorRepository } from "@/data/professorRepository";
 import { aulaRepository } from "@/data/aulaRepository";
+import { getAcademicCoreDataSource } from "@/data/repositoryFactory";
+import { useAdminIdentity } from "@/app/admin/AdminLayoutClient";
 import { TurmaStatusBadge, ModalidadeBadge } from "@/components/common/TurmaBadges";
 import { TurmaFormModal } from "@/components/admin/TurmaFormModal";
 import { MatricularAlunoModal } from "@/components/admin/MatricularAlunoModal";
 
 export default function AdminTurmasPage() {
+  const identity = useAdminIdentity();
+  const isProfessor = identity?.role === "professor";
+
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [professores, setProfessores] = useState<Professor[]>([]);
   const [proximasAulas, setProximasAulas] = useState<Record<string, Aula | null>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fonte de dados e validação de divergência
+  const isSupabaseActive = getAcademicCoreDataSource() === "supabase";
+  const [divergenceError, setDivergenceError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/env/academic-core-data-source")
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          setDivergenceError(
+            body.message || "Erro de validação de ambiente acadêmico no servidor."
+          );
+          return;
+        }
+        const data = await res.json();
+        const clientSource = getAcademicCoreDataSource();
+        if (data.serverSource !== clientSource) {
+          setDivergenceError(
+            `Divergência detectada entre servidor ("${data.serverSource}") e navegador ("${clientSource}").`
+          );
+        }
+      })
+      .catch(() => {
+        // Ignora falhas de conexão local
+      });
+  }, []);
 
   // Filters State
   const [busca, setBusca] = useState("");
@@ -43,8 +79,9 @@ export default function AdminTurmasPage() {
   const [turmaParaMatricular, setTurmaParaMatricular] = useState<Turma | null>(null);
 
   // Load all turmas & data
-  const carregarDados = async () => {
+  const carregarDados = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const [listTurmas, listProfs, allAulas] = await Promise.all([
         turmaRepository.listar(),
@@ -62,17 +99,20 @@ export default function AdminTurmasPage() {
         nextAulasMap[t.id] = aulasDaTurma.length > 0 ? aulasDaTurma[0] : null;
       }
       setProximasAulas(nextAulasMap);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Erro ao carregar turmas:", err);
+      const errorMsg =
+        err instanceof Error ? err.message : "Não foi possível carregar as turmas.";
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     carregarDados();
 
-    const handleStorageUpdate = (e: Event) => {
+    const handleDataUpdate = (e: Event) => {
       const customEvent = e as CustomEvent;
       if (
         !customEvent.detail?.entity ||
@@ -83,9 +123,13 @@ export default function AdminTurmasPage() {
       }
     };
 
-    window.addEventListener("mtd_storage_updated", handleStorageUpdate);
-    return () => window.removeEventListener("mtd_storage_updated", handleStorageUpdate);
-  }, []);
+    window.addEventListener("mtd_academic_core_updated", handleDataUpdate);
+    window.addEventListener("mtd_storage_updated", handleDataUpdate);
+    return () => {
+      window.removeEventListener("mtd_academic_core_updated", handleDataUpdate);
+      window.removeEventListener("mtd_storage_updated", handleDataUpdate);
+    };
+  }, [carregarDados]);
 
   const professorMap = useMemo(() => {
     return new Map(professores.map((p) => [p.id, p]));
@@ -140,33 +184,128 @@ export default function AdminTurmasPage() {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner / Disclaimer */}
-      <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-900/5 border border-slate-200/60 rounded-xl text-xs text-slate-600">
-        <div className="flex items-center gap-2">
-          <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>
-            <strong>Ambiente Demonstrativo MTD:</strong> Gerenciamento completo de turmas, limites e coortes do Método Paulo persistidos localmente.
-          </span>
+      {/* Divergence Critical Error Banner */}
+      {divergenceError && (
+        <div className="rounded-2xl border border-rose-300 bg-rose-50 p-4 text-xs text-rose-950 flex items-start gap-3 shadow-xs">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-600 text-white shadow-2xs">
+            <AlertTriangle className="h-4 w-4 stroke-[2.5]" />
+          </div>
+          <div>
+            <p className="font-bold text-rose-900 text-sm">
+              Erro Crítico de Configuração — Divergência entre Servidor e Navegador
+            </p>
+            <p className="text-[12px] text-rose-800 mt-1 leading-relaxed">
+              {divergenceError}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Datasource Banner Notice */}
+      <div
+        className={`rounded-2xl border p-4 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs ${
+          isSupabaseActive
+            ? "border-emerald-200/90 bg-gradient-to-r from-emerald-50/80 to-teal-50/40 text-emerald-950"
+            : "border-indigo-100 bg-gradient-to-r from-indigo-50/70 to-purple-50/40 text-indigo-950"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white shadow-2xs ${
+              isSupabaseActive ? "bg-emerald-600" : "bg-indigo-600"
+            }`}
+          >
+            <Database className="h-4 w-4" />
+          </div>
+          <div>
+            <p
+              className={`font-bold ${
+                isSupabaseActive ? "text-emerald-950" : "text-indigo-900"
+              }`}
+            >
+              {isSupabaseActive
+                ? "Dados reais no Supabase — Turmas e matrículas são persistidas no banco de dados."
+                : "Ambiente Demonstrativo — Persistência Local Ativa."}
+            </p>
+            <p
+              className={`text-[11px] mt-0.5 ${
+                isSupabaseActive ? "text-emerald-800/90" : "text-indigo-800/80"
+              }`}
+            >
+              {isSupabaseActive
+                ? "Persistência em PostgreSQL gerenciado pelo Supabase com Row Level Security (RLS) e integridade relacional ativas."
+                : "Novas turmas e matrículas são armazenadas de forma isolada no localStorage do seu navegador."}
+            </p>
+          </div>
+        </div>
+
+        <div
+          className={`flex items-center gap-4 text-xs font-semibold text-slate-700 bg-white/90 rounded-xl px-3.5 py-2 border shrink-0 ${
+            isSupabaseActive ? "border-emerald-200/70" : "border-indigo-100/60"
+          }`}
+        >
+          <div>
+            <span className="text-[10px] text-slate-400 uppercase font-bold block">
+              Fonte Ativa
+            </span>
+            <span
+              className={`text-xs font-bold ${
+                isSupabaseActive ? "text-emerald-700" : "text-indigo-700"
+              }`}
+            >
+              {isSupabaseActive ? "PostgreSQL Remoto" : "Armazenamento Local"}
+            </span>
+          </div>
         </div>
       </div>
+
+      {/* Loading Error Alert with Retry */}
+      {error && (
+        <div className="rounded-2xl border border-rose-300 bg-rose-50 p-4 text-xs text-rose-950 flex items-start justify-between gap-3 shadow-xs">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-rose-900 text-sm">Falha ao carregar turmas</p>
+              <p className="text-rose-800 mt-0.5">{error}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={carregarDados}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 text-white font-semibold text-xs hover:bg-rose-700 transition-colors shrink-0"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            <span>Tentar Novamente</span>
+          </button>
+        </div>
+      )}
 
       {/* Header and Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Turmas</h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Turmas</h1>
+            {isProfessor && (
+              <span className="rounded-full bg-purple-50 px-2.5 py-0.5 text-[11px] font-bold text-purple-700 border border-purple-100">
+                Visualização do Docente
+              </span>
+            )}
+          </div>
           <p className="text-sm text-slate-500 mt-1">
             Organize coortes em grupo e aulas individuais, acompanhando ocupação e professor responsável.
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleOpenCriarTurma}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm shadow-sm transition-all hover:shadow"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Nova Turma</span>
-        </button>
+        {!isProfessor && (
+          <button
+            type="button"
+            onClick={handleOpenCriarTurma}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm shadow-sm transition-all hover:shadow"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Nova Turma</span>
+          </button>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -424,22 +563,26 @@ export default function AdminTurmasPage() {
 
                       <td className="px-5 py-4 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenMatricular(t)}
-                            title="Matricular discente"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
-                          >
-                            <UserPlus className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditarTurma(t)}
-                            title="Editar turma"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
+                          {!isProfessor && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenMatricular(t)}
+                                title="Matricular discente"
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                              >
+                                <UserPlus className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditarTurma(t)}
+                                title="Editar turma"
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                            </>
+                          )}
                           <Link
                             href={`/admin/turmas/${t.id}`}
                             title="Ver detalhes da turma"
@@ -532,23 +675,29 @@ export default function AdminTurmasPage() {
                 </div>
 
                 <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenMatricular(t)}
-                    className="text-xs font-semibold text-purple-600 hover:text-purple-700 flex items-center gap-1"
-                  >
-                    <UserPlus className="h-3.5 w-3.5" />
-                    <span>Matricular</span>
-                  </button>
-
-                  <div className="flex items-center gap-2">
+                  {!isProfessor ? (
                     <button
                       type="button"
-                      onClick={() => handleOpenEditarTurma(t)}
-                      className="text-xs font-semibold text-slate-600 hover:text-slate-800"
+                      onClick={() => handleOpenMatricular(t)}
+                      className="text-xs font-semibold text-purple-600 hover:text-purple-700 flex items-center gap-1"
                     >
-                      Editar
+                      <UserPlus className="h-3.5 w-3.5" />
+                      <span>Matricular</span>
                     </button>
+                  ) : (
+                    <span className="text-[11px] text-slate-400 italic">Visualização docente</span>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    {!isProfessor && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditarTurma(t)}
+                        className="text-xs font-semibold text-slate-600 hover:text-slate-800"
+                      >
+                        Editar
+                      </button>
+                    )}
                     <Link
                       href={`/admin/turmas/${t.id}`}
                       className="px-3 py-1 rounded-lg text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition-colors"

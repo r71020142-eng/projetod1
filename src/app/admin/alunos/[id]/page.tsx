@@ -37,6 +37,7 @@ import {
 import { alunoRepository } from "@/data/alunoRepository";
 import { turmaRepository } from "@/data/turmaRepository";
 import { aulaRepository } from "@/data/aulaRepository";
+import { getAcademicCoreDataSource } from "@/data/repositoryFactory";
 import { selfPresentationRepository } from "@/data/selfPresentationRepository";
 import { historicoNivelRepository } from "@/data/historicoNivelRepository";
 import { progressoModuloRepository } from "@/data/progressoModuloRepository";
@@ -453,10 +454,30 @@ export default function AdminAlunoDetalhesPage() {
               </h3>
             </div>
 
-            <div className="rounded-xl bg-amber-50/70 p-3 border border-amber-200/60 text-[11px] text-amber-900 flex items-start gap-2">
-              <Info className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+            <div
+              className={`rounded-xl p-3 border text-[11px] flex items-start gap-2 ${
+                getAcademicCoreDataSource() === "supabase"
+                  ? "bg-emerald-50/80 border-emerald-200/80 text-emerald-900"
+                  : "bg-amber-50/70 border-amber-200/60 text-amber-900"
+              }`}
+            >
+              <Info
+                className={`h-4 w-4 shrink-0 mt-0.5 ${
+                  getAcademicCoreDataSource() === "supabase"
+                    ? "text-emerald-600"
+                    : "text-amber-600"
+                }`}
+              />
               <p>
-                <strong>Isolamento Modular:</strong> Os dados cadastrais e pedagógicos deste discente são gerenciados no Supabase. Os vínculos com turmas, aulas e frequência permanecem em armazenamento local e serão migrados nas etapas seguintes.
+                {getAcademicCoreDataSource() === "supabase" ? (
+                  <>
+                    <strong>Vínculo no Supabase:</strong> As matrículas e turmas deste discente são gerenciadas diretamente no banco de dados PostgreSQL com regras de capacidade e integridade relacional.
+                  </>
+                ) : (
+                  <>
+                    <strong>Isolamento Modular:</strong> Os dados cadastrais e pedagógicos deste discente são gerenciados no Supabase. Os vínculos com turmas, aulas e frequência permanecem em armazenamento local e serão migrados nas etapas seguintes.
+                  </>
+                )}
               </p>
             </div>
 

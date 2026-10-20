@@ -22,6 +22,7 @@ import { professorRepository } from "@/data/professorRepository";
 import { turmaRepository } from "@/data/turmaRepository";
 import { aulaRepository } from "@/data/aulaRepository";
 import { acessoUsuarioRepository } from "@/data/acessoUsuarioRepository";
+import { getAcademicCoreDataSource } from "@/data/repositoryFactory";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { TurmaStatusBadge, ModalidadeBadge } from "@/components/common/TurmaBadges";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
@@ -411,10 +412,30 @@ export default function AdminProfessorDetalhesPage() {
               </h3>
             </div>
 
-            <div className="rounded-xl bg-amber-50/70 p-3 border border-amber-200/60 text-[11px] text-amber-900 flex items-start gap-2">
-              <Info className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+            <div
+              className={`rounded-xl p-3 border text-[11px] flex items-start gap-2 ${
+                getAcademicCoreDataSource() === "supabase"
+                  ? "bg-emerald-50/80 border-emerald-200/80 text-emerald-900"
+                  : "bg-amber-50/70 border-amber-200/60 text-amber-900"
+              }`}
+            >
+              <Info
+                className={`h-4 w-4 shrink-0 mt-0.5 ${
+                  getAcademicCoreDataSource() === "supabase"
+                    ? "text-emerald-600"
+                    : "text-amber-600"
+                }`}
+              />
               <p>
-                <strong>Isolamento Modular:</strong> Os dados cadastrais deste docente são gerenciados no Supabase. Os vínculos com turmas e aulas permanecem em armazenamento local e serão migrados nas etapas seguintes.
+                {getAcademicCoreDataSource() === "supabase" ? (
+                  <>
+                    <strong>Vínculo no Supabase:</strong> As turmas sob responsabilidade deste docente são persistidas e gerenciadas diretamente no banco de dados da plataforma.
+                  </>
+                ) : (
+                  <>
+                    <strong>Isolamento Modular:</strong> Os dados cadastrais deste docente são gerenciados no Supabase. Os vínculos com turmas e aulas permanecem em armazenamento local e serão migrados nas etapas seguintes.
+                  </>
+                )}
               </p>
             </div>
 

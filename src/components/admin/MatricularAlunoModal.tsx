@@ -5,6 +5,8 @@ import { X, UserPlus, AlertCircle } from "lucide-react";
 import { Turma, Aluno } from "@/types";
 import { turmaRepository } from "@/data/turmaRepository";
 import { alunoRepository } from "@/data/alunoRepository";
+import { FormPersistenceNotice } from "@/components/common/FormPersistenceNotice";
+import { executeWithTimeout } from "@/lib/asyncUtils";
 
 interface MatricularAlunoModalProps {
   isOpen: boolean;
@@ -67,7 +69,11 @@ export function MatricularAlunoModal({
     setError(null);
 
     try {
-      const res = await turmaRepository.matricularAluno(turma.id, selectedAlunoId);
+      const res = await executeWithTimeout(
+        turmaRepository.matricularAluno(turma.id, selectedAlunoId),
+        15000,
+        "Tempo limite excedido ao matricular aluno na turma."
+      );
       if (!res.success) {
         setError(res.error || "Não foi possível realizar a matrícula.");
         setIsSubmitting(false);
@@ -76,9 +82,11 @@ export function MatricularAlunoModal({
 
       onSuccess(res.data!);
       onClose();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Erro ao matricular aluno:", err);
-      setError("Erro inesperado ao realizar a matrícula.");
+      const errorMsg =
+        err instanceof Error ? err.message : "Erro inesperado ao realizar a matrícula.";
+      setError(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -180,6 +188,9 @@ export function MatricularAlunoModal({
               </p>
             </div>
           )}
+
+          {/* Aviso de Persistência Dinâmico (Etapa 10.3A) */}
+          <FormPersistenceNotice modulo="academic" />
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">

@@ -82,6 +82,14 @@ export interface ITurmaRepository {
   listarPorAluno(alunoId: string): Promise<Turma[]>;
   listarPorProfessor(professorId: string): Promise<Turma[]>;
   contarAtivas(): Promise<number>;
+  criar(dados: Omit<Turma, "id" | "dataCadastro">): Promise<OperationResult<Turma>>;
+  atualizar(
+    id: string,
+    dados: Partial<Omit<Turma, "id" | "dataCadastro">>
+  ): Promise<OperationResult<Turma>>;
+  matricularAluno(turmaId: string, alunoId: string, motivo?: string): Promise<OperationResult<Turma>>;
+  desmatricularAluno(turmaId: string, alunoId: string, motivo?: string): Promise<OperationResult<Turma>>;
+  alterarStatus(turmaId: string, novoStatus: Turma["status"]): Promise<OperationResult<Turma>>;
 }
 
 export interface IAulaRepository {

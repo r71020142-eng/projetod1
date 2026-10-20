@@ -5,6 +5,8 @@ import { X, AlertCircle, Info, Users, User } from "lucide-react";
 import { Turma, ModalidadeTurma, NivelTurma, StatusTurma, Professor } from "@/types";
 import { turmaRepository } from "@/data/turmaRepository";
 import { professorRepository } from "@/data/professorRepository";
+import { FormPersistenceNotice } from "@/components/common/FormPersistenceNotice";
+import { executeWithTimeout } from "@/lib/asyncUtils";
 
 interface TurmaFormModalProps {
   isOpen: boolean;
@@ -104,17 +106,21 @@ export function TurmaFormModal({
 
     try {
       if (isEditing && turmaParaEditar) {
-        const res = await turmaRepository.atualizar(turmaParaEditar.id, {
-          nome: formData.nome,
-          modalidade: formData.modalidade,
-          nivel: formData.nivel,
-          objetivoPrincipal: formData.objetivoPrincipal,
-          professorId: formData.professorId,
-          capacidade: formData.modalidade === "individual" ? 1 : Number(formData.capacidade),
-          status: formData.status,
-          dataInicio: formData.dataInicio,
-          observacoes: formData.observacoes || undefined,
-        });
+        const res = await executeWithTimeout(
+          turmaRepository.atualizar(turmaParaEditar.id, {
+            nome: formData.nome,
+            modalidade: formData.modalidade,
+            nivel: formData.nivel,
+            objetivoPrincipal: formData.objetivoPrincipal,
+            professorId: formData.professorId,
+            capacidade: formData.modalidade === "individual" ? 1 : Number(formData.capacidade),
+            status: formData.status,
+            dataInicio: formData.dataInicio,
+            observacoes: formData.observacoes || undefined,
+          }),
+          15000,
+          "Tempo limite excedido ao salvar alterações da turma."
+        );
 
         if (!res.success) {
           if (res.fieldErrors) {
@@ -128,18 +134,22 @@ export function TurmaFormModal({
         onSuccess(res.data!, false);
         onClose();
       } else {
-        const res = await turmaRepository.criar({
-          nome: formData.nome,
-          modalidade: formData.modalidade,
-          nivel: formData.nivel,
-          objetivoPrincipal: formData.objetivoPrincipal,
-          professorId: formData.professorId,
-          alunoIds: [],
-          capacidade: formData.modalidade === "individual" ? 1 : Number(formData.capacidade),
-          status: formData.status,
-          dataInicio: formData.dataInicio,
-          observacoes: formData.observacoes || undefined,
-        });
+        const res = await executeWithTimeout(
+          turmaRepository.criar({
+            nome: formData.nome,
+            modalidade: formData.modalidade,
+            nivel: formData.nivel,
+            objetivoPrincipal: formData.objetivoPrincipal,
+            professorId: formData.professorId,
+            alunoIds: [],
+            capacidade: formData.modalidade === "individual" ? 1 : Number(formData.capacidade),
+            status: formData.status,
+            dataInicio: formData.dataInicio,
+            observacoes: formData.observacoes || undefined,
+          }),
+          15000,
+          "Tempo limite excedido ao cadastrar turma."
+        );
 
         if (!res.success) {
           if (res.fieldErrors) {
@@ -153,9 +163,11 @@ export function TurmaFormModal({
         onSuccess(res.data!, true);
         onClose();
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Erro ao salvar turma:", err);
-      setGeneralError("Ocorreu um erro inesperado ao salvar a turma.");
+      const errorMsg =
+        err instanceof Error ? err.message : "Ocorreu um erro inesperado ao salvar a turma.";
+      setGeneralError(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -425,6 +437,9 @@ export function TurmaFormModal({
               </p>
             </div>
           </div>
+
+          {/* Aviso de Persistência Dinâmico (Etapa 10.3A) */}
+          <FormPersistenceNotice modulo="academic" />
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">

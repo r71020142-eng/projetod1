@@ -13,8 +13,8 @@ import { alunoLocalStorageRepository } from "./alunoLocalStorageRepository";
 import { professorLocalStorageRepository } from "./professorLocalStorageRepository";
 import { alunoSupabaseRepository } from "./alunoSupabaseRepository";
 import { professorSupabaseRepository } from "./professorSupabaseRepository";
-
-import { turmaRepository } from "./turmaRepository";
+import { turmaLocalStorageRepository } from "./turmaLocalStorageRepository";
+import { turmaSupabaseRepository } from "./turmaSupabaseRepository";
 import { aulaRepository } from "./aulaRepository";
 import { materialRepository } from "./materialRepository";
 import { atividadeRepository } from "./atividadeRepository";
@@ -67,6 +67,22 @@ export function getCoreUsersDataSource(): DataSource {
   }
 }
 
+/**
+ * Retorna a fonte de dados configurada para os módulos acadêmicos centrais (Turmas e Matrículas).
+ */
+export function getAcademicCoreDataSource(): DataSource {
+  if (typeof window === "undefined") {
+    const env = getServerEnv();
+    return env.academicCoreDataSource;
+  }
+  try {
+    const clientEnv = getClientEnv();
+    return clientEnv.academicCoreDataSource || "local";
+  } catch {
+    return "local";
+  }
+}
+
 export class UnimplementedSupabaseRepositoryError extends Error {
   constructor(nomeRepositorio: string, etapaPlanejada: string) {
     super(
@@ -99,13 +115,13 @@ export function getProfessorRepository(): IProfessorRepository {
 }
 
 /**
- * Retorna o repositório de Turmas ativo para o ambiente.
+ * Retorna o repositório de Turmas ativo para o ambiente (Etapa 10.3A).
  */
 export function getTurmaRepository(): ITurmaRepository {
-  if (isLocalDataSource()) {
-    return turmaRepository;
+  if (getAcademicCoreDataSource() === "supabase") {
+    return turmaSupabaseRepository;
   }
-  throw new UnimplementedSupabaseRepositoryError("TurmaRepository", "Etapa 10.3");
+  return turmaLocalStorageRepository;
 }
 
 /**

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Database, Info } from "lucide-react";
-import { getCoreUsersDataSource } from "@/data/repositoryFactory";
+import { getCoreUsersDataSource, getAcademicCoreDataSource } from "@/data/repositoryFactory";
 import { DataSource } from "@/lib/env";
 import { cn } from "@/lib/utils";
 
@@ -17,15 +17,23 @@ export interface PersistenceNoticeContent {
  * ou fonte explicitamente fornecida.
  */
 export function getPersistenceNoticeData(
-  dataSourceOverride?: DataSource
+  dataSourceOverride?: DataSource,
+  modulo: "users" | "academic" = "users"
 ): PersistenceNoticeContent {
-  const source = dataSourceOverride || getCoreUsersDataSource();
+  const source =
+    dataSourceOverride ||
+    (modulo === "academic"
+      ? getAcademicCoreDataSource()
+      : getCoreUsersDataSource());
   const isSupabase = source === "supabase";
 
   if (isSupabase) {
     return {
       title: "Dados reais no Supabase",
-      text: "Este cadastro será armazenado no banco de dados da plataforma com as políticas de segurança e acesso aplicáveis.",
+      text:
+        modulo === "academic"
+          ? "Os dados desta turma e de suas matrículas serão armazenados no banco de dados da plataforma com as políticas de segurança e acesso aplicáveis."
+          : "Este cadastro será armazenado no banco de dados da plataforma com as políticas de segurança e acesso aplicáveis.",
       isSupabase: true,
     };
   }
@@ -41,22 +49,20 @@ interface FormPersistenceNoticeProps {
   className?: string;
   customText?: string;
   dataSourceOverride?: DataSource;
+  modulo?: "users" | "academic";
 }
 
 /**
  * Componente unificado de aviso de persistência para formulários e confirmações
- * dos módulos de Alunos e Professores.
- *
- * Regras da Etapa 10.2B2:
- * - Supabase: Título "Dados reais no Supabase" e texto de banco de dados.
- * - Local: Título "Ambiente Demonstrativo" e texto de navegador/localStorage.
+ * dos módulos de Usuários e Acadêmico.
  */
 export function FormPersistenceNotice({
   className,
   customText,
   dataSourceOverride,
+  modulo = "users",
 }: FormPersistenceNoticeProps) {
-  const content = getPersistenceNoticeData(dataSourceOverride);
+  const content = getPersistenceNoticeData(dataSourceOverride, modulo);
 
   if (content.isSupabase) {
     return (
