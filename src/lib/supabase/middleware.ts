@@ -1,14 +1,25 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getServerEnv } from "@/lib/env";
+import {
+  isRouteAllowedForRole,
+  getDefaultDashboardForRole,
+  type UserRole,
+} from "@/lib/auth/permissions";
 
 /**
  * Atualiza cookies de sessão e gerencia autorização SSR.
  *
- * Regras da Etapa 10.1 (Padrão Oficial Supabase: Publishable & Secret Keys):
- * - Em APP_MODE=demo: não bloqueia requisições e preserva navegação demonstrativa intacta.
- * - Em APP_MODE=production: atualiza tokens de sessão e prepara checagem de permissão RBAC.
- * - Ignora arquivos estáticos, assets do Next.js e mídias.
+ * Regras da Etapa 10.2A:
+ * - Em AUTH_MODE=demo: não bloqueia requisições e preserva navegação demonstrativa aberta.
+ * - Em AUTH_MODE=supabase:
+ *   - Rotas públicas (/login, /esqueci-senha, /redefinir-senha, /auth/callback, /acesso-negado).
+ *   - Redireciona usuários já logados que tentam acessar /login.
+ *   - Rotas protegidas (/aluno/** e /admin/**) exigem autenticação via Supabase Auth.
+ *   - Consulta papel e status em public.perfis.
+ *   - Bloqueia perfis inativos ou bloqueados.
+ *   - Valida permissões estritas da matriz RBAC (professor não acessa /admin nem /admin/professores, aluno não acessa /admin).
+ *   - Ignora rigorosamente assets estáticos, imagens e chunks do Next.js.
  */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({
@@ -21,12 +32,12 @@ export async function updateSession(request: NextRequest) {
   try {
     env = getServerEnv();
   } catch {
-    // Se getServerEnv falhar em runtime sem variáveis, retorna resposta padrão sem crash
+    // Se getServerEnv falhar em runtime sem variáveis mínimas, não crasha o middleware
     return response;
   }
 
-  // Em modo demonstrativo, o middleware preserva navegação aberta e dados semente
-  if (env.appMode === "demo" || !env.supabaseUrl || !env.supabasePublishableKey) {
+  // Em modo de autenticação demonstrativa (AUTH_MODE=demo), preserva navegação aberta
+  if (env.authMode === "demo" || !env.supabaseUrl || !env.supabasePublishableKey) {
     return response;
   }
 
@@ -49,23 +60,96 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // Lê com segurança o usuário atual (validação com auth.users no Supabase)
+  // Validação segura do usuário no servidor através do Supabase Auth
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const path = request.nextUrl.pathname;
+  const pathname = request.nextUrl.pathname;
 
-  // Lógica de produção (preparada para quando /login for criado na Etapa 10.2):
-  // Se for rota protegida (/aluno/* ou /admin/*) e não houver usuário autenticado,
-  // na Etapa 10.2 haverá redirecionamento para /login.
-  // Na Etapa 10.1, não bloqueamos para não gerar 404 em rotas inexistentes.
-  if (!user && (path.startsWith("/aluno") || path.startsWith("/admin"))) {
-    // Flag de cabeçalho para auditoria e controle interno
-    response.headers.set("x-mtd-auth-status", "unauthenticated");
-  } else if (user) {
-    response.headers.set("x-mtd-auth-status", "authenticated");
+  // Lista de rotas públicas
+  const isPublicRoute =
+    pathname === "/" ||
+    pathname === "/login" ||
+    pathname === "/esqueci-senha" ||
+    pathname === "/redefinir-senha" ||
+    pathname.startsWith("/auth/") ||
+    pathname === "/acesso-negado";
+
+  // Se o usuário já estiver logado e tentar acessar a tela de login ou recuperação, redireciona para seu portal
+  if (user && (pathname === "/login" || pathname === "/esqueci-senha")) {
+    const { data: profile } = await supabase
+      .from("perfis")
+      .select("role, status")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.status === "ativo") {
+      const role = (profile.role as UserRole) || "aluno";
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = getDefaultDashboardForRole(role);
+      redirectUrl.search = "";
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
+  // Se a rota for pública, libera o acesso
+  if (isPublicRoute) {
+    return response;
+  }
+
+  // Checagem de rotas protegidas (/aluno/** e /admin/**)
+  const isProtectedRoute =
+    pathname.startsWith("/aluno") || pathname.startsWith("/admin");
+
+  if (isProtectedRoute) {
+    // Caso 1: Usuário não autenticado
+    if (!user) {
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = "/login";
+      // Guarda o caminho de destino no parâmetro `next`
+      const target = pathname + request.nextUrl.search;
+      loginUrl.searchParams.set("next", target);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // Caso 2: Usuário autenticado -> consulta papel e status em public.perfis
+    const { data: profile, error } = await supabase
+      .from("perfis")
+      .select("role, status")
+      .eq("id", user.id)
+      .single();
+
+    if (error || !profile) {
+      // Se não houver perfil cadastrado, redireciona para acesso negado
+      const deniedUrl = request.nextUrl.clone();
+      deniedUrl.pathname = "/acesso-negado";
+      deniedUrl.searchParams.set("motivo", "perfil_inexistente");
+      return NextResponse.redirect(deniedUrl);
+    }
+
+    // Bloqueio de contas inativas ou bloqueadas
+    if (profile.status !== "ativo") {
+      const deniedUrl = request.nextUrl.clone();
+      deniedUrl.pathname = "/acesso-negado";
+      deniedUrl.searchParams.set("motivo", profile.status);
+      return NextResponse.redirect(deniedUrl);
+    }
+
+    const role = profile.role as UserRole;
+
+    // Verificação estrita de controle de acesso por papel (RBAC)
+    if (!isRouteAllowedForRole(pathname, role)) {
+      const deniedUrl = request.nextUrl.clone();
+      deniedUrl.pathname = "/acesso-negado";
+      deniedUrl.searchParams.set("motivo", "permissao_insuficiente");
+      return NextResponse.redirect(deniedUrl);
+    }
+
+    // Anota cabeçalhos de contexto autorizados para consumo nos Server Components
     response.headers.set("x-mtd-user-id", user.id);
+    response.headers.set("x-mtd-user-role", role);
+    response.headers.set("x-mtd-auth-status", "authenticated");
   }
 
   return response;

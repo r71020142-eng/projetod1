@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
-import { Search, Bell, Menu, X, ChevronDown } from "lucide-react";
+import { Search, Bell, Menu, X, ChevronDown, LogOut } from "lucide-react";
 import { NotificacoesDrawer } from "@/components/notificacoes/NotificacoesDrawer";
 import { DemoRoleSwitcher } from "@/components/layout/DemoRoleSwitcher";
 import { gamificacaoRepository } from "@/data/api";
@@ -26,7 +26,22 @@ export function Header({
 }: HeaderProps) {
   const usuarioId = variant === "admin" ? "adm-001" : "alu-001";
   const [isNotificacoesOpen, setIsNotificacoesOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsUserMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const checkUnread = useCallback(async () => {
     try {
@@ -119,34 +134,66 @@ export function Header({
           )}
         </button>
 
-        {/* User Profile */}
-        <div className="flex items-center gap-2 cursor-pointer group">
-          <div
-            className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full overflow-hidden bg-slate-200 shrink-0 border border-[#DDDDE5] shadow-2xs"
+        {/* User Profile com Dropdown de Sessão */}
+        <div className="relative" ref={userMenuRef}>
+          <button
+            type="button"
+            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+            aria-expanded={isUserMenuOpen}
+            aria-haspopup="true"
+            className="flex items-center gap-2 cursor-pointer group focus:outline-none"
           >
-            <Image
-              src={userAvatar}
-              alt={userName}
-              fill
-              className="object-cover object-center"
-              sizes="36px"
-              unoptimized
-            />
-          </div>
+            <div className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full overflow-hidden bg-slate-200 shrink-0 border border-[#DDDDE5] shadow-2xs">
+              <Image
+                src={userAvatar}
+                alt={userName}
+                fill
+                className="object-cover object-center"
+                sizes="36px"
+                unoptimized
+              />
+            </div>
 
-          <div className="hidden sm:flex flex-col text-left">
-            <span className="text-sm font-bold text-[#07132E] leading-tight group-hover:text-[#5B2FE8] transition-colors">
-              {userName}
-            </span>
-            {variant === "admin" && userRoleLabel && (
-              <span className="text-[11px] text-[#60708F] font-normal leading-tight mt-0.5">
-                {userRoleLabel}
+            <div className="hidden sm:flex flex-col text-left">
+              <span className="text-sm font-bold text-[#07132E] leading-tight group-hover:text-[#5B2FE8] transition-colors">
+                {userName}
               </span>
-            )}
-          </div>
+              {variant === "admin" && userRoleLabel && (
+                <span className="text-[11px] text-[#60708F] font-normal leading-tight mt-0.5">
+                  {userRoleLabel}
+                </span>
+              )}
+            </div>
 
-          {/* Chevron down */}
-          <ChevronDown className="hidden sm:block h-4 w-4 text-[#60708F] group-hover:text-[#07132E] transition-colors" />
+            <ChevronDown className="hidden sm:block h-4 w-4 text-[#60708F] group-hover:text-[#07132E] transition-colors" />
+          </button>
+
+          {isUserMenuOpen && (
+            <div
+              role="menu"
+              className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 z-50 text-slate-800 animate-in fade-in"
+            >
+              <div className="px-3.5 py-2 border-b border-slate-100">
+                <p className="text-xs font-semibold text-slate-900 truncate">
+                  {userName}
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  {userRoleLabel || (variant === "admin" ? "Administrador" : "Aluno")}
+                </p>
+              </div>
+
+              <form action="/api/auth/logout" method="POST" className="p-1">
+                <button
+                  type="submit"
+                  role="menuitem"
+                  className="w-full text-left px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 rounded-lg flex items-center gap-2 transition-colors font-medium"
+                >
+                  <LogOut className="w-3.5 h-3.5 shrink-0" />
+                  <span>Sair da conta</span>
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,25 +1,33 @@
 /**
  * Configuração central e validação estrita de variáveis de ambiente do DEMOSTRATIVO MTD.
  *
- * Regras da Etapa 10.1 (Padrão Oficial Supabase: Publishable & Secret Keys):
- * - APP_MODE aceita exclusivamente 'demo' ou 'production' (padrão: 'demo').
- * - APP_MODE é estritamente server-side.
- * - Em modo production, a ausência de variáveis do Supabase dispara erro explícito.
+ * Regras da Etapa 10.2A:
+ * - APP_MODE: 'demo' | 'production' (padrão: 'demo')
+ * - AUTH_MODE: 'demo' | 'supabase' (padrão: 'demo')
+ * - DATA_SOURCE: 'local' | 'supabase' (padrão: 'local')
+ * - A combinação AUTH_MODE=supabase + DATA_SOURCE=local é permitida somente em Development ou Preview.
+ * - Em Produção (VERCEL_ENV=production ou APP_MODE=production), AUTH_MODE=supabase exige DATA_SOURCE=supabase.
  * - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY é pública e acessível no navegador.
  * - SUPABASE_SECRET_KEY é estritamente server-only e NUNCA é exposta ao cliente ou registrada em logs.
  * - Sem fallback para chaves legadas descontinuadas.
  */
 
 export type AppMode = "demo" | "production";
+export type AuthMode = "demo" | "supabase";
+export type DataSource = "local" | "supabase";
 
 export interface ClientEnv {
   supabaseUrl: string;
   supabasePublishableKey: string;
   isDemoClient: boolean;
+  isAuthTestBannerVisible: boolean;
 }
 
 export interface ServerEnv extends ClientEnv {
   appMode: AppMode;
+  authMode: AuthMode;
+  dataSource: DataSource;
+  isAuthTestWithLocalData: boolean;
   supabaseSecretKey: string;
 }
 
@@ -42,23 +50,55 @@ export function getServerEnv(): ServerEnv {
   }
   const appMode: AppMode = rawMode;
 
+  const rawAuthMode =
+    process.env.AUTH_MODE || (appMode === "production" ? "supabase" : "demo");
+  if (rawAuthMode !== "demo" && rawAuthMode !== "supabase") {
+    throw new Error(
+      `[Configuração MTD] AUTH_MODE inválido: "${rawAuthMode}". Esperado: "demo" ou "supabase".`
+    );
+  }
+  const authMode: AuthMode = rawAuthMode;
+
+  const rawDataSource =
+    process.env.DATA_SOURCE || (appMode === "production" ? "supabase" : "local");
+  if (rawDataSource !== "local" && rawDataSource !== "supabase") {
+    throw new Error(
+      `[Configuração MTD] DATA_SOURCE inválido: "${rawDataSource}". Esperado: "local" ou "supabase".`
+    );
+  }
+  const dataSource: DataSource = rawDataSource;
+
+  const isVercelProduction = process.env.VERCEL_ENV === "production";
+  const isAuthTestWithLocalData =
+    authMode === "supabase" && dataSource === "local";
+
+  // Validação estrita de segurança: AUTH_MODE=supabase com DATA_SOURCE=local NÃO pode rodar em Produção
+  if (
+    (isVercelProduction || appMode === "production") &&
+    isAuthTestWithLocalData
+  ) {
+    throw new Error(
+      "[Segurança MTD] A combinação AUTH_MODE=supabase com DATA_SOURCE=local é estritamente proibida no ambiente de Produção. Em produção utilize DATA_SOURCE=supabase ou retorne para AUTH_MODE=demo."
+    );
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const supabasePublishableKey =
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
   const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY || "";
 
-  if (appMode === "production") {
+  // Se AUTH_MODE=supabase ou APP_MODE=production, credenciais públicas do Supabase são obrigatórias
+  if (authMode === "supabase" || appMode === "production") {
     const missing: string[] = [];
     if (!supabaseUrl) missing.push("NEXT_PUBLIC_SUPABASE_URL");
     if (!supabasePublishableKey)
       missing.push("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
-    if (!supabaseSecretKey) missing.push("SUPABASE_SECRET_KEY");
 
     if (missing.length > 0) {
       throw new Error(
-        `[Configuração MTD] APP_MODE=production ativo, mas as seguintes variáveis obrigatórias estão ausentes: ${missing.join(
+        `[Configuração MTD] AUTH_MODE=supabase ativo, mas as seguintes variáveis obrigatórias estão ausentes: ${missing.join(
           ", "
-        )}. Configure-as no ambiente ou retorne para APP_MODE=demo.`
+        )}. Configure-as no ambiente ou retorne para AUTH_MODE=demo.`
       );
     }
 
@@ -73,10 +113,14 @@ export function getServerEnv(): ServerEnv {
 
   return {
     appMode,
+    authMode,
+    dataSource,
+    isAuthTestWithLocalData,
     supabaseUrl,
     supabasePublishableKey,
     supabaseSecretKey,
-    isDemoClient: appMode === "demo",
+    isDemoClient: appMode === "demo" && authMode === "demo",
+    isAuthTestBannerVisible: isAuthTestWithLocalData,
   };
 }
 
@@ -89,10 +133,12 @@ export function getClientEnv(): ClientEnv {
   const supabasePublishableKey =
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
   const isDemo = process.env.NEXT_PUBLIC_DEMO_MODE !== "false";
+  const isAuthTestBanner = process.env.NEXT_PUBLIC_AUTH_TEST_BANNER === "true";
 
   return {
     supabaseUrl,
     supabasePublishableKey,
     isDemoClient: isDemo,
+    isAuthTestBannerVisible: isAuthTestBanner,
   };
 }

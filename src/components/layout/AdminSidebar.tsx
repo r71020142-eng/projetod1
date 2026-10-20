@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isRouteAllowedForRole, type UserRole } from "@/lib/auth/permissions";
 
 interface AdminNavItem {
   title: string;
@@ -47,10 +48,24 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
 interface AdminSidebarProps {
   isOpenMobile: boolean;
   onCloseMobile: () => void;
+  userRole?: UserRole;
 }
 
-export function AdminSidebar({ isOpenMobile, onCloseMobile }: AdminSidebarProps) {
+export function AdminSidebar({
+  isOpenMobile,
+  onCloseMobile,
+  userRole,
+}: AdminSidebarProps) {
   const pathname = usePathname();
+
+  const filteredNavItems = React.useMemo(() => {
+    if (userRole === "professor") {
+      return ADMIN_NAV_ITEMS.filter((item) =>
+        isRouteAllowedForRole(item.href, "professor")
+      );
+    }
+    return ADMIN_NAV_ITEMS;
+  }, [userRole]);
 
   const navContent = (
     <div className="flex h-full flex-col justify-between p-4 text-white bg-[#0D0B2E]">
@@ -94,7 +109,7 @@ export function AdminSidebar({ isOpenMobile, onCloseMobile }: AdminSidebarProps)
 
         {/* Navigation items matching Image 2 */}
         <nav className="space-y-1" aria-label="Navegação Administrativa">
-          {ADMIN_NAV_ITEMS.map((item, idx) => {
+          {filteredNavItems.map((item, idx) => {
             // "Visão geral" is active when on /admin
             const active = idx === 0 && pathname === "/admin";
             const Icon = item.icon;

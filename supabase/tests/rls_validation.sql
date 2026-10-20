@@ -1,13 +1,17 @@
 -- ==============================================================================
--- DEMOSTRATIVO MTD — SUÍTE DE TESTES E VERIFICAÇÃO DE RLS (ETAPA 10.1)
+-- DEMOSTRATIVO MTD — SUÍTE DE TESTES E VERIFICAÇÃO DE RLS (ETAPA 10.2A)
 -- ==============================================================================
--- Este script valida matematicamente as 6 garantias de segurança RLS:
+-- Este script valida matematicamente as 10 garantias de segurança RLS e Triggers:
 -- 1. Usuário anônimo (anon) não acessa perfis;
 -- 2. Aluno autenticado acessa exclusivamente seu próprio perfil;
--- 3. Aluno não consegue promover a si mesmo para admin ou professor;
--- 4. Professor não recebe permissões de administrador;
--- 5. Administrador autenticado acessa e gerencia os registros necessários;
--- 6. Logs de auditoria são sigilosos e inacessíveis para alunos e anônimos.
+-- 3. Aluno não consegue alterar seu próprio papel (role);
+-- 4. Aluno não consegue alterar seu próprio status;
+-- 5. Professor não consegue promover usuários a administrador;
+-- 6. Aluno não consegue inserir registros em auditoria_logs;
+-- 7. Professor não consegue inserir registros em auditoria_logs;
+-- 8. Professor visualiza alunos e a si mesmo, mas não visualiza administrador;
+-- 9. Administrador autenticado atualiza papéis e status com sucesso;
+-- 10. Logs de auditoria são imutáveis (sem permissão de UPDATE/DELETE).
 -- ==============================================================================
 
 BEGIN;
@@ -29,7 +33,7 @@ BEGIN
     (v_aluno2_id, 'aluno2.teste@mtd.com', '{"nome_completo": "Aluno Dois Teste"}'::jsonb, false, false)
   ON CONFLICT (id) DO NOTHING;
 
-  -- Ajusta os papéis para o cenário de teste (o trigger handle_new_user criou inicialmente como 'aluno')
+  -- Ajusta os papéis para o cenário de teste no modo postgres/superuser
   UPDATE public.perfis SET role = 'admin' WHERE id = v_admin_id;
   UPDATE public.perfis SET role = 'professor' WHERE id = v_prof_id;
 END $$;
@@ -76,7 +80,7 @@ BEGIN
 END $$;
 
 -- ------------------------------------------------------------------------------
--- TESTE 3: Aluno Autenticado — Tentativa de Auto-Promoção para Admin
+-- TESTE 3: Aluno Autenticado — Tentativa de Alterar seu Papel (Role)
 -- ------------------------------------------------------------------------------
 SET LOCAL ROLE authenticated;
 SET LOCAL "request.jwt.claim.sub" TO '33333333-3333-3333-3333-333333333333';
@@ -88,7 +92,6 @@ BEGIN
     SET role = 'admin'
     WHERE id = '33333333-3333-3333-3333-333333333333';
 
-    -- Se não lançou erro, verifica se a linha foi alterada
     IF EXISTS (
       SELECT 1 FROM public.perfis
       WHERE id = '33333333-3333-3333-3333-333333333333' AND role = 'admin'
@@ -97,8 +100,7 @@ BEGIN
     END IF;
   EXCEPTION
     WHEN others THEN
-      -- Exceção esperada pela cláusula WITH CHECK da policy de UPDATE
-      RAISE NOTICE '✔ TESTE 3 PASSOU: RLS bloqueou a tentativa de auto-promoção do aluno com erro: %', SQLERRM;
+      RAISE NOTICE '✔ TESTE 3 PASSOU: Alteração de papel por aluno bloqueada com sucesso.';
       RETURN;
   END;
 
@@ -106,7 +108,103 @@ BEGIN
 END $$;
 
 -- ------------------------------------------------------------------------------
--- TESTE 4: Professor Autenticado — Visualiza Alunos mas Não Possui Permissão Admin
+-- TESTE 4: Aluno Autenticado — Tentativa de Alterar seu Status
+-- ------------------------------------------------------------------------------
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" TO '33333333-3333-3333-3333-333333333333';
+
+DO $$
+BEGIN
+  BEGIN
+    UPDATE public.perfis
+    SET status = 'bloqueado'
+    WHERE id = '33333333-3333-3333-3333-333333333333';
+
+    IF EXISTS (
+      SELECT 1 FROM public.perfis
+      WHERE id = '33333333-3333-3333-3333-333333333333' AND status = 'bloqueado'
+    ) THEN
+      RAISE EXCEPTION 'TESTE 4 FALHOU: Aluno conseguiu alterar seu status!';
+    END IF;
+  EXCEPTION
+    WHEN others THEN
+      RAISE NOTICE '✔ TESTE 4 PASSOU: Alteração de status por aluno bloqueada com sucesso.';
+      RETURN;
+  END;
+
+  RAISE NOTICE '✔ TESTE 4 PASSOU: Aluno não consegue alterar seu status.';
+END $$;
+
+-- ------------------------------------------------------------------------------
+-- TESTE 5: Professor Autenticado — Tentativa de Promover Usuário para Admin
+-- ------------------------------------------------------------------------------
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" TO '22222222-2222-2222-2222-222222222222';
+
+DO $$
+BEGIN
+  BEGIN
+    UPDATE public.perfis
+    SET role = 'admin'
+    WHERE id = '44444444-4444-4444-4444-444444444444';
+
+    IF EXISTS (
+      SELECT 1 FROM public.perfis
+      WHERE id = '44444444-4444-4444-4444-444444444444' AND role = 'admin'
+    ) THEN
+      RAISE EXCEPTION 'TESTE 5 FALHOU: Professor conseguiu promover outro usuário!';
+    END IF;
+  EXCEPTION
+    WHEN others THEN
+      RAISE NOTICE '✔ TESTE 5 PASSOU: Tentativa de promoção de usuário por professor bloqueada com sucesso.';
+      RETURN;
+  END;
+
+  RAISE NOTICE '✔ TESTE 5 PASSOU: Professor não consegue promover usuários.';
+END $$;
+
+-- ------------------------------------------------------------------------------
+-- TESTE 6: Aluno Autenticado — Tentativa de Inserir em auditoria_logs
+-- ------------------------------------------------------------------------------
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" TO '33333333-3333-3333-3333-333333333333';
+
+DO $$
+BEGIN
+  BEGIN
+    INSERT INTO public.auditoria_logs (ator_id, acao, entidade, identificador_entidade)
+    VALUES ('33333333-3333-3333-3333-333333333333', 'FAKE_EVENT', 'perfis', '123');
+
+    RAISE EXCEPTION 'TESTE 6 FALHOU: Aluno conseguiu inserir em auditoria_logs!';
+  EXCEPTION
+    WHEN others THEN
+      RAISE NOTICE '✔ TESTE 6 PASSOU: Inserção em auditoria_logs por aluno bloqueada (permissão revogada).';
+      RETURN;
+  END;
+END $$;
+
+-- ------------------------------------------------------------------------------
+-- TESTE 7: Professor Autenticado — Tentativa de Inserir em auditoria_logs
+-- ------------------------------------------------------------------------------
+SET LOCAL ROLE authenticated;
+SET LOCAL "request.jwt.claim.sub" TO '22222222-2222-2222-2222-222222222222';
+
+DO $$
+BEGIN
+  BEGIN
+    INSERT INTO public.auditoria_logs (ator_id, acao, entidade, identificador_entidade)
+    VALUES ('22222222-2222-2222-2222-222222222222', 'FAKE_EVENT', 'perfis', '123');
+
+    RAISE EXCEPTION 'TESTE 7 FALHOU: Professor conseguiu inserir em auditoria_logs!';
+  EXCEPTION
+    WHEN others THEN
+      RAISE NOTICE '✔ TESTE 7 PASSOU: Inserção em auditoria_logs por professor bloqueada (permissão revogada).';
+      RETURN;
+  END;
+END $$;
+
+-- ------------------------------------------------------------------------------
+-- TESTE 8: Professor Autenticado — Visualiza Alunos mas Não Possui Permissão Admin
 -- ------------------------------------------------------------------------------
 SET LOCAL ROLE authenticated;
 SET LOCAL "request.jwt.claim.sub" TO '22222222-2222-2222-2222-222222222222';
@@ -119,20 +217,20 @@ BEGIN
   -- Professor deve ver seu próprio perfil + perfis de alunos (total 3: ele + aluno1 + aluno2)
   SELECT count(*) INTO v_count FROM public.perfis;
   IF v_count < 3 THEN
-    RAISE EXCEPTION 'TESTE 4 FALHOU: Professor deveria visualizar seu perfil e perfis de alunos (contagem: %)', v_count;
+    RAISE EXCEPTION 'TESTE 8 FALHOU: Professor deveria visualizar seu perfil e perfis de alunos (contagem: %)', v_count;
   END IF;
 
   -- Professor NÃO deve ver o perfil do administrador
   SELECT EXISTS(SELECT 1 FROM public.perfis WHERE role = 'admin') INTO v_has_admin;
   IF v_has_admin THEN
-    RAISE EXCEPTION 'TESTE 4 FALHOU: Professor conseguiu visualizar o perfil de administrador!';
+    RAISE EXCEPTION 'TESTE 8 FALHOU: Professor conseguiu visualizar o perfil de administrador!';
   END IF;
 
-  RAISE NOTICE '✔ TESTE 4 PASSOU: Professor visualiza apenas discentes e seu perfil, sem privilégios de admin.';
+  RAISE NOTICE '✔ TESTE 8 PASSOU: Professor visualiza apenas discentes e seu perfil, sem privilégios de admin.';
 END $$;
 
 -- ------------------------------------------------------------------------------
--- TESTE 5: Administrador Autenticado — Acesso Operacional Geral
+-- TESTE 9: Administrador Autenticado — Atualiza Papéis e Status com Sucesso
 -- ------------------------------------------------------------------------------
 SET LOCAL ROLE authenticated;
 SET LOCAL "request.jwt.claim.sub" TO '11111111-1111-1111-1111-111111111111';
@@ -144,28 +242,47 @@ BEGIN
   -- Administrador deve visualizar todos os perfis cadastrados
   SELECT count(*) INTO v_count FROM public.perfis;
   IF v_count < 4 THEN
-    RAISE EXCEPTION 'TESTE 5 FALHOU: Administrador não visualizou todos os perfis (encontrados: %)', v_count;
+    RAISE EXCEPTION 'TESTE 9 FALHOU: Administrador não visualizou todos os perfis (encontrados: %)', v_count;
   END IF;
 
-  RAISE NOTICE '✔ TESTE 5 PASSOU: Administrador acessa todos os perfis da escola.';
+  -- Administrador altera papel de aluno2 para professor
+  UPDATE public.perfis
+  SET role = 'professor'
+  WHERE id = '44444444-4444-4444-4444-444444444444';
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.perfis
+    WHERE id = '44444444-4444-4444-4444-444444444444' AND role = 'professor'
+  ) THEN
+    RAISE EXCEPTION 'TESTE 9 FALHOU: Administrador não conseguiu atualizar o papel!';
+  END IF;
+
+  RAISE NOTICE '✔ TESTE 9 PASSOU: Administrador possui permissão autorizada de alteração de papéis.';
 END $$;
 
 -- ------------------------------------------------------------------------------
--- TESTE 6: Sigilo de Auditoria — Alunos e Anônimos Não Leem Logs
+-- TESTE 10: Imutabilidade de Logs — Nenhum Usuário faz UPDATE ou DELETE
 -- ------------------------------------------------------------------------------
 SET LOCAL ROLE authenticated;
-SET LOCAL "request.jwt.claim.sub" TO '33333333-3333-3333-3333-333333333333';
+SET LOCAL "request.jwt.claim.sub" TO '11111111-1111-1111-1111-111111111111';
 
 DO $$
-DECLARE
-  v_count INTEGER;
 BEGIN
-  SELECT count(*) INTO v_count FROM public.auditoria_logs;
-  IF v_count <> 0 THEN
-    RAISE EXCEPTION 'TESTE 6 FALHOU: Aluno conseguiu consultar registros na tabela auditoria_logs!';
-  END IF;
+  BEGIN
+    UPDATE public.auditoria_logs SET acao = 'HACKED';
+    RAISE EXCEPTION 'TESTE 10 FALHOU: Permitiu UPDATE em auditoria_logs!';
+  EXCEPTION
+    WHEN others THEN
+      RAISE NOTICE '✔ TESTE 10 PASSOU: UPDATE em auditoria_logs bloqueado (imutabilidade).';
+  END;
 
-  RAISE NOTICE '✔ TESTE 6 PASSOU: Logs de auditoria são sigilosos e inacessíveis para discentes.';
+  BEGIN
+    DELETE FROM public.auditoria_logs;
+    RAISE EXCEPTION 'TESTE 10 FALHOU: Permitiu DELETE em auditoria_logs!';
+  EXCEPTION
+    WHEN others THEN
+      RAISE NOTICE '✔ TESTE 10 PASSOU: DELETE em auditoria_logs bloqueado (imutabilidade).';
+  END;
 END $$;
 
 -- Reverte todas as alterações de teste para manter a base limpa

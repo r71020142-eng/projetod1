@@ -90,14 +90,36 @@ npx supabase db push
 
 ---
 
-## 6. Criação Segura do Primeiro Administrador
+## 5. Configuração de Autenticação e Redirect URLs (Supabase Auth)
 
-Por segurança, o trigger `handle_new_user` do banco cria todo novo cadastro público estritamente com o papel `aluno` (menor privilégio). Para criar o primeiro administrador:
+Para o correto funcionamento do fluxo PKCE (Login, Confirmação de E-mail e Recuperação de Senha) no ambiente Preview da Vercel:
+
+No painel do Supabase $\to$ **Authentication** $\to$ **URL Configuration**:
+
+1. **Site URL:**
+   `https://demonstrativo-mtd-git-etapa-10-backend-r71020142-6352s-projects.vercel.app`
+
+2. **Redirect URLs (Allow list):**
+   Adicione as seguintes URLs:
+   - `https://demonstrativo-mtd-git-etapa-10-backend-r71020142-6352s-projects.vercel.app/auth/callback`
+   - `https://demonstrativo-mtd-git-etapa-10-backend-r71020142-6352s-projects.vercel.app/redefinir-senha`
+   - `http://localhost:3000/auth/callback`
+   - `http://localhost:3000/redefinir-senha`
+
+---
+
+## 6. Criação Segura do Primeiro Administrador (Bootstrap Manual)
+
+Por segurança e conformidade de menor privilégio, o trigger `handle_new_user` do banco cria todo novo cadastro público estritamente com o papel `aluno`. Não há criação de administrador por seeds públicos. Para inicializar o primeiro administrador:
 
 1. No Supabase, acesse **Authentication $\to$ Users $\to$ "Add user" $\to$ "Create user"**.
-2. Preencha o e-mail oficial (ex: `admin@mtd.com`) e defina uma senha temporária segura.
+2. Preencha o e-mail oficial (ex: `admin@mtd.com`) e defina uma senha temporária segura. Marque "Auto Confirm User?".
 3. Copie o `User UID` gerado.
-4. Abra o **SQL Editor** e execute a promoção manual:
+4. Confirme que o perfil foi criado com `role = 'aluno'`:
+   ```sql
+   SELECT id, email, role, status FROM public.perfis WHERE id = '[cole-o-User-UID-aqui]';
+   ```
+5. Promova o usuário a administrador executando a instrução SQL no **SQL Editor**:
    ```sql
    UPDATE public.perfis
    SET
@@ -106,46 +128,47 @@ Por segurança, o trigger `handle_new_user` do banco cria todo novo cadastro pú
      status = 'ativo'
    WHERE id = '[cole-o-User-UID-aqui]';
    ```
-5. Registre a ação na tabela de auditoria:
-   ```sql
-   INSERT INTO public.auditoria_logs (
-     ator_role, acao, entidade, identificador_entidade, valores_posteriores
-   ) VALUES (
-     'system_bootstrap',
-     'ROLE_PROMOTION',
-     'perfis',
-     '[cole-o-User-UID-aqui]',
-     '{"role": "admin", "promovido_por": "setup_inicial"}'::jsonb
-   );
-   ```
+6. O trigger `trg_protect_perfis_privileged_fields` permite a alteração apenas em operações administrativas e bloqueia auto-promoções feitas por clientes não autorizados.
 
 ---
 
-## 7. Como Verificar se as Políticas RLS Estão Ativas
+## 7. Como Verificar se as Políticas RLS e Triggers Estão Ativos
 
-Para auditar e comprovar matematicamente que o Row Level Security está protegendo o banco:
+Para auditar e comprovar matematicamente que o Row Level Security e os triggers estão protegendo o banco:
 
 1. No **SQL Editor** do Supabase, abra uma nova consulta.
 2. Copie e execute o arquivo de validação:  
    [`supabase/tests/rls_validation.sql`](file:///Users/raypires/.gemini/antigravity/scratch/demonstrativo-mtd/supabase/tests/rls_validation.sql)
-3. O script executa uma transação temporária com `ROLLBACK` ao final e exibe os notices:
+3. O script executa uma transação temporária com `ROLLBACK` ao final e comprova as 10 garantias:
    ```
    ✔ TESTE 1 PASSOU: Usuário anônimo não acessa nenhum perfil (RLS Default Deny).
    ✔ TESTE 2 PASSOU: Aluno acessa estritamente o próprio perfil.
-   ✔ TESTE 3 PASSOU: RLS bloqueou a tentativa de auto-promoção do aluno.
-   ✔ TESTE 4 PASSOU: Professor visualiza apenas discentes e seu perfil, sem privilégios de admin.
-   ✔ TESTE 5 PASSOU: Administrador acessa todos os perfis da escola.
-   ✔ TESTE 6 PASSOU: Logs de auditoria são sigilosos e inacessíveis para discentes.
+   ✔ TESTE 3 PASSOU: Alteração de papel por aluno bloqueada com sucesso.
+   ✔ TESTE 4 PASSOU: Alteração de status por aluno bloqueada com sucesso.
+   ✔ TESTE 5 PASSOU: Tentativa de promoção de usuário por professor bloqueada com sucesso.
+   ✔ TESTE 6 PASSOU: Inserção em auditoria_logs por aluno bloqueada (permissão revogada).
+   ✔ TESTE 7 PASSOU: Inserção em auditoria_logs por professor bloqueada (permissão revogada).
+   ✔ TESTE 8 PASSOU: Professor visualiza apenas discentes e seu perfil, sem privilégios de admin.
+   ✔ TESTE 9 PASSOU: Administrador possui permissão autorizada de alteração de papéis.
+   ✔ TESTE 10 PASSOU: UPDATE e DELETE em auditoria_logs bloqueados (imutabilidade).
    ```
 
 ---
 
-## 8. Como Retornar ou Manter o Modo Demonstrativo
+## 8. Como Operar com Separação de Autenticação e Dados (Etapa 10.2A)
 
-Caso ocorra qualquer inconsistência de rede ou configuração externa, a aplicação retorna instantaneamente ao modo demonstrativo seguro:
-1. No arquivo `.env.local` (local) ou nas variáveis da Vercel (nuvem):
-   ```bash
-   APP_MODE=demo
-   NEXT_PUBLIC_DEMO_MODE=true
-   ```
-2. O sistema desacopla chamadas ao Supabase e reativa automaticamente os repositórios locais e os dados semente em `localStorage`.
+Na Etapa 10.2A, a plataforma permite testar a autenticação real sem migrar ainda os 21 repositórios do localStorage:
+- **Preview Vercel (`etapa-10-backend`):**
+  ```bash
+  APP_MODE=demo
+  AUTH_MODE=supabase
+  DATA_SOURCE=local
+  ```
+  *(Exibe aviso discreto: "Ambiente de autenticação em teste com dados demonstrativos.")*
+- **Produção Vercel (`main`):**
+  ```bash
+  APP_MODE=demo
+  AUTH_MODE=demo
+  DATA_SOURCE=local
+  ```
+  *(Produção 100% preservada no modo demonstrativo existente)*
