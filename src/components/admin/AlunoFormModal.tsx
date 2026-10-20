@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { X, AlertCircle, Info, CheckCircle2 } from "lucide-react";
 import { Aluno, NivelAluno, StatusCadastro } from "@/types";
 import { alunoRepository } from "@/data/alunoRepository";
+import { FormPersistenceNotice } from "@/components/common/FormPersistenceNotice";
 
 interface AlunoFormModalProps {
   isOpen: boolean;
@@ -178,12 +179,9 @@ export function AlunoFormModal({
           </div>
         )}
 
-        {/* Notice: Demonstrative data */}
-        <div className="mt-4 rounded-xl bg-slate-50 p-3 border border-slate-200/80 text-[11px] text-slate-600 flex items-start gap-2">
-          <Info className="h-4 w-4 shrink-0 text-slate-500 mt-0.5" />
-          <p>
-            <strong>Ambiente Demonstrativo:</strong> Os dados são armazenados localmente no seu navegador para simulação do fluxo operacional. Não utilize dados pessoais sensíveis reais.
-          </p>
+        {/* Persistence Notice (Supabase / Local) */}
+        <div className="mt-4">
+          <FormPersistenceNotice />
         </div>
 
         {/* Form */}

@@ -3,6 +3,7 @@
 import React from "react";
 import { AlertTriangle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FormPersistenceNotice } from "@/components/common/FormPersistenceNotice";
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface ConfirmModalProps {
   cancelLabel?: string;
   isDestructive?: boolean;
   isLoading?: boolean;
+  showPersistenceNotice?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -24,6 +26,7 @@ export function ConfirmModal({
   cancelLabel = "Cancelar",
   isDestructive = false,
   isLoading = false,
+  showPersistenceNotice = false,
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
@@ -62,6 +65,11 @@ export function ConfirmModal({
             <p className="mt-2 text-xs text-slate-600 leading-relaxed">
               {description}
             </p>
+            {showPersistenceNotice && (
+              <div className="mt-3">
+                <FormPersistenceNotice />
+              </div>
+            )}
           </div>
         </div>
 

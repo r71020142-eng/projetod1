@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { X, AlertCircle, Info, CheckCircle2, Plus } from "lucide-react";
 import { Professor, StatusCadastro } from "@/types";
 import { professorRepository } from "@/data/professorRepository";
+import { FormPersistenceNotice } from "@/components/common/FormPersistenceNotice";
 
 interface ProfessorFormModalProps {
   isOpen: boolean;
@@ -202,6 +203,11 @@ export function ProfessorFormModal({
               Cadastrar um professor não cria automaticamente uma conta de acesso ao sistema. O vínculo de login e permissões de segurança será implementado junto com a camada de autenticação (RBAC) nas etapas posteriores.
             </p>
           </div>
+        </div>
+
+        {/* Persistence Notice (Supabase / Local) */}
+        <div className="mt-3">
+          <FormPersistenceNotice />
         </div>
 
         {/* Form */}

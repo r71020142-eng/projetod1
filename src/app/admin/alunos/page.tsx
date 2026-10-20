@@ -705,6 +705,7 @@ export default function AdminAlunosPage() {
         cancelLabel="Voltar"
         isDestructive={true}
         isLoading={isConfirmingInativar}
+        showPersistenceNotice={true}
         onConfirm={handleConfirmarInativacao}
         onCancel={() => setAlunoParaInativar(null)}
       />

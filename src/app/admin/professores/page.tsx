@@ -694,6 +694,7 @@ export default function AdminProfessoresPage() {
         cancelLabel="Voltar"
         isDestructive={true}
         isLoading={isConfirmingInativar}
+        showPersistenceNotice={true}
         onConfirm={handleConfirmarInativacao}
         onCancel={() => setProfessorParaInativar(null)}
       />

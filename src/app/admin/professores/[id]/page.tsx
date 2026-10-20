@@ -476,6 +476,7 @@ export default function AdminProfessorDetalhesPage() {
         cancelLabel="Cancelar"
         isDestructive={true}
         isLoading={isProcessing}
+        showPersistenceNotice={true}
         onConfirm={handleInativarConfirm}
         onCancel={() => setIsConfirmInativarOpen(false)}
       />

@@ -18,6 +18,7 @@ import {
   validateProfessorInput,
 } from "@/data/validators";
 import { getServerEnv, getClientEnv } from "@/lib/env";
+import { getPersistenceNoticeData } from "@/components/common/FormPersistenceNotice";
 
 async function runTests() {
   console.log("=== INICIANDO BATERIA DE TESTES - ETAPA 10.2B2 (ALUNOS E PROFESSORES) ===\n");
@@ -248,6 +249,87 @@ async function runTests() {
     const env = getServerEnv();
     assert.strictEqual(env.coreUsersDataSource, "local");
     console.log("   ✓ Aprovado com sucesso quando ambas estão em 'local'.");
+  } finally {
+    delete process.env.CORE_USERS_DATA_SOURCE;
+    delete process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE;
+  }
+
+  // 8. Validação dos Textos de Persistência em Formulários e Modais
+  console.log("\n8. Validando avisos de persistência (FormPersistenceNotice)...");
+
+  // Cenário Supabase
+  try {
+    process.env.CORE_USERS_DATA_SOURCE = "supabase";
+    process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE = "supabase";
+
+    const supabaseNotice = getPersistenceNoticeData();
+    assert.strictEqual(
+      supabaseNotice.title,
+      "Dados reais no Supabase",
+      "Título quando Supabase deve ser 'Dados reais no Supabase'."
+    );
+    assert.strictEqual(
+      supabaseNotice.text,
+      "Este cadastro será armazenado no banco de dados da plataforma com as políticas de segurança e acesso aplicáveis.",
+      "Texto quando Supabase deve referenciar o banco de dados da plataforma."
+    );
+    assert.strictEqual(
+      supabaseNotice.isSupabase,
+      true,
+      "isSupabase deve ser true."
+    );
+
+    // Verificação estrita de ausência de referências a localStorage / navegador
+    assert.ok(
+      !supabaseNotice.title.toLowerCase().includes("demonstrativo"),
+      "Supabase nunca deve exibir 'Demonstrativo' no título."
+    );
+    assert.ok(
+      !supabaseNotice.text.toLowerCase().includes("localstorage"),
+      "Supabase nunca deve exibir 'localStorage' no texto."
+    );
+    assert.ok(
+      !supabaseNotice.text.toLowerCase().includes("navegador"),
+      "Supabase nunca deve exibir 'navegador' no texto."
+    );
+    console.log("   ✓ Supabase: Título e texto corretos; zero menções a localStorage/navegador.");
+  } finally {
+    delete process.env.CORE_USERS_DATA_SOURCE;
+    delete process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE;
+  }
+
+  // Cenário Local
+  try {
+    process.env.CORE_USERS_DATA_SOURCE = "local";
+    process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE = "local";
+
+    const localNotice = getPersistenceNoticeData();
+    assert.strictEqual(
+      localNotice.title,
+      "Ambiente Demonstrativo",
+      "Título quando local deve ser 'Ambiente Demonstrativo'."
+    );
+    assert.strictEqual(
+      localNotice.text,
+      "Os dados são armazenados localmente no seu navegador para simulação do fluxo operacional. Não utilize dados pessoais sensíveis reais.",
+      "Texto quando local deve informar sobre armazenamento no navegador."
+    );
+    assert.strictEqual(
+      localNotice.isSupabase,
+      false,
+      "isSupabase deve ser false."
+    );
+
+    // Verificação estrita de ausência de referências ao Supabase
+    assert.ok(
+      !localNotice.title.toLowerCase().includes("supabase"),
+      "Local nunca deve exibir 'Supabase' no título."
+    );
+    assert.ok(
+      !localNotice.text.toLowerCase().includes("supabase"),
+      "Local nunca deve exibir 'Supabase' no texto."
+    );
+    console.log("   ✓ Local: Título e texto corretos; zero menções a Supabase.");
   } finally {
     delete process.env.CORE_USERS_DATA_SOURCE;
     delete process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE;
