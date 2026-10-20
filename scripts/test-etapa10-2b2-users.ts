@@ -144,9 +144,11 @@ async function runTests() {
 
   // 6. Testando Alternância Dinâmica com CORE_USERS_DATA_SOURCE=supabase
   console.log("\n6. Validando chaveamento dinâmico com CORE_USERS_DATA_SOURCE=supabase...");
-  const oldVal = process.env.CORE_USERS_DATA_SOURCE;
+  const oldCore = process.env.CORE_USERS_DATA_SOURCE;
+  const oldPublicCore = process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE;
   try {
     process.env.CORE_USERS_DATA_SOURCE = "supabase";
+    process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE = "supabase";
     assert.strictEqual(getCoreUsersDataSource(), "supabase");
     const supabaseAlunoRepo = getAlunoRepository();
     const supabaseProfRepo = getProfessorRepository();
@@ -154,11 +156,101 @@ async function runTests() {
     assert.ok(supabaseProfRepo, "Deve resolver professorSupabaseRepository.");
     console.log("   ✓ getAlunoRepository() e getProfessorRepository() alternam dinamicamente para Supabase.");
   } finally {
-    if (oldVal !== undefined) {
-      process.env.CORE_USERS_DATA_SOURCE = oldVal;
+    if (oldCore !== undefined) {
+      process.env.CORE_USERS_DATA_SOURCE = oldCore;
     } else {
       delete process.env.CORE_USERS_DATA_SOURCE;
     }
+    if (oldPublicCore !== undefined) {
+      process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE = oldPublicCore;
+    } else {
+      delete process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE;
+    }
+  }
+
+  // 7. Validação Estrita de Divergência entre CORE_USERS_DATA_SOURCE e NEXT_PUBLIC_CORE_USERS_DATA_SOURCE
+  console.log("\n7. Validando bloqueio estrito contra divergência entre CORE_USERS_DATA_SOURCE e NEXT_PUBLIC_CORE_USERS_DATA_SOURCE...");
+
+  // Caso A: CORE=supabase e NEXT_PUBLIC=local
+  try {
+    process.env.CORE_USERS_DATA_SOURCE = "supabase";
+    process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE = "local";
+    assert.throws(
+      () => getServerEnv(),
+      /Divergência crítica detectada/,
+      "Deve lançar erro ao detectar CORE=supabase e NEXT_PUBLIC=local."
+    );
+    console.log("   ✓ Bloqueado com sucesso: CORE=supabase e NEXT_PUBLIC=local.");
+  } finally {
+    delete process.env.CORE_USERS_DATA_SOURCE;
+    delete process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE;
+  }
+
+  // Caso B: CORE=local e NEXT_PUBLIC=supabase
+  try {
+    process.env.CORE_USERS_DATA_SOURCE = "local";
+    process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE = "supabase";
+    assert.throws(
+      () => getServerEnv(),
+      /Divergência crítica detectada/,
+      "Deve lançar erro ao detectar CORE=local e NEXT_PUBLIC=supabase."
+    );
+    console.log("   ✓ Bloqueado com sucesso: CORE=local e NEXT_PUBLIC=supabase.");
+  } finally {
+    delete process.env.CORE_USERS_DATA_SOURCE;
+    delete process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE;
+  }
+
+  // Caso C: CORE=supabase e NEXT_PUBLIC indefinido
+  try {
+    process.env.CORE_USERS_DATA_SOURCE = "supabase";
+    delete process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE;
+    assert.throws(
+      () => getServerEnv(),
+      /NEXT_PUBLIC_CORE_USERS_DATA_SOURCE não é 'supabase'/,
+      "Deve lançar erro ao detectar CORE=supabase sem NEXT_PUBLIC correspondente."
+    );
+    console.log("   ✓ Bloqueado com sucesso: CORE=supabase sem NEXT_PUBLIC.");
+  } finally {
+    delete process.env.CORE_USERS_DATA_SOURCE;
+  }
+
+  // Caso D: NEXT_PUBLIC=supabase e CORE indefinido
+  try {
+    process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE = "supabase";
+    delete process.env.CORE_USERS_DATA_SOURCE;
+    assert.throws(
+      () => getServerEnv(),
+      /CORE_USERS_DATA_SOURCE não é 'supabase'/,
+      "Deve lançar erro ao detectar NEXT_PUBLIC=supabase sem CORE correspondente."
+    );
+    console.log("   ✓ Bloqueado com sucesso: NEXT_PUBLIC=supabase sem CORE.");
+  } finally {
+    delete process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE;
+  }
+
+  // Caso E: Ambas idênticas (supabase)
+  try {
+    process.env.CORE_USERS_DATA_SOURCE = "supabase";
+    process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE = "supabase";
+    const env = getServerEnv();
+    assert.strictEqual(env.coreUsersDataSource, "supabase");
+    console.log("   ✓ Aprovado com sucesso quando ambas estão em 'supabase'.");
+  } finally {
+    delete process.env.CORE_USERS_DATA_SOURCE;
+    delete process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE;
+  }
+
+  // Caso F: Ambas idênticas (local)
+  try {
+    process.env.CORE_USERS_DATA_SOURCE = "local";
+    process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE = "local";
+    const env = getServerEnv();
+    assert.strictEqual(env.coreUsersDataSource, "local");
+    console.log("   ✓ Aprovado com sucesso quando ambas estão em 'local'.");
+  } finally {
+    delete process.env.CORE_USERS_DATA_SOURCE;
+    delete process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE;
   }
 
   console.log("\n============================================================");

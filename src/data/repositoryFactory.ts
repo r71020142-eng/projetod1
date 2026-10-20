@@ -56,12 +56,8 @@ export function isLocalDataSource(): boolean {
  */
 export function getCoreUsersDataSource(): DataSource {
   if (typeof window === "undefined") {
-    try {
-      const env = getServerEnv();
-      return env.coreUsersDataSource;
-    } catch {
-      return "local";
-    }
+    const env = getServerEnv();
+    return env.coreUsersDataSource;
   }
   try {
     const clientEnv = getClientEnv();

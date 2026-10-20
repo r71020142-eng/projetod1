@@ -70,10 +70,33 @@ export function getServerEnv(): ServerEnv {
   }
   const dataSource: DataSource = rawDataSource;
 
-  const rawCoreUsers =
-    process.env.CORE_USERS_DATA_SOURCE ||
-    process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE ||
-    dataSource;
+  const serverCoreUsers = process.env.CORE_USERS_DATA_SOURCE;
+  const clientCoreUsers = process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE;
+
+  // Validação estrita de divergência entre CORE_USERS_DATA_SOURCE e NEXT_PUBLIC_CORE_USERS_DATA_SOURCE
+  if (
+    serverCoreUsers &&
+    clientCoreUsers &&
+    serverCoreUsers !== clientCoreUsers
+  ) {
+    throw new Error(
+      `[Configuração MTD] Divergência crítica detectada entre CORE_USERS_DATA_SOURCE ("${serverCoreUsers}") e NEXT_PUBLIC_CORE_USERS_DATA_SOURCE ("${clientCoreUsers}"). Ambas as variáveis devem ser estritamente idênticas ('supabase' ou 'local') para garantir consistência entre o servidor e o navegador.`
+    );
+  }
+
+  if (serverCoreUsers === "supabase" && clientCoreUsers !== "supabase") {
+    throw new Error(
+      `[Configuração MTD] CORE_USERS_DATA_SOURCE está configurada como 'supabase', mas NEXT_PUBLIC_CORE_USERS_DATA_SOURCE não é 'supabase' (atual: "${clientCoreUsers || "indefinida"}"). Configure ambas com o mesmo valor.`
+    );
+  }
+
+  if (clientCoreUsers === "supabase" && serverCoreUsers !== "supabase") {
+    throw new Error(
+      `[Configuração MTD] NEXT_PUBLIC_CORE_USERS_DATA_SOURCE está configurada como 'supabase', mas CORE_USERS_DATA_SOURCE não é 'supabase' (atual: "${serverCoreUsers || "indefinida"}"). Configure ambas com o mesmo valor.`
+    );
+  }
+
+  const rawCoreUsers = serverCoreUsers || clientCoreUsers || dataSource;
   if (rawCoreUsers !== "local" && rawCoreUsers !== "supabase") {
     throw new Error(
       `[Configuração MTD] CORE_USERS_DATA_SOURCE inválido: "${rawCoreUsers}". Esperado: "local" ou "supabase".`

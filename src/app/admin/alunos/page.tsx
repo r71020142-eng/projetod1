@@ -14,9 +14,11 @@ import {
   X,
   CheckCircle2,
   Database,
+  AlertTriangle,
 } from "lucide-react";
 import { Aluno, NivelAluno, StatusCadastro } from "@/types";
 import { alunoRepository } from "@/data/alunoRepository";
+import { getCoreUsersDataSource } from "@/data/repositoryFactory";
 import { NivelBadge } from "@/components/common/NivelBadge";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
@@ -37,6 +39,34 @@ export default function AdminAlunosPage() {
 
   const [alunoParaInativar, setAlunoParaInativar] = useState<Aluno | null>(null);
   const [isConfirmingInativar, setIsConfirmingInativar] = useState(false);
+
+  // Fonte de dados e validação de divergência
+  const isSupabaseActive = getCoreUsersDataSource() === "supabase";
+  const [divergenceError, setDivergenceError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Validação de divergência de ambiente em tempo de execução
+    fetch("/api/env/core-data-source")
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          setDivergenceError(
+            body.message || "Erro de validação de ambiente no servidor."
+          );
+          return;
+        }
+        const data = await res.json();
+        const clientSource = getCoreUsersDataSource();
+        if (data.serverSource !== clientSource) {
+          setDivergenceError(
+            `Divergência detectada entre servidor ("${data.serverSource}") e navegador ("${clientSource}").`
+          );
+        }
+      })
+      .catch(() => {
+        // Ignora falhas transitórias de conexão local
+      });
+  }, []);
 
   // Success Toast / Alert
   const [toastMessage, setToastMessage] = useState<{
@@ -214,23 +244,66 @@ export default function AdminAlunosPage() {
         </div>
       </div>
 
-      {/* Demonstrative Banner Notice */}
-      <div className="rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/70 to-purple-50/40 p-4 text-xs text-indigo-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+      {/* Divergence Critical Error Banner */}
+      {divergenceError && (
+        <div className="rounded-2xl border border-rose-300 bg-rose-50 p-4 text-xs text-rose-950 flex items-start gap-3 shadow-xs">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-600 text-white shadow-2xs">
+            <AlertTriangle className="h-4 w-4 stroke-[2.5]" />
+          </div>
+          <div>
+            <p className="font-bold text-rose-900 text-sm">
+              Erro Crítico de Configuração — Divergência entre Servidor e Navegador
+            </p>
+            <p className="text-[12px] text-rose-800 mt-1 leading-relaxed">
+              {divergenceError}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Datasource Banner Notice */}
+      <div
+        className={`rounded-2xl border p-4 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs ${
+          isSupabaseActive
+            ? "border-emerald-200/90 bg-gradient-to-r from-emerald-50/80 to-teal-50/40 text-emerald-950"
+            : "border-indigo-100 bg-gradient-to-r from-indigo-50/70 to-purple-50/40 text-indigo-950"
+        }`}
+      >
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-2xs">
+          <div
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white shadow-2xs ${
+              isSupabaseActive ? "bg-emerald-600" : "bg-indigo-600"
+            }`}
+          >
             <Database className="h-4 w-4" />
           </div>
           <div>
-            <p className="font-bold text-indigo-900">
-              Ambiente Demonstrativo — Persistência Local Ativa
+            <p
+              className={`font-bold ${
+                isSupabaseActive ? "text-emerald-950" : "text-indigo-900"
+              }`}
+            >
+              {isSupabaseActive
+                ? "Dados reais no Supabase — Alunos e professores são persistidos no banco de dados."
+                : "Ambiente Demonstrativo — Persistência Local Ativa."}
             </p>
-            <p className="text-[11px] text-indigo-800/80 mt-0.5">
-              Novos cadastros e edições são armazenados de forma isolada no localStorage do seu navegador e não substituem dados ao recarregar.
+            <p
+              className={`text-[11px] mt-0.5 ${
+                isSupabaseActive ? "text-emerald-800/90" : "text-indigo-800/80"
+              }`}
+            >
+              {isSupabaseActive
+                ? "Persistência em PostgreSQL gerenciado pelo Supabase com Row Level Security (RLS) e integridade relacional ativas."
+                : "Novos cadastros e edições são armazenados de forma isolada no localStorage do seu navegador e não substituem dados ao recarregar."}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 text-xs font-semibold text-slate-700 bg-white/80 rounded-xl px-3.5 py-2 border border-indigo-100/60 shrink-0">
+        <div
+          className={`flex items-center gap-4 text-xs font-semibold text-slate-700 bg-white/90 rounded-xl px-3.5 py-2 border shrink-0 ${
+            isSupabaseActive ? "border-emerald-200/70" : "border-indigo-100/60"
+          }`}
+        >
           <div>
             <span className="text-slate-400 font-normal">Total: </span>
             <span className="text-slate-900 font-extrabold">{alunos.length}</span>
@@ -345,18 +418,28 @@ export default function AdminAlunosPage() {
               <Users className="h-6 w-6" />
             </div>
             <h3 className="text-sm font-bold text-slate-800">
-              Nenhum aluno encontrado
+              {alunos.length === 0
+                ? isSupabaseActive
+                  ? "Nenhum aluno cadastrado no banco de dados"
+                  : "Nenhum aluno cadastrado"
+                : "Nenhum aluno encontrado"}
             </h3>
             <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
-              Não encontramos nenhum registro correspondente aos filtros ou termo de busca informado.
+              {alunos.length === 0
+                ? isSupabaseActive
+                  ? "O banco remoto Supabase está conectado e pronto para receber discentes. Clique em 'Novo Aluno' acima para cadastrar o primeiro discente."
+                  : "Nenhum registro local encontrado."
+                : "Não encontramos nenhum registro correspondente aos filtros ou termo de busca informado."}
             </p>
-            <button
-              type="button"
-              onClick={limparFiltros}
-              className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              Redefinir filtros
-            </button>
+            {alunos.length > 0 && (
+              <button
+                type="button"
+                onClick={limparFiltros}
+                className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Redefinir filtros
+              </button>
+            )}
           </div>
         ) : (
           <>
