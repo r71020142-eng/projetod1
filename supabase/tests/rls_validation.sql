@@ -20,14 +20,18 @@ DECLARE
   v_aluno1_id UUID := '33333333-3333-3333-3333-333333333333';
   v_aluno2_id UUID := '44444444-4444-4444-4444-444444444444';
 BEGIN
-  -- Inserção direta de perfis simulados (modo bypass em setup)
-  INSERT INTO public.perfis (id, email, nome_completo, role, status)
+  -- Inserção de credenciais temporárias em auth.users (com rollback automático no final)
+  INSERT INTO auth.users (id, email, raw_user_meta_data, is_sso_user, is_anonymous)
   VALUES
-    (v_admin_id, 'admin.teste@mtd.com', 'Admin Teste', 'admin', 'ativo'),
-    (v_prof_id, 'prof.teste@mtd.com', 'Professor Teste', 'professor', 'ativo'),
-    (v_aluno1_id, 'aluno1.teste@mtd.com', 'Aluno Um Teste', 'aluno', 'ativo'),
-    (v_aluno2_id, 'aluno2.teste@mtd.com', 'Aluno Dois Teste', 'aluno', 'ativo')
+    (v_admin_id, 'admin.teste@mtd.com', '{"nome_completo": "Admin Teste"}'::jsonb, false, false),
+    (v_prof_id, 'prof.teste@mtd.com', '{"nome_completo": "Professor Teste"}'::jsonb, false, false),
+    (v_aluno1_id, 'aluno1.teste@mtd.com', '{"nome_completo": "Aluno Um Teste"}'::jsonb, false, false),
+    (v_aluno2_id, 'aluno2.teste@mtd.com', '{"nome_completo": "Aluno Dois Teste"}'::jsonb, false, false)
   ON CONFLICT (id) DO NOTHING;
+
+  -- Ajusta os papéis para o cenário de teste (o trigger handle_new_user criou inicialmente como 'aluno')
+  UPDATE public.perfis SET role = 'admin' WHERE id = v_admin_id;
+  UPDATE public.perfis SET role = 'professor' WHERE id = v_prof_id;
 END $$;
 
 -- ------------------------------------------------------------------------------
