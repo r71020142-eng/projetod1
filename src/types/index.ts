@@ -165,6 +165,7 @@ export type StatusCadastro = "ativo" | "inativo";
 
 export interface Aluno {
   id: string;
+  perfilId?: string;
   nomeCompleto: string;
   email: string;
   telefone?: string;
@@ -178,6 +179,7 @@ export interface Aluno {
 
 export interface Professor {
   id: string;
+  perfilId?: string;
   nomeCompleto: string;
   email: string;
   telefone?: string;
@@ -1553,6 +1555,48 @@ export interface MetricasGamificacaoAdmin {
   placasDigitaisLiberadas?: number;
   interessesPlacaFisica?: number;
   placasEnviadas?: number;
+}
+
+// =============================================================================
+// ETAPA 10.2C1 — FUNDAÇÃO DE CONTAS DE ACESSO E CONVITES
+// =============================================================================
+
+export type TipoAcessoUsuario = "aluno" | "professor";
+
+export type StatusAcessoUsuario =
+  | "processando"
+  | "convite_pendente"
+  | "ativo"
+  | "bloqueado"
+  | "erro";
+
+export interface AcessoUsuario {
+  id: string;
+  alunoId?: string;
+  professorId?: string;
+  perfilId?: string;
+  emailNormalizado: string;
+  tipo: TipoAcessoUsuario;
+  status: StatusAcessoUsuario;
+  convidadoPor?: string;
+  conviteEnviadoEm?: string;
+  acessoAtivadoEm?: string;
+  ultimoErroInterno?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ConviteAcessoRequest {
+  tipo: TipoAcessoUsuario;
+  id: string;
+}
+
+export interface ConviteAcessoResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+  code?: string;
+  acessoId?: string;
 }
 
 

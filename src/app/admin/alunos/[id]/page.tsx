@@ -32,6 +32,7 @@ import {
   TentativaAvaliacao,
   Modulo,
   Avaliacao,
+  AcessoUsuario,
 } from "@/types";
 import { alunoRepository } from "@/data/alunoRepository";
 import { turmaRepository } from "@/data/turmaRepository";
@@ -55,6 +56,8 @@ import {
 } from "@/components/admin/AvaliacaoBadges";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
 import { AlunoFormModal } from "@/components/admin/AlunoFormModal";
+import { CardAcessoSistema } from "@/components/admin/CardAcessoSistema";
+import { acessoUsuarioRepository } from "@/data/acessoUsuarioRepository";
 import { executeWithTimeout } from "@/lib/asyncUtils";
 
 export default function AdminAlunoDetalhesPage() {
@@ -82,6 +85,9 @@ export default function AdminAlunoDetalhesPage() {
   // Feedback Toast
   const [feedback, setFeedback] = useState<string | null>(null);
 
+  // Acesso ao Sistema (Etapa 10.2C1)
+  const [acesso, setAcesso] = useState<AcessoUsuario | null>(null);
+
   const carregarDados = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -99,6 +105,7 @@ export default function AdminAlunoDetalhesPage() {
           listTents,
           listMods,
           listAvals,
+          acessoData,
         ] = await Promise.all([
           turmaRepository.listarPorAluno(alunoId),
           aulaRepository.listarPorAluno(alunoId),
@@ -109,7 +116,10 @@ export default function AdminAlunoDetalhesPage() {
           tentativaAvaliacaoRepository.listar({ alunoId }),
           moduloRepository.listar(),
           avaliacaoRepository.listar(),
+          acessoUsuarioRepository.obterPorAlunoId(alunoId),
         ]);
+
+        setAcesso(acessoData);
 
         setTurmas(listTurmas);
         setAulasFuturas(listAulas.filter((a) => a.status === "agendada"));
@@ -422,6 +432,18 @@ export default function AdminAlunoDetalhesPage() {
 
         {/* Right 1 Col: Live Turmas, Agenda & Frequência */}
         <div className="space-y-6">
+          {/* Card Acesso ao Sistema (Etapa 10.2C1) */}
+          <CardAcessoSistema
+            tipo="aluno"
+            entidadeId={aluno.id}
+            nomeCompleto={aluno.nomeCompleto}
+            email={aluno.email}
+            perfilId={aluno.perfilId}
+            statusOperacional={aluno.status}
+            acesso={acesso}
+            onConviteEnviado={carregarDados}
+          />
+
           {/* Turmas Atuais */}
           <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs space-y-3">
             <div className="flex items-center justify-between">

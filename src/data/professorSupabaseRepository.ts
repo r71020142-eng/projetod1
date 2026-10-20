@@ -30,6 +30,7 @@ function getSupabase() {
 function mapRowToProfessor(row: ProfessorDbRow): Professor {
   return {
     id: row.id,
+    perfilId: row.perfil_id || undefined,
     nomeCompleto: row.nome_completo,
     email: row.email,
     telefone: row.telefone || undefined,

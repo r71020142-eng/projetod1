@@ -17,14 +17,16 @@ import {
   AlertCircle,
   Info,
 } from "lucide-react";
-import { Professor, Turma, Aula } from "@/types";
+import { Professor, Turma, Aula, AcessoUsuario } from "@/types";
 import { professorRepository } from "@/data/professorRepository";
 import { turmaRepository } from "@/data/turmaRepository";
 import { aulaRepository } from "@/data/aulaRepository";
+import { acessoUsuarioRepository } from "@/data/acessoUsuarioRepository";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { TurmaStatusBadge, ModalidadeBadge } from "@/components/common/TurmaBadges";
 import { ConfirmModal } from "@/components/common/ConfirmModal";
 import { ProfessorFormModal } from "@/components/admin/ProfessorFormModal";
+import { CardAcessoSistema } from "@/components/admin/CardAcessoSistema";
 import { executeWithTimeout } from "@/lib/asyncUtils";
 
 export default function AdminProfessorDetalhesPage() {
@@ -45,6 +47,9 @@ export default function AdminProfessorDetalhesPage() {
   // Toast
   const [feedback, setFeedback] = useState<string | null>(null);
 
+  // Acesso ao Sistema (Etapa 10.2C1)
+  const [acesso, setAcesso] = useState<AcessoUsuario | null>(null);
+
   const carregarDados = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -52,13 +57,15 @@ export default function AdminProfessorDetalhesPage() {
       setProfessor(profData);
 
       if (profData) {
-        const [listTurmas, listAulas] = await Promise.all([
+        const [listTurmas, listAulas, acessoData] = await Promise.all([
           turmaRepository.listarPorProfessor(professorId),
           aulaRepository.listarPorProfessor(professorId),
+          acessoUsuarioRepository.obterPorProfessorId(professorId),
         ]);
 
         setTurmas(listTurmas);
         setProximasAulas(listAulas.filter((a) => a.status === "agendada"));
+        setAcesso(acessoData);
 
         // Count unique students across all turmas of this professor
         const studentSet = new Set<string>();
@@ -371,6 +378,18 @@ export default function AdminProfessorDetalhesPage() {
 
         {/* Right 1 Col: Live Turmas & Upcoming Classes */}
         <div className="space-y-6">
+          {/* Card Acesso ao Sistema (Etapa 10.2C1) */}
+          <CardAcessoSistema
+            tipo="professor"
+            entidadeId={professor.id}
+            nomeCompleto={professor.nomeCompleto}
+            email={professor.email}
+            perfilId={professor.perfilId}
+            statusOperacional={professor.status}
+            acesso={acesso}
+            onConviteEnviado={carregarDados}
+          />
+
           {/* Quick Metrics */}
           <div className="grid grid-cols-2 gap-3">
             <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm text-center">

@@ -32,3 +32,9 @@ export function createAdminClient() {
     },
   });
 }
+
+/**
+ * Alias para createAdminClient(), garantindo conformidade com o padrão getAdminSupabaseClient().
+ */
+export const getAdminSupabaseClient = createAdminClient;
+
