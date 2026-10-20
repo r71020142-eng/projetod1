@@ -164,5 +164,31 @@ export async function resetPasswordAction(
     };
   }
 
-  redirect("/login?mensagem=senha_redefinida");
+  // Ativação pós-senha: para contas convidadas, transiciona o acesso de convite_pendente -> ativo
+  // e ativa o perfil correspondente de forma atômica no banco (identificado estritamente por auth.uid()).
+  let role: UserRole = "aluno";
+  try {
+    const { data: activationResult } = await supabase.rpc("ativar_acesso_pos_senha");
+    if (
+      activationResult &&
+      typeof activationResult === "object" &&
+      "role" in activationResult
+    ) {
+      role = (activationResult as { role: UserRole }).role || "aluno";
+    } else {
+      // Fallback: consulta o perfil autenticado
+      const { data: profile } = await supabase
+        .from("perfis")
+        .select("role")
+        .single();
+      if (profile?.role) {
+        role = profile.role as UserRole;
+      }
+    }
+  } catch {
+    // Mantém fallback seguro
+  }
+
+  const destination = getDefaultDashboardForRole(role);
+  redirect(destination);
 }

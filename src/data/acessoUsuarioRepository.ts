@@ -9,7 +9,7 @@ interface AcessoDbRow {
   perfil_id: string | null;
   email_normalizado: string;
   tipo: "aluno" | "professor";
-  status: "processando" | "convite_pendente" | "ativo" | "bloqueado" | "erro";
+  status: "sem_acesso" | "processando" | "convite_pendente" | "ativo" | "bloqueado" | "erro";
   convidado_por: string | null;
   convite_enviado_em: string | null;
   acesso_ativado_em: string | null;
@@ -129,6 +129,39 @@ export const acessoUsuarioRepository = {
 
       if (error || !data) return null;
       return mapRowToAcesso(data as AcessoDbRow);
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Consulta sanitizada do próprio estado de acesso para usuários autenticados (aluno/professor).
+   * Executa a RPC segura consultar_proprio_acesso(), protegendo estritamente ultimo_erro_interno e dados internos.
+   */
+  async consultarProprioAcesso(): Promise<{
+    tipo: "aluno" | "professor";
+    status: AcessoUsuario["status"];
+    conviteEnviadoEm?: string;
+    acessoAtivadoEm?: string;
+  } | null> {
+    const dataSource = getCoreUsersDataSource();
+    if (dataSource === "local") {
+      return null;
+    }
+
+    try {
+      const client = createBrowserSupabaseClient();
+      if (!client) return null;
+
+      const { data, error } = await client.rpc("consultar_proprio_acesso");
+      if (error || !data || !Array.isArray(data) || data.length === 0) return null;
+      const row = data[0];
+      return {
+        tipo: row.tipo,
+        status: row.status,
+        conviteEnviadoEm: row.convite_enviado_em || undefined,
+        acessoAtivadoEm: row.acesso_ativado_em || undefined,
+      };
     } catch {
       return null;
     }

@@ -277,12 +277,22 @@ export async function POST(request: Request) {
     (u) => u.email?.trim().toLowerCase() === emailNormalizado
   );
 
-  if (existingUserWithEmail && !acessoExistente) {
+  if (existingUserWithEmail) {
+    if (acessoExistente?.id) {
+      await adminClient
+        .from("acessos_usuarios")
+        .update({
+          status: "erro",
+          ultimo_erro_interno: `Revisão Administrativa: Conta Auth preexistente detectada (UID: ${existingUserWithEmail.id}). Sobrescrita silenciosa bloqueada.`,
+        })
+        .eq("id", acessoExistente.id);
+    }
     return NextResponse.json(
       {
         success: false,
         error:
           "Já existe uma conta de autenticação cadastrada com este e-mail. Resolução manual de identidade necessária.",
+        code: "AUTH_USER_PREEXISTING",
       },
       { status: 409, headers: noStoreHeaders }
     );
@@ -371,7 +381,7 @@ export async function POST(request: Request) {
       .from("acessos_usuarios")
       .update({
         status: "erro",
-        ultimo_erro_interno: rpcError.message,
+        ultimo_erro_interno: `Auth UID: ${inviteData.user.id} | Falha na vinculação transacional: ${rpcError.message}`,
       })
       .eq("id", acessoId);
 

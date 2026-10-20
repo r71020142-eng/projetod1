@@ -1564,6 +1564,7 @@ export interface MetricasGamificacaoAdmin {
 export type TipoAcessoUsuario = "aluno" | "professor";
 
 export type StatusAcessoUsuario =
+  | "sem_acesso"
   | "processando"
   | "convite_pendente"
   | "ativo"

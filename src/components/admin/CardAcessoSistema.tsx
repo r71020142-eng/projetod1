@@ -40,7 +40,8 @@ export function CardAcessoSistema({
     mensagem: string;
   } | null>(null);
 
-  // Determinação do Estado de Acesso
+  // Determinação do Estado de Acesso segundo a Máquina de Estados Oficial:
+  // sem_acesso -> processando -> convite_pendente -> ativo (ou processando -> erro)
   let estadoAcesso:
     | "ativo"
     | "convite_pendente"
@@ -49,7 +50,7 @@ export function CardAcessoSistema({
     | "erro"
     | "sem_acesso" = "sem_acesso";
 
-  if (perfilId || acesso?.status === "ativo") {
+  if (acesso?.status === "ativo") {
     estadoAcesso = "ativo";
   } else if (acesso?.status === "convite_pendente") {
     estadoAcesso = "convite_pendente";
@@ -59,6 +60,10 @@ export function CardAcessoSistema({
     estadoAcesso = "bloqueado";
   } else if (acesso?.status === "erro") {
     estadoAcesso = "erro";
+  } else if (perfilId) {
+    estadoAcesso = "ativo";
+  } else {
+    estadoAcesso = "sem_acesso";
   }
 
   const handleEnviarConvite = async () => {
