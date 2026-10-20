@@ -38,9 +38,9 @@ A transição é progressiva e segura:
 No painel do projeto Supabase, acesse **Project Settings $\to$ API**:
 
 1. **Project URL:** copie a URL no formato `https://[seu-projeto-id].supabase.co`.
-2. **Project API Keys:**
-   - **`anon` / `public`:** Chave pública segura para uso no navegador com RLS ativo.
-   - **`service_role` / `secret`:** Chave privada com poderes de superadministrador. **NUNCA compartilhe, versioner ou exponha no cliente**.
+2. **Project API Keys (Padrão Oficial Atual - Publishable & Secret Keys):**
+   - **Publishable Key (`sb_pub_...`):** Chave pública segura para uso no navegador com RLS ativo. Variável: `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. *(Nota histórica: substitui o padrão legado `NEXT_PUBLIC_SUPABASE_ANON_KEY`, agora obsoleto)*.
+   - **Secret Key (`sb_sec_...`):** Chave privada de serviço com poderes administrativos. **NUNCA compartilhe, versione ou exponha no cliente**. Variável: `SUPABASE_SECRET_KEY`. *(Nota histórica: substitui o padrão legado `SUPABASE_SERVICE_ROLE_KEY`, agora obsoleto)*.
 
 ---
 
@@ -58,8 +58,8 @@ No painel da [Vercel](https://vercel.com/dashboard) $\to$ **Projeto `demonstrati
 | `APP_MODE` | `demo` | **Production**, **Preview**, **Development** |
 | `NEXT_PUBLIC_DEMO_MODE` | `true` | **Production**, **Preview**, **Development** |
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://[seu-id].supabase.co` | **Preview**, **Development** (Desmarcar Production) |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJhbGciOiJIUzI1Ni...` | **Preview**, **Development** (Desmarcar Production) |
-| `SUPABASE_SERVICE_ROLE_KEY` | `eyJhbGciOiJIUzI1Ni...` | **Preview**, **Development** (Desmarcar Production) |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `sb_pub_...` | **Preview**, **Development** (Desmarcar Production) |
+| `SUPABASE_SECRET_KEY` | `sb_sec_...` | **Preview**, **Development** (Desmarcar Production) |
 
 ---
 

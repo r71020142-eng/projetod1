@@ -1,24 +1,26 @@
 /**
  * Configuração central e validação estrita de variáveis de ambiente do DEMOSTRATIVO MTD.
  *
- * Regras da Etapa 10.1:
+ * Regras da Etapa 10.1 (Padrão Oficial Supabase: Publishable & Secret Keys):
  * - APP_MODE aceita exclusivamente 'demo' ou 'production' (padrão: 'demo').
  * - APP_MODE é estritamente server-side.
  * - Em modo production, a ausência de variáveis do Supabase dispara erro explícito.
- * - Nenhuma chave secreta (service_role) é exposta ao cliente ou registrada em logs.
+ * - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY é pública e acessível no navegador.
+ * - SUPABASE_SECRET_KEY é estritamente server-only e NUNCA é exposta ao cliente ou registrada em logs.
+ * - Sem fallback para chaves legadas descontinuadas.
  */
 
 export type AppMode = "demo" | "production";
 
 export interface ClientEnv {
   supabaseUrl: string;
-  supabaseAnonKey: string;
+  supabasePublishableKey: string;
   isDemoClient: boolean;
 }
 
 export interface ServerEnv extends ClientEnv {
   appMode: AppMode;
-  supabaseServiceRoleKey: string;
+  supabaseSecretKey: string;
 }
 
 /**
@@ -41,14 +43,16 @@ export function getServerEnv(): ServerEnv {
   const appMode: AppMode = rawMode;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  const supabasePublishableKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
+  const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY || "";
 
   if (appMode === "production") {
     const missing: string[] = [];
     if (!supabaseUrl) missing.push("NEXT_PUBLIC_SUPABASE_URL");
-    if (!supabaseAnonKey) missing.push("NEXT_PUBLIC_SUPABASE_ANON_KEY");
-    if (!supabaseServiceRoleKey) missing.push("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabasePublishableKey)
+      missing.push("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
+    if (!supabaseSecretKey) missing.push("SUPABASE_SECRET_KEY");
 
     if (missing.length > 0) {
       throw new Error(
@@ -70,24 +74,25 @@ export function getServerEnv(): ServerEnv {
   return {
     appMode,
     supabaseUrl,
-    supabaseAnonKey,
-    supabaseServiceRoleKey,
+    supabasePublishableKey,
+    supabaseSecretKey,
     isDemoClient: appMode === "demo",
   };
 }
 
 /**
  * Lê configurações públicas seguras no cliente (Client Components).
- * Nunca expõe chaves secretas ou credenciais de serviço.
+ * Nunca expõe chaves secretas ou credenciais privilegiadas.
  */
 export function getClientEnv(): ClientEnv {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+  const supabasePublishableKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
   const isDemo = process.env.NEXT_PUBLIC_DEMO_MODE !== "false";
 
   return {
     supabaseUrl,
-    supabaseAnonKey,
+    supabasePublishableKey,
     isDemoClient: isDemo,
   };
 }

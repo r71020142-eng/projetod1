@@ -18,14 +18,14 @@ flowchart TD
     subgraph Client_Boundary ["Fronteira do Cliente (Navegador)"]
         UI["Interface React / Next.js"]
         BC["Browser Client (@supabase/ssr)"]
-        Anon["Chave Pública (anon key)"]
+        PubKey["Publishable Key (NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)"]
     end
 
     subgraph Server_Boundary ["Fronteira do Servidor (Vercel Compute)"]
         MW["Middleware (Sessão & Headers)"]
         RSC["Server Components & Actions"]
         SC["Server Client (Cookies Seguros)"]
-        AC["Admin Client (server-only / service_role)"]
+        AC["Admin Client (server-only / SUPABASE_SECRET_KEY)"]
     end
 
     subgraph Database_Boundary ["Fronteira do Banco de Dados (Supabase PostgreSQL)"]
@@ -36,8 +36,8 @@ flowchart TD
     end
 
     UI --> BC
-    BC --> Anon
-    Anon -.->|"Requisição JWT"| RLS
+    BC --> PubKey
+    PubKey -.->|"Requisição JWT"| RLS
     MW --> RSC
     RSC --> SC
     SC -.->|"Requisição Autenticada"| RLS
@@ -106,8 +106,8 @@ WITH CHECK (
 Para evitar vazamento de credenciais e assegurar a compatibilidade com a arquitetura de Server Components:
 
 1. **`Browser Client` (`src/lib/supabase/client.ts`):**
-   - Utiliza exclusivamente `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-   - NUNCA tem acesso à `SUPABASE_SERVICE_ROLE_KEY`.
+   - Utiliza exclusivamente `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (padrão oficial atual; o nome legado `NEXT_PUBLIC_SUPABASE_ANON_KEY` é obsoleto).
+   - NUNCA tem acesso à `SUPABASE_SECRET_KEY` (chave privada restrita ao servidor; o nome legado `SUPABASE_SERVICE_ROLE_KEY` é obsoleto).
 2. **`Server Client` (`src/lib/supabase/server.ts`):**
    - Executado estritamente no servidor com cookies seguros (`httpOnly`, `sameSite=lax`, `secure`).
    - Assegura que a leitura de cookies em Server Components seja imutável, transferindo as escritas e refreshes para o middleware e server actions.

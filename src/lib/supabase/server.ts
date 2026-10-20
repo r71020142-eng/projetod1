@@ -5,25 +5,25 @@ import { getServerEnv } from "@/lib/env";
 /**
  * Cliente Supabase para Server Components, Route Handlers e Server Actions.
  *
- * Regras da Etapa 10.1:
+ * Regras da Etapa 10.1 (Padrão Oficial Supabase):
  * - Execução estrita no servidor com controle seguro de cookies.
- * - Utiliza a chave anon com contexto da sessão do usuário autenticado (respeitando RLS).
+ * - Utiliza a Publishable Key com contexto da sessão do usuário autenticado (respeitando RLS).
  * - Protegido contra tentativas de escrita de cookies em Server Components (try/catch).
  */
 export function createServerSupabaseClient() {
   const cookieStore = cookies();
   const env = getServerEnv();
 
-  if (!env.supabaseUrl || !env.supabaseAnonKey) {
+  if (!env.supabaseUrl || !env.supabasePublishableKey) {
     if (env.appMode === "demo") {
       return null;
     }
     throw new Error(
-      "[Supabase Server] NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY são obrigatórios em production."
+      "[Supabase Server] NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY são obrigatórios em production."
     );
   }
 
-  return createServerClient(env.supabaseUrl, env.supabaseAnonKey, {
+  return createServerClient(env.supabaseUrl, env.supabasePublishableKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();

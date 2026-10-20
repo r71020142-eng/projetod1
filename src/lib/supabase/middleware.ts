@@ -5,7 +5,7 @@ import { getServerEnv } from "@/lib/env";
 /**
  * Atualiza cookies de sessão e gerencia autorização SSR.
  *
- * Regras da Etapa 10.1:
+ * Regras da Etapa 10.1 (Padrão Oficial Supabase: Publishable & Secret Keys):
  * - Em APP_MODE=demo: não bloqueia requisições e preserva navegação demonstrativa intacta.
  * - Em APP_MODE=production: atualiza tokens de sessão e prepara checagem de permissão RBAC.
  * - Ignora arquivos estáticos, assets do Next.js e mídias.
@@ -26,11 +26,11 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Em modo demonstrativo, o middleware preserva navegação aberta e dados semente
-  if (env.appMode === "demo" || !env.supabaseUrl || !env.supabaseAnonKey) {
+  if (env.appMode === "demo" || !env.supabaseUrl || !env.supabasePublishableKey) {
     return response;
   }
 
-  const supabase = createServerClient(env.supabaseUrl, env.supabaseAnonKey, {
+  const supabase = createServerClient(env.supabaseUrl, env.supabasePublishableKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
