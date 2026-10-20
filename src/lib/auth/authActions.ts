@@ -1,6 +1,7 @@
 "use server";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   sanitizeNextPath,
   getDefaultDashboardForRole,
@@ -120,6 +121,18 @@ export async function requestPasswordResetAction(
 
 /**
  * Server Action para definição de nova senha pós-callback PKCE.
+ *
+ * Fluxo de Segurança Obrigatório (Etapa 10.2C1 — Correção Final):
+ * 1. Valida a sessão com supabase.auth.getUser() — nunca confia em UID enviado pelo formulário.
+ * 2. Valida os campos de senha no servidor.
+ * 3. Executa supabase.auth.updateUser({ password }) — a senha é efetivamente alterada.
+ * 4. SOMENTE após o sucesso do updateUser(), verifica se há convite pendente consultando
+ *    acessos_usuarios via cliente admin (service_role) com busca por perfil_id = uid.
+ * 5. Se houver convite pendente, chama ativar_acesso_pos_senha(uid) via service_role.
+ *    A Secret Key NUNCA é exposta ao navegador e o UID é extraído exclusivamente de getUser().
+ * 6. Se não houver convite (recuperação de senha comum), segue o fluxo padrão de redirecionamento.
+ * 7. Em caso de falha na ativação pós-senha, o perfil permanece inativo e é apresentada
+ *    mensagem controlada — o acesso ao portal nunca é liberado parcialmente.
  */
 export async function resetPasswordAction(
   _prevState: AuthActionResult | null,
@@ -128,67 +141,115 @@ export async function resetPasswordAction(
   const password = formData.get("password") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
 
+  // 1. Validação de campos no servidor (nunca confia em dados do formulário para lógica de autenticação)
   if (!password || !confirmPassword) {
-    return {
-      error: "Preencha a nova senha e a confirmação.",
-    };
+    return { error: "Preencha a nova senha e a confirmação." };
   }
 
   if (password.length < 8) {
-    return {
-      error: "A nova senha deve possuir pelo menos 8 caracteres.",
-    };
+    return { error: "A nova senha deve possuir pelo menos 8 caracteres." };
   }
 
   if (password !== confirmPassword) {
-    return {
-      error: "As senhas informadas não coincidem.",
-    };
+    return { error: "As senhas informadas não coincidem." };
   }
 
+  // 2. Obtém o cliente autenticado e valida a sessão via getUser() — fonte de verdade do UID
   const supabase = createServerSupabaseClient();
   if (!supabase) {
-    return {
-      error: "Sessão inválida ou expirada. Solicite uma nova recuperação.",
-    };
+    return { error: "Sessão inválida ou expirada. Solicite uma nova recuperação." };
   }
 
-  const { error } = await supabase.auth.updateUser({
-    password,
-  });
+  const {
+    data: { user },
+    error: getUserError,
+  } = await supabase.auth.getUser();
 
-  if (error) {
+  if (getUserError || !user) {
+    return { error: "Sessão inválida ou expirada. Solicite uma nova recuperação." };
+  }
+
+  // O UID é exclusivamente derivado da sessão autenticada — nunca de parâmetro de URL ou formulário
+  const authUid = user.id;
+
+  // 3. Atualiza a senha via Auth (PKCE). Somente após este passo bem-sucedido, prosseguimos.
+  const { error: updateError } = await supabase.auth.updateUser({ password });
+
+  if (updateError) {
     return {
       error:
         "Não foi possível redefinir a senha. O link pode ter expirado. Solicite uma nova recuperação.",
     };
   }
 
-  // Ativação pós-senha: para contas convidadas, transiciona o acesso de convite_pendente -> ativo
-  // e ativa o perfil correspondente de forma atômica no banco (identificado estritamente por auth.uid()).
+  // 4. Verifica se existe convite pendente para este usuário.
+  //    Esta etapa usa o cliente admin (service_role) — server-only, nunca exposto ao navegador.
+  //    Consulta por perfil_id = authUid para identificar convites pendentes.
+  const adminClient = createAdminClient();
+
   let role: UserRole = "aluno";
-  try {
-    const { data: activationResult } = await supabase.rpc("ativar_acesso_pos_senha");
+  let hasInvitePending = false;
+
+  if (adminClient) {
+    try {
+      const { data: acessoData } = await adminClient
+        .from("acessos_usuarios")
+        .select("id, status, perfil_id")
+        .eq("perfil_id", authUid)
+        .eq("status", "convite_pendente")
+        .maybeSingle();
+
+      hasInvitePending = !!acessoData;
+    } catch {
+      // Falha silenciosa na verificação — prossegue como redefinição comum
+      hasInvitePending = false;
+    }
+  }
+
+  // 5. Se houver convite pendente, ativa via RPC privilegiada (service_role → banco).
+  //    O UID passado é exclusivamente o obtido de getUser() no passo 2.
+  if (hasInvitePending && adminClient) {
+    const { data: activationResult, error: activationError } = await adminClient.rpc(
+      "ativar_acesso_pos_senha",
+      { p_auth_user_id: authUid }
+    );
+
+    if (activationError) {
+      // Ativação falhou: perfil e acesso permanecem inativos. Nunca libera parcialmente.
+      return {
+        error:
+          "A senha foi definida, mas a ativação da conta falhou. Entre em contato com a coordenação pedagógica para regularizar o acesso.",
+      };
+    }
+
     if (
       activationResult &&
       typeof activationResult === "object" &&
       "role" in activationResult
     ) {
       role = (activationResult as { role: UserRole }).role || "aluno";
-    } else {
-      // Fallback: consulta o perfil autenticado
-      const { data: profile } = await supabase
-        .from("perfis")
-        .select("role")
-        .single();
-      if (profile?.role) {
-        role = profile.role as UserRole;
-      }
     }
-  } catch {
-    // Mantém fallback seguro
+
+    redirect(getDefaultDashboardForRole(role));
   }
 
-  const destination = getDefaultDashboardForRole(role);
-  redirect(destination);
+  // 6. Fluxo comum: recuperação de senha de administradores e usuários já ativos.
+  //    Consulta o perfil para obter o papel atual e redirecionar corretamente.
+  if (adminClient) {
+    try {
+      const { data: profile } = await adminClient
+        .from("perfis")
+        .select("role, status")
+        .eq("id", authUid)
+        .single();
+
+      if (profile?.status === "ativo" && profile?.role) {
+        role = profile.role as UserRole;
+      }
+    } catch {
+      // Fallback seguro para aluno
+    }
+  }
+
+  redirect(getDefaultDashboardForRole(role));
 }
