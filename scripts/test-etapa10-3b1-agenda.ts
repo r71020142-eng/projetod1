@@ -62,12 +62,13 @@ function runLinkedQuery(sql: string): SqlResult {
 
 function parseRows(output: string): any[] {
   try {
-    const match = output.match(/\{[\s\S]*"rows"\s*:\s*(\[[\s\S]*?\])[\s\S]*\}/);
-    if (match && match[1]) {
-      return JSON.parse(match[1]);
+    const firstBrace = output.indexOf("{");
+    const lastBrace = output.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      const jsonStr = output.substring(firstBrace, lastBrace + 1);
+      const parsed = JSON.parse(jsonStr);
+      if (Array.isArray(parsed.rows)) return parsed.rows;
     }
-    const directJson = JSON.parse(output);
-    if (Array.isArray(directJson.rows)) return directJson.rows;
   } catch {
     // Ignore
   }
@@ -240,7 +241,7 @@ async function main() {
         SET LOCAL ROLE authenticated;
         SET LOCAL "request.jwt.claims" = '{"sub": "a0000000-0000-0000-0000-000000000003", "role": "authenticated"}';
 
-        SELECT count(*) as total_aulas, max(titulo) as unico_titulo FROM public.aulas;
+        SELECT count(*) as total_aulas, max(titulo) as unico_titulo FROM public.vw_aluno_aulas;
       ROLLBACK;
     `);
     assert.strictEqual(res.success, true, `Query falhou: ${res.output}`);
@@ -283,7 +284,7 @@ async function main() {
         SET LOCAL ROLE authenticated;
         SET LOCAL "request.jwt.claims" = '{"sub": "a0000000-0000-0000-0000-000000000003", "role": "authenticated"}';
 
-        SELECT count(*) as total_presencas, max(aluno_id::text) as meu_aluno_id FROM public.presencas_aulas;
+        SELECT count(*) as total_presencas, max(aluno_id::text) as meu_aluno_id FROM public.vw_aluno_presencas;
       ROLLBACK;
     `);
     assert.strictEqual(res.success, true, `Query falhou: ${res.output}`);
@@ -812,9 +813,9 @@ async function main() {
         SET LOCAL "request.jwt.claims" = '{"sub": "a0000000-0000-0000-0000-000000000003", "role": "authenticated"}';
 
         SELECT a.id, t.nome, pa.status
-        FROM public.aulas a
+        FROM public.vw_aluno_aulas a
         JOIN public.turmas t ON t.id = a.turma_id
-        LEFT JOIN public.presencas_aulas pa ON pa.aula_id = a.id;
+        LEFT JOIN public.vw_aluno_presencas pa ON pa.aula_id = a.id;
       ROLLBACK;
     `);
     assert.strictEqual(res.success, true, `Recursão ou erro RLS detectado: ${res.output}`);

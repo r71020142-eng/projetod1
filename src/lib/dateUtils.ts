@@ -1,37 +1,71 @@
 /**
  * Utilitários de conversão de data e fuso horário para a Agenda MTD.
- * Fuso horário padrão: America/Sao_Paulo (UTC-3).
+ * Utiliza estritamente timezones IANA (padrão: America/Sao_Paulo) sem offsets numéricos fixos.
  */
 
-const DEFAULT_TIMEZONE = "America/Sao_Paulo";
+export const DEFAULT_TIMEZONE = "America/Sao_Paulo";
 
 /**
- * Converte data local (YYYY-MM-DD) e horário local (HH:mm) para ISO UTC (TIMESTAMPTZ).
+ * Converte data local (YYYY-MM-DD) e horário local (HH:mm) em um fuso IANA para ISO UTC (TIMESTAMPTZ).
+ * Não utiliza offsets fixos codificados em string (ex: -03:00), calculando a diferença
+ * exata em milissegundos via Intl.DateTimeFormat para qualquer fuso IANA e horário histórico.
  */
 export function localToUtc(
   dateStr: string,
   timeStr: string,
   timeZone: string = DEFAULT_TIMEZONE
 ): string {
-  // Monta a representação no fuso horário local e normaliza para UTC ISO
-  // Como America/Sao_Paulo opera sem horário de verão (UTC-3), normalizamos com segurança
   const [year, month, day] = dateStr.split("-").map(Number);
   const [hour, minute] = timeStr.split(":").map(Number);
 
-  // Usa string formatada com offset padrão -03:00 caso seja America/Sao_Paulo
-  if (timeZone === "America/Sao_Paulo") {
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const localIso = `${pad(year)}-${pad(month)}-${pad(day)}T${pad(hour)}:${pad(minute)}:00-03:00`;
-    return new Date(localIso).toISOString();
+  // 1. Cria um Date de referência assumindo UTC com os componentes informados
+  const naiveUtc = new Date(Date.UTC(year, month - 1, day, hour, minute, 0, 0));
+
+  // 2. Formata esse instante no timezone IANA alvo para identificar o deslocamento civil exato
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(naiveUtc);
+  const partMap: Record<string, number> = {};
+  for (const part of parts) {
+    if (part.type !== "literal") {
+      partMap[part.type] = parseInt(part.value, 10);
+    }
   }
 
-  // Fallback genérico com Intl
-  const naiveDate = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
-  return naiveDate.toISOString();
+  // Normalização caso o formatador retorne 24 para a meia-noite
+  let tzHour = partMap.hour;
+  if (tzHour === 24) tzHour = 0;
+
+  const targetDateInTz = new Date(
+    Date.UTC(
+      partMap.year,
+      partMap.month - 1,
+      partMap.day,
+      tzHour,
+      partMap.minute,
+      partMap.second || 0
+    )
+  );
+
+  // Offset civil do fuso alvo em relação ao UTC naquele instante específico
+  const offsetMs = targetDateInTz.getTime() - naiveUtc.getTime();
+
+  // O instante UTC correspondente ao horário civil informado é naiveUtc subtraído do offset
+  const realUtc = new Date(naiveUtc.getTime() - offsetMs);
+  return realUtc.toISOString();
 }
 
 /**
- * Converte um timestamp UTC ISO para data (YYYY-MM-DD) e horário (HH:mm) no fuso local.
+ * Converte um timestamp UTC ISO para data (YYYY-MM-DD) e horário (HH:mm) no fuso local IANA.
  */
 export function utcToLocal(
   utcIsoStr: string,
@@ -54,7 +88,6 @@ export function utcToLocal(
     partMap[p.type] = p.value;
   }
 
-  // Se hour for "24", ajusta para "00"
   let hour = partMap.hour || "00";
   if (hour === "24") hour = "00";
 
