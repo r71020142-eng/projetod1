@@ -16,6 +16,8 @@ import { professorSupabaseRepository } from "./professorSupabaseRepository";
 import { turmaLocalStorageRepository } from "./turmaLocalStorageRepository";
 import { turmaSupabaseRepository } from "./turmaSupabaseRepository";
 import { aulaRepository } from "./aulaRepository";
+import { aulaSupabaseRepository } from "./aulaSupabaseRepository";
+import { presencaSupabaseRepository } from "./presencaSupabaseRepository";
 import { materialRepository } from "./materialRepository";
 import { atividadeRepository } from "./atividadeRepository";
 import { entregaRepository } from "./entregaRepository";
@@ -29,6 +31,7 @@ import {
   IProfessorRepository,
   ITurmaRepository,
   IAulaRepository,
+  IPresencaRepository,
   IMaterialRepository,
   IAtividadeRepository,
   IEntregaRepository,
@@ -83,6 +86,22 @@ export function getAcademicCoreDataSource(): DataSource {
   }
 }
 
+/**
+ * Retorna a fonte de dados configurada para os módulos de Agenda, Aulas e Presenças (Etapa 10.3B1).
+ */
+export function getAcademicAgendaDataSource(): DataSource {
+  if (typeof window === "undefined") {
+    const env = getServerEnv();
+    return env.academicAgendaDataSource;
+  }
+  try {
+    const clientEnv = getClientEnv();
+    return clientEnv.academicAgendaDataSource || "local";
+  } catch {
+    return "local";
+  }
+}
+
 export class UnimplementedSupabaseRepositoryError extends Error {
   constructor(nomeRepositorio: string, etapaPlanejada: string) {
     super(
@@ -125,13 +144,39 @@ export function getTurmaRepository(): ITurmaRepository {
 }
 
 /**
- * Retorna o repositório de Aulas ativo para o ambiente.
+ * Retorna o repositório de Aulas ativo para o ambiente (Etapa 10.3B1).
  */
 export function getAulaRepository(): IAulaRepository {
-  if (isLocalDataSource()) {
-    return aulaRepository;
+  if (getAcademicAgendaDataSource() === "supabase") {
+    return aulaSupabaseRepository;
   }
-  throw new UnimplementedSupabaseRepositoryError("AulaRepository", "Etapa 10.3");
+  return aulaRepository;
+}
+
+/**
+ * Retorna o repositório de Presenças ativo para o ambiente (Etapa 10.3B1).
+ */
+export function getPresencaRepository(): IPresencaRepository {
+  if (getAcademicAgendaDataSource() === "supabase") {
+    return presencaSupabaseRepository;
+  }
+  return {
+    salvarChamada: async (aulaId, presencas, topico, obs) => {
+      const presencasMap: Record<string, import("@/types").RegistroPresencaItem> = {};
+      for (const p of presencas) {
+        presencasMap[p.alunoId] = {
+          status: p.status,
+          justificativa: p.justificativa,
+          observacao: p.observacaoPedagogica,
+        };
+      }
+      const res = await aulaRepository.registrarPresencas(aulaId, presencasMap, topico, obs);
+      return res.success ? { success: true } : { success: false, error: res.error };
+    },
+    calcularFrequenciaAluno: async (alunoId: string) => {
+      return aulaRepository.calcularFrequenciaAluno(alunoId);
+    },
+  };
 }
 
 /**
@@ -213,3 +258,5 @@ export function getGamificacaoRepository(): IGamificacaoRepository {
   }
   throw new UnimplementedSupabaseRepositoryError("GamificacaoRepository", "Etapa 10.6");
 }
+
+export { aulaSupabaseRepository, presencaSupabaseRepository };

@@ -15,6 +15,9 @@ import {
   TurmaFilters,
   Aula,
   AulaFilters,
+  RegistroPresencaItem,
+  ConflitoHorario,
+  FrequenciaCalculada,
   Material,
   MaterialFilters,
   Atividade,
@@ -95,7 +98,81 @@ export interface ITurmaRepository {
 export interface IAulaRepository {
   listar(filters?: AulaFilters): Promise<Aula[]>;
   obterPorId(id: string): Promise<Aula | null>;
+  listarPorTurma(turmaId: string): Promise<Aula[]>;
+  listarPorAluno(alunoId: string): Promise<Aula[]>;
+  listarPorProfessor(professorId: string): Promise<Aula[]>;
   obterProximaAulaAluno(alunoId: string): Promise<Aula | null>;
+  listarProximas(limite?: number): Promise<Aula[]>;
+  contarAgendadas(): Promise<number>;
+  criar(
+    dados: Omit<Aula, "id" | "dataCadastro" | "professorId" | "presencas"> & {
+      professorId?: string;
+      presencas?: Record<string, RegistroPresencaItem>;
+    }
+  ): Promise<OperationResult<Aula> & { conflitos?: ConflitoHorario[] }>;
+  criarSequenciaSemanal(
+    dadosBase: Omit<Aula, "id" | "dataCadastro" | "professorId" | "presencas">,
+    quantidadeEncontros: number
+  ): Promise<OperationResult<Aula[]> & { conflitos?: ConflitoHorario[] }>;
+  atualizar(
+    id: string,
+    dados: Partial<Omit<Aula, "id" | "dataCadastro">>
+  ): Promise<OperationResult<Aula> & { conflitos?: ConflitoHorario[] }>;
+  cancelar(id: string, motivo?: string): Promise<OperationResult<Aula>>;
+  concluir(id: string, confirmarPendencias?: boolean): Promise<OperationResult<Aula>>;
+  registrarPresencas(
+    id: string,
+    presencas: Record<string, RegistroPresencaItem>,
+    topicoTrabalhadoOuConcluir?: string | boolean,
+    observacoes?: string
+  ): Promise<OperationResult<Aula>>;
+  calcularFrequenciaAluno(alunoId: string, turmaId?: string): Promise<FrequenciaCalculada>;
+  calcularFrequenciaTurma(turmaId: string): Promise<FrequenciaCalculada>;
+}
+
+export interface SerieAula {
+  id: string;
+  turmaId: string;
+  professorId: string;
+  diaSemana: number;
+  horarioLocal: string;
+  duracaoMinutos: number;
+  timezone: string;
+  dataInicio: string;
+  dataFim: string;
+  status: "ativa" | "cancelada" | "concluida";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ISerieAulaRepository {
+  criarSerie(dados: {
+    turmaId: string;
+    professorId: string;
+    tituloBase: string;
+    diaSemana: number;
+    horarioLocal: string;
+    duracaoMinutos: number;
+    quantidadeEncontros: number;
+    dataInicio: string;
+    meetingUrl?: string;
+    observacoes?: string;
+  }): Promise<OperationResult<{ serieId: string }>>;
+}
+
+export interface IPresencaRepository {
+  salvarChamada(
+    aulaId: string,
+    presencas: Array<{
+      alunoId: string;
+      status: import("@/types").StatusPresenca;
+      justificativa?: string;
+      observacaoPedagogica?: string;
+    }>,
+    topicoTrabalhado?: string,
+    observacoes?: string
+  ): Promise<OperationResult<void>>;
+  calcularFrequenciaAluno(alunoId: string, turmaId?: string): Promise<FrequenciaCalculada>;
 }
 
 export interface IMaterialRepository {
