@@ -11,14 +11,17 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const serverEnv = getServerEnv();
+    const defaultClient = process.env.NEXT_PUBLIC_DATA_SOURCE || "local";
     const clientExpected =
-      process.env.NEXT_PUBLIC_ACADEMIC_AGENDA_DATA_SOURCE || "local";
+      process.env.NEXT_PUBLIC_ACADEMIC_AGENDA_DATA_SOURCE || defaultClient;
+
+    const divergence = serverEnv.academicAgendaDataSource !== clientExpected;
 
     return NextResponse.json({
       status: "ok",
       serverSource: serverEnv.academicAgendaDataSource,
       clientExpectedSource: clientExpected,
-      divergence: false,
+      divergence,
     });
   } catch (error: unknown) {
     const message =

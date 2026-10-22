@@ -167,7 +167,7 @@ export function getServerEnv(): ServerEnv {
     );
   }
 
-  const rawAcademicAgenda = serverAcademicAgenda || clientAcademicAgenda || "local";
+  const rawAcademicAgenda = serverAcademicAgenda || clientAcademicAgenda || dataSource;
   if (rawAcademicAgenda !== "local" && rawAcademicAgenda !== "supabase") {
     throw new Error(
       `[Configuração MTD] ACADEMIC_AGENDA_DATA_SOURCE inválido: "${rawAcademicAgenda}". Esperado: "local" ou "supabase".`
@@ -244,12 +244,14 @@ export function getClientEnv(): ClientEnv {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
   const isDemo = process.env.NEXT_PUBLIC_DEMO_MODE !== "false";
   const isAuthTestBanner = process.env.NEXT_PUBLIC_AUTH_TEST_BANNER === "true";
+  const defaultClientDataSource: DataSource =
+    (process.env.NEXT_PUBLIC_DATA_SOURCE as DataSource) || "local";
   const coreUsersDataSource: DataSource =
-    (process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE as DataSource) || "local";
+    (process.env.NEXT_PUBLIC_CORE_USERS_DATA_SOURCE as DataSource) || defaultClientDataSource;
   const academicCoreDataSource: DataSource =
-    (process.env.NEXT_PUBLIC_ACADEMIC_CORE_DATA_SOURCE as DataSource) || "local";
+    (process.env.NEXT_PUBLIC_ACADEMIC_CORE_DATA_SOURCE as DataSource) || defaultClientDataSource;
   const academicAgendaDataSource: DataSource =
-    (process.env.NEXT_PUBLIC_ACADEMIC_AGENDA_DATA_SOURCE as DataSource) || "local";
+    (process.env.NEXT_PUBLIC_ACADEMIC_AGENDA_DATA_SOURCE as DataSource) || defaultClientDataSource;
 
   return {
     supabaseUrl,
