@@ -128,6 +128,22 @@ export interface IAulaRepository {
   ): Promise<OperationResult<Aula>>;
   calcularFrequenciaAluno(alunoId: string, turmaId?: string): Promise<FrequenciaCalculada>;
   calcularFrequenciaTurma(turmaId: string): Promise<FrequenciaCalculada>;
+  calcularFrequenciaGeral?(): Promise<{
+    porcentagem: number | null;
+    totalAulas: number;
+    presentes: number;
+    ausentes: number;
+    justificados: number;
+  }>;
+  verificarConflitos?(aulaCandidate: {
+    id?: string;
+    turmaId: string;
+    professorId: string;
+    data: string;
+    horario: string;
+    duracaoMinutos: number;
+    status: Aula["status"];
+  }): Promise<ConflitoHorario[]>;
 }
 
 export interface SerieAula {

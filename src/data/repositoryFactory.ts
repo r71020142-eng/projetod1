@@ -15,7 +15,7 @@ import { alunoSupabaseRepository } from "./alunoSupabaseRepository";
 import { professorSupabaseRepository } from "./professorSupabaseRepository";
 import { turmaLocalStorageRepository } from "./turmaLocalStorageRepository";
 import { turmaSupabaseRepository } from "./turmaSupabaseRepository";
-import { aulaRepository } from "./aulaRepository";
+import { aulaLocalStorageRepository } from "./aulaLocalStorageRepository";
 import { aulaSupabaseRepository } from "./aulaSupabaseRepository";
 import { presencaSupabaseRepository } from "./presencaSupabaseRepository";
 import { materialRepository } from "./materialRepository";
@@ -150,7 +150,7 @@ export function getAulaRepository(): IAulaRepository {
   if (getAcademicAgendaDataSource() === "supabase") {
     return aulaSupabaseRepository;
   }
-  return aulaRepository;
+  return aulaLocalStorageRepository;
 }
 
 /**
@@ -170,11 +170,11 @@ export function getPresencaRepository(): IPresencaRepository {
           observacao: p.observacaoPedagogica,
         };
       }
-      const res = await aulaRepository.registrarPresencas(aulaId, presencasMap, topico, obs);
+      const res = await aulaLocalStorageRepository.registrarPresencas(aulaId, presencasMap, topico, obs);
       return res.success ? { success: true } : { success: false, error: res.error };
     },
     calcularFrequenciaAluno: async (alunoId: string) => {
-      return aulaRepository.calcularFrequenciaAluno(alunoId);
+      return aulaLocalStorageRepository.calcularFrequenciaAluno(alunoId);
     },
   };
 }
@@ -259,4 +259,4 @@ export function getGamificacaoRepository(): IGamificacaoRepository {
   throw new UnimplementedSupabaseRepositoryError("GamificacaoRepository", "Etapa 10.6");
 }
 
-export { aulaSupabaseRepository, presencaSupabaseRepository };
+export { aulaLocalStorageRepository, aulaSupabaseRepository, presencaSupabaseRepository };

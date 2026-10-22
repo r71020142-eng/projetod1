@@ -165,7 +165,12 @@ export function PresencaModal({ isOpen, aula, onClose, onSuccess }: PresencaModa
 
       // If user kept marcarComoConcluida checked and aula was not already concluded
       if (marcarComoConcluida && res.data!.status !== "concluida") {
-        await aulaRepository.concluir(aula.id);
+        const concRes = await aulaRepository.concluir(aula.id, confirmarConclusaoPendente);
+        if (!concRes.success) {
+          setError(concRes.error || "Falha ao concluir a aula.");
+          setIsSubmitting(false);
+          return;
+        }
         const updated = await aulaRepository.obterPorId(aula.id);
         if (updated) {
           onSuccess(updated);

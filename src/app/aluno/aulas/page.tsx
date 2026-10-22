@@ -9,16 +9,33 @@ import {
   Users,
   ExternalLink,
   VideoOff,
+  Database,
+  RotateCcw,
 } from "lucide-react";
 import { Aula, Turma, Professor, FrequenciaCalculada, StatusPresenca } from "@/types";
 import { aulaRepository } from "@/data/aulaRepository";
 import { turmaRepository } from "@/data/turmaRepository";
 import { professorRepository } from "@/data/professorRepository";
+import { getAcademicAgendaDataSource } from "@/data/repositoryFactory";
+import { useAlunoIdentity } from "@/app/aluno/AlunoLayoutClient";
 import { PresencaBadge, AulaStatusBadge } from "@/components/common/TurmaBadges";
 
-const DEMO_ALUNO_ID = "alu-001"; // Mariana Oliveira
+const DEMO_ALUNO_ID = "alu-001"; // Fallback para modo demonstrativo (Mariana Oliveira)
 
 export default function MinhasAulasPage() {
+  const identity = useAlunoIdentity();
+
+  // Determina o ID do discente: se autenticado real, usa o ID da sessão segura; senão, fallback demonstrativo
+  const alunoId = useMemo(() => {
+    if (identity?.isRealAuth && identity.role === "aluno") {
+      return identity.id;
+    }
+    return DEMO_ALUNO_ID;
+  }, [identity]);
+
+  const alunoNome = identity?.nomeCompleto || "Mariana Oliveira";
+  const isSupabaseActive = getAcademicAgendaDataSource() === "supabase";
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [turmas, setTurmas] = useState<Turma[]>([]);
@@ -30,10 +47,10 @@ export default function MinhasAulasPage() {
     try {
       setError(null);
       const [listTurmas, listAulas, listProfs, freqData] = await Promise.all([
-        turmaRepository.listarPorAluno(DEMO_ALUNO_ID),
-        aulaRepository.listarPorAluno(DEMO_ALUNO_ID),
+        turmaRepository.listarPorAluno(alunoId),
+        aulaRepository.listarPorAluno(alunoId),
         professorRepository.listar(),
-        aulaRepository.calcularFrequenciaAluno(DEMO_ALUNO_ID),
+        aulaRepository.calcularFrequenciaAluno(alunoId),
       ]);
 
       if (!isMounted) return;
@@ -41,50 +58,57 @@ export default function MinhasAulasPage() {
       setAulas(listAulas);
       setProfessores(listProfs);
       setFrequencia(freqData);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Erro ao carregar aulas do aluno:", err);
       if (isMounted) {
-        setError("Não foi possível carregar as informações das aulas. Tente novamente.");
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Não foi possível carregar as informações das aulas. Tente novamente."
+        );
       }
     } finally {
       if (isMounted) {
         setLoading(false);
       }
     }
-  }, []);
+  }, [alunoId]);
 
   useEffect(() => {
     let isMounted = true;
     carregarDados(isMounted);
 
-    const handleStorageUpdate = (e: Event) => {
+    const handleUpdate = (e: Event) => {
       const customEvent = e as CustomEvent;
       if (
         !customEvent.detail?.entity ||
         customEvent.detail.entity === "aulas" ||
-        customEvent.detail.entity === "turmas"
+        customEvent.detail.entity === "turmas" ||
+        customEvent.detail.entity === "presencas"
       ) {
         carregarDados(isMounted);
       }
     };
 
-    window.addEventListener("mtd_storage_updated", handleStorageUpdate);
+    window.addEventListener("mtd_storage_updated", handleUpdate);
+    window.addEventListener("mtd_academic_agenda_updated", handleUpdate);
     return () => {
       isMounted = false;
-      window.removeEventListener("mtd_storage_updated", handleStorageUpdate);
+      window.removeEventListener("mtd_storage_updated", handleUpdate);
+      window.removeEventListener("mtd_academic_agenda_updated", handleUpdate);
     };
   }, [carregarDados]);
 
   const turmaMap = useMemo(() => new Map(turmas.map((t) => [t.id, t])), [turmas]);
   const profMap = useMemo(() => new Map(professores.map((p) => [p.id, p])), [professores]);
 
-  // Next upcoming class for Mariana
+  // Next upcoming class for the student
   const proximaAula = useMemo(() => {
     const agendadas = aulas.filter((a) => a.status === "agendada");
     return agendadas.length > 0 ? agendadas[0] : null;
   }, [aulas]);
 
-  // Future classes list (excluding the hero one if desired, or displaying all)
+  // Future classes list
   const proximasAulas = useMemo(() => {
     return aulas.filter((a) => a.status === "agendada");
   }, [aulas]);
@@ -137,12 +161,26 @@ export default function MinhasAulasPage() {
   return (
     <div className="space-y-6">
       {/* Top Banner / Context */}
-      <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-indigo-50 border border-indigo-100 rounded-2xl text-xs text-indigo-900">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-indigo-50/70 border border-indigo-100 rounded-2xl text-xs text-indigo-950">
         <div className="flex items-center gap-2">
           <span className="flex h-2 w-2 rounded-full bg-indigo-600 animate-pulse" />
           <span>
-            <strong>Área do Aluno • Mariana Oliveira:</strong> Suas aulas ao vivo, turmas do Método Paulo e histórico de presenças.
+            <strong>Portal do Aluno • {alunoNome}:</strong> Suas aulas ao vivo, turmas e histórico de presenças no Método Paulo.
           </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {isSupabaseActive ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+              <Database className="h-3 w-3 text-emerald-600" />
+              <span>Supabase Seguro</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-100 text-purple-800 border border-purple-200">
+              <RotateCcw className="h-3 w-3 text-purple-600" />
+              <span>Modo Demonstrativo</span>
+            </span>
+          )}
         </div>
       </div>
 
@@ -180,7 +218,7 @@ export default function MinhasAulasPage() {
                   <div className="flex items-center gap-1.5">
                     <Clock className="h-4 w-4 text-indigo-200" />
                     <span>
-                      {proximaAula.horario} ({proximaAula.duracaoMinutos} min)
+                      {proximaAula.horario} ({proximaAula.duracaoMinutos || 50} min)
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -195,18 +233,18 @@ export default function MinhasAulasPage() {
                   )}
                 </div>
 
-                {proximaAula.observacoes && (
+                {proximaAula.topicoTrabalhado && (
                   <p className="text-xs text-indigo-200/90 pt-1">
-                    Pauta: {proximaAula.observacoes}
+                    Tema da aula: {proximaAula.topicoTrabalhado}
                   </p>
                 )}
               </div>
 
               {/* Action: Zoom Button */}
               <div className="w-full md:w-auto flex flex-col items-start md:items-end gap-2 shrink-0">
-                {proximaAula.linkZoom ? (
+                {proximaAula.linkZoom || proximaAula.meetingUrl ? (
                   <a
-                    href={proximaAula.linkZoom}
+                    href={proximaAula.linkZoom || proximaAula.meetingUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full md:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-white text-[#5046E5] font-extrabold text-sm shadow-md hover:bg-indigo-50 transition-all active:scale-[0.99]"
@@ -222,8 +260,8 @@ export default function MinhasAulasPage() {
                   </div>
                 )}
                 <span className="text-[11px] text-indigo-200/80">
-                  {proximaAula.linkZoom
-                    ? "Link externo HTTPS cadastrado para a sessão ao vivo"
+                  {proximaAula.linkZoom || proximaAula.meetingUrl
+                    ? "Link oficial cadastrado para a sessão ao vivo"
                     : "O professor disponibilizará o link antes do início"}
                 </span>
               </div>
@@ -247,7 +285,9 @@ export default function MinhasAulasPage() {
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-800">Sua Frequência</h3>
             <span className="text-2xl font-black text-purple-700">
-              {frequencia?.porcentagem !== null ? `${frequencia?.porcentagem}%` : "100%"}
+              {frequencia?.porcentagem !== null && frequencia?.porcentagem !== undefined
+                ? `${frequencia.porcentagem}%`
+                : "—"}
             </span>
           </div>
 
@@ -273,7 +313,7 @@ export default function MinhasAulasPage() {
           </div>
 
           <p className="text-[11px] text-slate-500 pt-1 leading-relaxed">
-            Sua frequência reflete sua consistência no Método Paulo. Ausências justificadas junto à coordenação não reduzem sua pontuação.
+            Sua frequência reflete sua consistência no Método Paulo. Ausências justificadas junto à coordenação não penalizam seu percentual.
           </p>
         </div>
 
@@ -330,6 +370,7 @@ export default function MinhasAulasPage() {
             {proximasAulas.map((aula) => {
               const turma = turmaMap.get(aula.turmaId);
               const prof = profMap.get(aula.professorId);
+              const linkZoom = aula.linkZoom || aula.meetingUrl;
 
               return (
                 <div
@@ -354,9 +395,9 @@ export default function MinhasAulasPage() {
                   </div>
 
                   <div>
-                    {aula.linkZoom ? (
+                    {linkZoom ? (
                       <a
-                        href={aula.linkZoom}
+                        href={linkZoom}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 transition-colors"
@@ -397,7 +438,9 @@ export default function MinhasAulasPage() {
             {aulasConcluidas.map((aula) => {
               const turma = turmaMap.get(aula.turmaId);
               const prof = profMap.get(aula.professorId);
-              const regPresenca = aula.presencas ? aula.presencas[DEMO_ALUNO_ID] : null;
+              const regPresenca = aula.presencas
+                ? (aula.presencas[alunoId] || Object.values(aula.presencas)[0])
+                : null;
               const statusPresenca: StatusPresenca = regPresenca
                 ? regPresenca.status
                 : "nao_registrado";

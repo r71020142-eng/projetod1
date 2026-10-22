@@ -53,6 +53,21 @@ interface PresencaDbRow {
   registrado_por: string | null;
 }
 
+interface ViewAlunoAulaDbRow {
+  id: string;
+  turma_id: string;
+  professor_id: string;
+  serie_id: string | null;
+  inicio_em: string;
+  fim_em: string;
+  titulo: string;
+  meeting_url: string | null;
+  topicos_trabalhados: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
 function getSupabase() {
   const client = createBrowserSupabaseClient();
   if (!client) {
@@ -188,29 +203,81 @@ export const aulaSupabaseRepository: IAulaRepository = {
 
   async listarPorAluno(alunoId: string): Promise<Aula[]> {
     const supabase = getSupabase();
-    const { data: matriculas, error: matError } = await supabase
+
+    // 1. Busca matrículas do discente para identificar as turmas associadas
+    const { data: matriculas } = await supabase
       .from("matriculas_turmas")
       .select("turma_id")
-      .eq("aluno_id", alunoId)
-      .neq("status", "cancelada");
+      .eq("aluno_id", alunoId);
 
-    if (matError || !matriculas || matriculas.length === 0) {
-      return [];
-    }
-
-    const turmaIds = (matriculas as Array<{ turma_id: string }>).map((m) => m.turma_id);
-    const { data, error } = await supabase
-      .from("aulas")
-      .select("*, presencas_aulas(*)")
-      .in("turma_id", turmaIds)
+    // 2. Consulta a view segura de aulas (vw_aluno_aulas) com security_barrier
+    // Essa view filtra rigorosamente pelo papel:
+    // - Para aluno: restrito a aluno_can_view_aula(a.id)
+    // - Para professor: restrito às aulas do professor
+    // - Para admin: permite visualização irrestrita
+    let query = supabase
+      .from("vw_aluno_aulas")
+      .select("*")
       .order("inicio_em", { ascending: true });
 
-    if (error) {
-      console.error("[aulaSupabaseRepository.listarPorAluno] Erro:", error.message);
+    if (matriculas && matriculas.length > 0) {
+      const turmaIds = (matriculas as Array<{ turma_id: string }>).map((m) => m.turma_id);
+      query = query.in("turma_id", turmaIds);
+    }
+
+    const [aulasRes, presencasRes] = await Promise.all([
+      query,
+      supabase
+        .from("vw_aluno_presencas")
+        .select("*")
+        .eq("aluno_id", alunoId),
+    ]);
+
+    if (aulasRes.error) {
+      console.error("[aulaSupabaseRepository.listarPorAluno] Erro ao consultar vw_aluno_aulas:", aulasRes.error.message);
       return [];
     }
 
-    return (data as AulaDbRow[]).map(mapRowToAula);
+    const presencasMapByAula: Record<string, PresencaDbRow[]> = {};
+    if (presencasRes.data && Array.isArray(presencasRes.data)) {
+      for (const p of presencasRes.data as Array<{
+        id: string;
+        aula_id: string;
+        aluno_id: string;
+        matricula_id: string;
+        status: string;
+        justificativa: string | null;
+        created_at: string;
+      }>) {
+        if (!presencasMapByAula[p.aula_id]) {
+          presencasMapByAula[p.aula_id] = [];
+        }
+        presencasMapByAula[p.aula_id].push({
+          id: p.id,
+          aula_id: p.aula_id,
+          aluno_id: p.aluno_id,
+          matricula_id: p.matricula_id,
+          status: p.status,
+          justificativa: p.justificativa,
+          observacao_pedagogica: null,
+          registrado_em: p.created_at,
+          registrado_por: null,
+        });
+      }
+    }
+
+    const rowsWithPresencas: AulaDbRow[] = (aulasRes.data as ViewAlunoAulaDbRow[]).map((row) => ({
+      ...row,
+      observacoes: null,
+      motivo_cancelamento: null,
+      concluida_em: null,
+      concluida_por: null,
+      pendencias_presenca_confirmadas_em: null,
+      pendencias_presenca_confirmadas_por: null,
+      presencas_aulas: presencasMapByAula[row.id] || [],
+    }));
+
+    return rowsWithPresencas.map(mapRowToAula);
   },
 
   async listarPorProfessor(professorId: string): Promise<Aula[]> {
@@ -629,5 +696,88 @@ export const aulaSupabaseRepository: IAulaRepository = {
       formulaExplicativa:
         "(Presentes / (Presentes + Ausentes)) * 100 (Faltas justificadas e nao registrados nao penalizam)",
     };
+  },
+
+  async calcularFrequenciaGeral(): Promise<{
+    porcentagem: number | null;
+    totalAulas: number;
+    presentes: number;
+    ausentes: number;
+    justificados: number;
+  }> {
+    const supabase = getSupabase();
+    const { data: concluidas, error: aulasError } = await supabase
+      .from("aulas")
+      .select("id")
+      .eq("status", "concluida");
+
+    if (aulasError || !concluidas || concluidas.length === 0) {
+      return {
+        porcentagem: null,
+        totalAulas: 0,
+        presentes: 0,
+        ausentes: 0,
+        justificados: 0,
+      };
+    }
+
+    const aulaIds = (concluidas as Array<{ id: string }>).map((a) => a.id);
+    const { data: presencas } = await supabase
+      .from("presencas_aulas")
+      .select("status")
+      .in("aula_id", aulaIds);
+
+    let presentes = 0;
+    let ausentes = 0;
+    let justificados = 0;
+
+    if (presencas) {
+      for (const p of presencas) {
+        if (p.status === "presente") presentes++;
+        else if (p.status === "ausente") ausentes++;
+        else if (p.status === "justificado") justificados++;
+      }
+    }
+
+    const base = presentes + ausentes;
+    const porcentagem = base > 0 ? Math.round((presentes / base) * 100) : null;
+
+    return {
+      porcentagem,
+      totalAulas: concluidas.length,
+      presentes,
+      ausentes,
+      justificados,
+    };
+  },
+
+  async verificarConflitos(aulaCandidate: {
+    id?: string;
+    turmaId: string;
+    professorId: string;
+    data: string;
+    horario: string;
+    duracaoMinutos: number;
+    status: Aula["status"];
+  }): Promise<ConflitoHorario[]> {
+    const { turmaRepository } = await import("./turmaRepository");
+    const { professorRepository } = await import("./professorRepository");
+    const { alunoRepository } = await import("./alunoRepository");
+    const { checkConflitosHorario } = await import("./validators");
+
+    const [todasAulas, todasTurmas, todosProfessores, todosAlunos] = await Promise.all([
+      this.listar(),
+      turmaRepository.listar(),
+      professorRepository.listar(),
+      alunoRepository.listar(),
+    ]);
+
+    return checkConflitosHorario(
+      aulaCandidate,
+      todasAulas,
+      todasTurmas,
+      todosProfessores,
+      todosAlunos
+    );
   },
 };

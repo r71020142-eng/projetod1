@@ -22,6 +22,25 @@ interface AulaFormModalProps {
   onSuccess: (aulaOuAulas: Aula | Aula[], isNew: boolean) => void;
 }
 
+function formatFriendlyError(rawMsg: string): string {
+  if (rawMsg.includes("CONFLITO_HORARIO_PROFESSOR")) {
+    return "Conflito de agenda: o professor já possui outra aula agendada nesse mesmo horário.";
+  }
+  if (rawMsg.includes("CONFLITO_HORARIO_ALUNO")) {
+    return "Conflito de agenda: um ou mais alunos da turma já possuem outra aula agendada nesse horário.";
+  }
+  if (rawMsg.includes("TURMA_INATIVA") || rawMsg.includes("TURMA_ENCERRADA")) {
+    return "Não é possível agendar aulas para uma turma inativa ou encerrada.";
+  }
+  if (rawMsg.includes("DURACAO_INVALIDA")) {
+    return "A duração da aula deve estar entre 15 e 300 minutos.";
+  }
+  if (rawMsg.includes("ACESSO_NEGADO") || rawMsg.includes("violates row-level security")) {
+    return "Acesso não autorizado: você não tem permissão para agendar aulas nesta turma.";
+  }
+  return rawMsg;
+}
+
 export function AulaFormModal({
   isOpen,
   aulaParaEditar,
@@ -184,7 +203,7 @@ export function AulaFormModal({
 
         if (!res.success) {
           if (res.fieldErrors) setErrors(res.fieldErrors);
-          setGeneralError(res.error || "Não foi possível atualizar a aula.");
+          setGeneralError(formatFriendlyError(res.error || "Não foi possível atualizar a aula."));
           setIsSubmitting(false);
           return;
         }
@@ -209,7 +228,7 @@ export function AulaFormModal({
           );
 
           if (!res.success) {
-            setGeneralError(res.error || "Falha ao gerar sequência semanal.");
+            setGeneralError(formatFriendlyError(res.error || "Falha ao gerar sequência semanal."));
             setIsSubmitting(false);
             return;
           }
@@ -231,7 +250,7 @@ export function AulaFormModal({
 
           if (!res.success) {
             if (res.fieldErrors) setErrors(res.fieldErrors);
-            setGeneralError(res.error || "Falha ao agendar aula.");
+            setGeneralError(formatFriendlyError(res.error || "Falha ao agendar aula."));
             setIsSubmitting(false);
             return;
           }
