@@ -34,6 +34,7 @@ import { PresencaModal } from "@/components/admin/PresencaModal";
 export default function AdminAgendaPage() {
   const identity = useAdminIdentity();
   const isProfessor = identity?.role === "professor";
+  const professorOperationalId = isProfessor ? (identity?.professorId || null) : null;
 
   const [aulas, setAulas] = useState<Aula[]>([]);
   const [turmas, setTurmas] = useState<Turma[]>([]);
@@ -73,16 +74,16 @@ export default function AdminAgendaPage() {
   const [busca, setBusca] = useState("");
   const [filtroTurma, setFiltroTurma] = useState<string>("todas");
   const [filtroProfessor, setFiltroProfessor] = useState<string>(
-    isProfessor && identity ? identity.id : "todos"
+    isProfessor && professorOperationalId ? professorOperationalId : "todos"
   );
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
 
   // Keep professor locked if role is professor
   useEffect(() => {
-    if (isProfessor && identity) {
-      setFiltroProfessor(identity.id);
+    if (isProfessor) {
+      setFiltroProfessor(professorOperationalId || "");
     }
-  }, [isProfessor, identity]);
+  }, [isProfessor, professorOperationalId]);
 
   // Week navigation (current date anchor)
   const [currentDateAnchor, setCurrentDateAnchor] = useState<Date>(() => new Date());
@@ -100,6 +101,12 @@ export default function AdminAgendaPage() {
   const [cancelError, setCancelError] = useState<string | null>(null);
 
   const carregarDados = useCallback(async () => {
+    if (isProfessor && !professorOperationalId && isSupabaseActive) {
+      setError("Perfil docente sem vínculo com registro de professor. Não há aulas vinculadas para exibição.");
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -118,7 +125,7 @@ export default function AdminAgendaPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isProfessor, professorOperationalId, isSupabaseActive]);
 
   useEffect(() => {
     carregarDados();
@@ -148,18 +155,21 @@ export default function AdminAgendaPage() {
 
   // Turmas permitidas para o usuário logado
   const turmasDisponiveis = useMemo(() => {
-    if (isProfessor && identity) {
-      return turmas.filter((t) => t.professorId === identity.id);
+    if (isProfessor) {
+      if (!professorOperationalId) return [];
+      return turmas.filter((t) => t.professorId === professorOperationalId);
     }
     return turmas;
-  }, [turmas, isProfessor, identity]);
+  }, [turmas, isProfessor, professorOperationalId]);
 
   // Filtered aulas
   const aulasFiltradas = useMemo(() => {
     return aulas.filter((a) => {
       // Se professor logado, restringe rigorosamente às suas aulas
-      if (isProfessor && identity && a.professorId !== identity.id) {
-        return false;
+      if (isProfessor) {
+        if (!professorOperationalId || a.professorId !== professorOperationalId) {
+          return false;
+        }
       }
 
       if (filtroTurma !== "todas" && a.turmaId !== filtroTurma) return false;
@@ -180,7 +190,7 @@ export default function AdminAgendaPage() {
 
       return true;
     });
-  }, [aulas, filtroTurma, filtroProfessor, filtroStatus, busca, turmaMap, profMap, isProfessor, identity]);
+  }, [aulas, filtroTurma, filtroProfessor, filtroStatus, busca, turmaMap, profMap, isProfessor, professorOperationalId]);
 
   // Group by date for List View
   const aulasAgrupadasPorData = useMemo(() => {
@@ -329,6 +339,10 @@ export default function AdminAgendaPage() {
         <button
           type="button"
           onClick={() => {
+            if (isProfessor && !professorOperationalId && isSupabaseActive) {
+              setError("Não é possível agendar aulas: perfil docente sem vínculo com registro de professor.");
+              return;
+            }
             setAulaParaEditar(null);
             setModalAulaOpen(true);
           }}
@@ -608,48 +622,54 @@ export default function AdminAgendaPage() {
 
                       {/* Card Action Buttons */}
                       <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-                        {/* Presença Button */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAulaParaPresenca(aula);
-                            setModalPresencaOpen(true);
-                          }}
-                          className="flex-1 py-1.5 px-2 rounded-xl text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 transition-colors flex items-center justify-center gap-1"
-                        >
-                          <UserCheck className="h-3.5 w-3.5" />
-                          <span>
-                            Presença
-                            {aula.status === "concluida" ? ` (${presentesCount}/${totalAlunosTurma})` : ""}
-                          </span>
-                        </button>
+                        {(!isProfessor || (!!professorOperationalId && aula.professorId === professorOperationalId)) ? (
+                          <>
+                            {/* Presença Button */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAulaParaPresenca(aula);
+                                setModalPresencaOpen(true);
+                              }}
+                              className="flex-1 py-1.5 px-2 rounded-xl text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 transition-colors flex items-center justify-center gap-1"
+                            >
+                              <UserCheck className="h-3.5 w-3.5" />
+                              <span>
+                                Presença
+                                {aula.status === "concluida" ? ` (${presentesCount}/${totalAlunosTurma})` : ""}
+                              </span>
+                            </button>
 
-                        {/* Edit Button */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAulaParaEditar(aula);
-                            setModalAulaOpen(true);
-                          }}
-                          className="p-1.5 rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 border border-transparent hover:border-slate-200 transition-colors"
-                          title="Editar aula"
-                        >
-                          <Edit className="h-3.5 w-3.5" />
-                        </button>
+                            {/* Edit Button */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAulaParaEditar(aula);
+                                setModalAulaOpen(true);
+                              }}
+                              className="p-1.5 rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 border border-transparent hover:border-slate-200 transition-colors"
+                              title="Editar aula"
+                            >
+                              <Edit className="h-3.5 w-3.5" />
+                            </button>
 
-                        {/* Cancel Button (only if not already canceled) */}
-                        {aula.status !== "cancelada" && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCancelError(null);
-                              setAulaParaCancelar(aula);
-                            }}
-                            className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 transition-colors"
-                            title="Cancelar aula"
-                          >
-                            <XIcon className="h-3.5 w-3.5" />
-                          </button>
+                            {/* Cancel Button (only if not already canceled) */}
+                            {aula.status !== "cancelada" && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCancelError(null);
+                                  setAulaParaCancelar(aula);
+                                }}
+                                className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 transition-colors"
+                                title="Cancelar aula"
+                              >
+                                <XIcon className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-[11px] text-slate-400 italic">Somente leitura</span>
                         )}
                       </div>
                     </div>
@@ -724,26 +744,32 @@ export default function AdminAgendaPage() {
                           <p className="text-[10px] text-slate-400 truncate">{turma?.nome}</p>
 
                           <div className="pt-1 flex items-center justify-between border-t border-slate-50">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setAulaParaPresenca(a);
-                                setModalPresencaOpen(true);
-                              }}
-                              className="text-[10px] text-purple-600 font-bold hover:underline"
-                            >
-                              Presença
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setAulaParaEditar(a);
-                                setModalAulaOpen(true);
-                              }}
-                              className="text-[10px] text-slate-500 hover:text-slate-800"
-                            >
-                              Editar
-                            </button>
+                            {(!isProfessor || (!!professorOperationalId && a.professorId === professorOperationalId)) ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setAulaParaPresenca(a);
+                                    setModalPresencaOpen(true);
+                                  }}
+                                  className="text-[10px] text-purple-600 font-bold hover:underline"
+                                >
+                                  Presença
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setAulaParaEditar(a);
+                                    setModalAulaOpen(true);
+                                  }}
+                                  className="text-[10px] text-slate-500 hover:text-slate-800"
+                                >
+                                  Editar
+                                </button>
+                              </>
+                            ) : (
+                              <span className="text-[10px] text-slate-300 italic">Visualização</span>
+                            )}
                           </div>
                         </div>
                       );

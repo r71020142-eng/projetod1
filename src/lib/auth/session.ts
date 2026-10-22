@@ -12,6 +12,8 @@ export interface UserIdentity {
   avatarUrl: string | null;
   initials: string;
   isRealAuth: boolean;
+  alunoId: string | null;
+  professorId: string | null;
 }
 
 /**
@@ -77,6 +79,8 @@ export async function getServerIdentity(
         avatarUrl: "/carla-avatar.png",
         initials: "CM",
         isRealAuth: false,
+        alunoId: null,
+        professorId: null,
       };
     } else {
       return {
@@ -89,6 +93,8 @@ export async function getServerIdentity(
         avatarUrl: "/mariana-avatar.png",
         initials: "MS",
         isRealAuth: false,
+        alunoId: "alu-001",
+        professorId: null,
       };
     }
   }
@@ -113,7 +119,7 @@ export async function getServerIdentity(
     // 2.2. Consulta o perfil correspondente na tabela public.perfis
     const { data: profile, error: profileError } = await supabase
       .from("perfis")
-      .select("id, email, nome_completo, role, status, avatar_url, telefone")
+      .select("id, email, nome_completo, role, status, avatar_url, telefone, aluno_id, professor_id")
       .eq("id", user.id)
       .single();
 
@@ -130,6 +136,38 @@ export async function getServerIdentity(
     const avatarUrl = profile.avatar_url || null;
     const initials = extractInitials(nomeCompleto);
 
+    // 2.3. Resolução estrita dos identificadores operacionais (alunos.id / professores.id)
+    // Nunca assume que perfis.id é igual ao ID operacional.
+    // Consulta o vínculo real nas tabelas correspondentes via perfil_id, com fallback seguro para a coluna no perfil.
+    let alunoId: string | null = null;
+    let professorId: string | null = null;
+
+    if (role === "aluno") {
+      const { data: alunoRow } = await supabase
+        .from("alunos")
+        .select("id")
+        .eq("perfil_id", user.id)
+        .maybeSingle();
+
+      if (alunoRow?.id) {
+        alunoId = alunoRow.id;
+      } else if (profile.aluno_id) {
+        alunoId = profile.aluno_id;
+      }
+    } else if (role === "professor") {
+      const { data: profRow } = await supabase
+        .from("professores")
+        .select("id")
+        .eq("perfil_id", user.id)
+        .maybeSingle();
+
+      if (profRow?.id) {
+        professorId = profRow.id;
+      } else if (profile.professor_id) {
+        professorId = profile.professor_id;
+      }
+    }
+
     return {
       id: profile.id,
       email,
@@ -140,6 +178,8 @@ export async function getServerIdentity(
       avatarUrl,
       initials,
       isRealAuth: true,
+      alunoId,
+      professorId,
     };
   } catch {
     return null;

@@ -24,17 +24,22 @@ const DEMO_ALUNO_ID = "alu-001"; // Fallback para modo demonstrativo (Mariana Ol
 
 export default function MinhasAulasPage() {
   const identity = useAlunoIdentity();
+  const isSupabaseActive = getAcademicAgendaDataSource() === "supabase";
 
-  // Determina o ID do discente: se autenticado real, usa o ID da sessão segura; senão, fallback demonstrativo
+  // Determina o ID operacional do discente.
+  // Em modo Supabase: exige estritamente o alunoId resolvido do perfil autenticado; NUNCA usa fallback demonstrativo.
+  // Em modo Demonstrativo: utiliza o alunoId da identidade ou fallback para DEMO_ALUNO_ID.
   const alunoId = useMemo(() => {
-    if (identity?.isRealAuth && identity.role === "aluno") {
-      return identity.id;
+    if (isSupabaseActive) {
+      if (identity?.isRealAuth && identity.role === "aluno" && identity.alunoId) {
+        return identity.alunoId;
+      }
+      return null;
     }
-    return DEMO_ALUNO_ID;
-  }, [identity]);
+    return identity?.alunoId || DEMO_ALUNO_ID;
+  }, [identity, isSupabaseActive]);
 
   const alunoNome = identity?.nomeCompleto || "Mariana Oliveira";
-  const isSupabaseActive = getAcademicAgendaDataSource() === "supabase";
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +49,20 @@ export default function MinhasAulasPage() {
   const [frequencia, setFrequencia] = useState<FrequenciaCalculada | null>(null);
 
   const carregarDados = useCallback(async (isMounted = true) => {
+    if (!alunoId) {
+      if (isMounted) {
+        if (isSupabaseActive) {
+          setError(
+            "Vínculo acadêmico de aluno não encontrado para este usuário. Entre em contato com a coordenação pedagógica."
+          );
+        } else {
+          setError("Identificador de aluno não configurado.");
+        }
+        setLoading(false);
+      }
+      return;
+    }
+
     try {
       setError(null);
       const [listTurmas, listAulas, listProfs, freqData] = await Promise.all([
@@ -72,7 +91,7 @@ export default function MinhasAulasPage() {
         setLoading(false);
       }
     }
-  }, [alunoId]);
+  }, [alunoId, isSupabaseActive]);
 
   useEffect(() => {
     let isMounted = true;
@@ -438,8 +457,8 @@ export default function MinhasAulasPage() {
             {aulasConcluidas.map((aula) => {
               const turma = turmaMap.get(aula.turmaId);
               const prof = profMap.get(aula.professorId);
-              const regPresenca = aula.presencas
-                ? (aula.presencas[alunoId] || Object.values(aula.presencas)[0])
+              const regPresenca = (aula.presencas && alunoId)
+                ? (aula.presencas[alunoId] || null)
                 : null;
               const statusPresenca: StatusPresenca = regPresenca
                 ? regPresenca.status
