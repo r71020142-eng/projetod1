@@ -68,9 +68,10 @@ export function Header({
       : "Buscar alunos, professores, aulas...";
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 sm:h-20 w-full items-center justify-between border-b border-[#E5E2DA] bg-[#FAF8F3]/95 backdrop-blur-md px-4 sm:px-6 lg:px-8 select-none transition-colors">
-      {/* Left side: Mobile Toggle & Brand (on mobile only, since desktop has persistent sidebar) */}
-      <div className="flex items-center gap-2 sm:gap-3">
+    <header className="sticky top-0 z-30 w-full border-b border-[#E5E2DA] bg-[#FAF8F3]/95 backdrop-blur-md select-none transition-colors pt-[env(safe-area-inset-top,0px)]">
+      <div className="flex h-16 sm:h-20 w-full items-center justify-between px-4 sm:px-6 lg:px-8 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]">
+        {/* Left side: Mobile Toggle & Brand (on mobile only, since desktop has persistent sidebar) */}
+        <div className="flex items-center gap-2 sm:gap-3">
         <button
           onClick={onToggleMobileMenu}
           type="button"
@@ -211,6 +212,7 @@ export function Header({
             </div>
           )}
         </div>
+      </div>
       </div>
 
       {/* Drawer de Notificações Internas */}

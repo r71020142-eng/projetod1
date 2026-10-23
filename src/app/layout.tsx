@@ -37,6 +37,7 @@ export const viewport: Viewport = {
   maximumScale: 5,
   userScalable: true,
   themeColor: "#0F172A",
+  viewportFit: "cover",
 };
 
 export const metadata: Metadata = {
@@ -47,7 +48,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "Método Paulo",
     startupImage: [
       {
