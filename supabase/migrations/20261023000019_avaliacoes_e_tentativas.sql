@@ -190,6 +190,9 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.aluno_has_access_to_avaliacao(TEXT, UUID, UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.aluno_has_access_to_avaliacao(TEXT, UUID, UUID) TO authenticated, service_role;
+
 -- 8. VIEWS COM SECURITY BARRIER
 DROP VIEW IF EXISTS public.vw_aluno_avaliacoes;
 CREATE VIEW public.vw_aluno_avaliacoes
@@ -228,7 +231,7 @@ FROM public.avaliacoes a
 WHERE a.status IN ('publicada', 'encerrada')
   AND public.aluno_has_access_to_avaliacao(a.destino_tipo, a.destino_turma_id, a.destino_aluno_id);
 
-GRANT SELECT ON public.vw_aluno_avaliacoes TO authenticated;
+GRANT SELECT ON public.vw_aluno_avaliacoes TO authenticated, service_role;
 
 -- 9. HABILITAÇÃO DE ROW LEVEL SECURITY (RLS)
 ALTER TABLE public.programas_pedagogicos ENABLE ROW LEVEL SECURITY;

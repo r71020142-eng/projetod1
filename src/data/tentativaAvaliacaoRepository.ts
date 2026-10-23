@@ -14,7 +14,7 @@ import {
   isGabaritoLiberado,
 } from "./tentativaAvaliacaoLocalStorageRepository";
 import { tentativaAvaliacaoSupabaseRepository } from "./tentativaAvaliacaoSupabaseRepository";
-import { isLocalDataSource } from "./repositoryFactory";
+import { getTentativaAvaliacaoRepository } from "./repositoryFactory";
 
 export {
   tentativaAvaliacaoLocalStorageRepository,
@@ -24,10 +24,7 @@ export {
 };
 
 function getActiveRepository() {
-  if (isLocalDataSource()) {
-    return tentativaAvaliacaoLocalStorageRepository;
-  }
-  return tentativaAvaliacaoSupabaseRepository;
+  return getTentativaAvaliacaoRepository();
 }
 
 /**

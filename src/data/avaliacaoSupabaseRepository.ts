@@ -6,7 +6,6 @@ import {
   ConfigFeedbackAvaliacao,
 } from "../types";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
-import { avaliacaoLocalStorageRepository } from "./avaliacaoLocalStorageRepository";
 import { validarQuestaoObjetiva, validarRubricaPratica } from "./pedagogicoCalculos";
 
 interface AvaliacaoDbRow {
@@ -39,6 +38,17 @@ interface AvaliacaoDbRow {
   permitir_link: boolean;
   created_at: string;
   updated_at: string;
+}
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuid(val: string | null | undefined): boolean {
+  return typeof val === "string" && UUID_REGEX.test(val);
+}
+
+function toUuidOrNull(val: string | null | undefined): string | null {
+  if (!val) return null;
+  return isUuid(val) ? val : null;
 }
 
 function getSupabase() {
@@ -87,80 +97,82 @@ function mapRowToAvaliacao(row: AvaliacaoDbRow): Avaliacao {
 
 export const avaliacaoSupabaseRepository = {
   async listar(filters?: AvaliacaoFilters): Promise<Avaliacao[]> {
-    try {
-      const supabase = getSupabase();
-      let query = supabase.from("avaliacoes").select("*");
+    const supabase = getSupabase();
+    let query = supabase.from("avaliacoes").select("*");
 
-      if (filters?.tipo && filters.tipo !== "todos") query = query.eq("tipo", filters.tipo);
-      if (filters?.status && filters.status !== "todos") query = query.eq("status", filters.status);
-      if (filters?.moduloId) query = query.eq("modulo_id", filters.moduloId);
-      if (filters?.professorId) query = query.eq("professor_id", filters.professorId);
-
-      const { data, error } = await query.order("created_at", { ascending: false });
-      if (error) {
-        console.warn("[Supabase Avaliações] Erro ao listar, fallback local:", error.message);
-        return avaliacaoLocalStorageRepository.listar(filters);
+    if (filters?.tipo && filters.tipo !== "todos") query = query.eq("tipo", filters.tipo);
+    if (filters?.status && filters.status !== "todos") query = query.eq("status", filters.status);
+    if (filters?.moduloId) {
+      if (isUuid(filters.moduloId)) {
+        query = query.eq("modulo_id", filters.moduloId);
       }
-
-      let result = (data as AvaliacaoDbRow[]).map(mapRowToAvaliacao);
-      if (filters?.busca) {
-        const q = filters.busca.toLowerCase().trim();
-        result = result.filter(
-          (a) =>
-            a.titulo.toLowerCase().includes(q) ||
-            a.descricao.toLowerCase().includes(q) ||
-            (a.professorNome && a.professorNome.toLowerCase().includes(q))
-        );
-      }
-      return result;
-    } catch {
-      return avaliacaoLocalStorageRepository.listar(filters);
     }
+    if (filters?.professorId) {
+      if (isUuid(filters.professorId)) {
+        query = query.eq("professor_id", filters.professorId);
+      }
+    }
+
+    const { data, error } = await query.order("created_at", { ascending: false });
+    if (error) {
+      throw new Error(`[Supabase Avaliações] Erro ao listar avaliações: ${error.message}`);
+    }
+
+    let result = (data as AvaliacaoDbRow[]).map(mapRowToAvaliacao);
+    if (filters?.busca) {
+      const q = filters.busca.toLowerCase().trim();
+      result = result.filter(
+        (a) =>
+          a.titulo.toLowerCase().includes(q) ||
+          a.descricao.toLowerCase().includes(q) ||
+          (a.professorNome && a.professorNome.toLowerCase().includes(q))
+      );
+    }
+    return result;
   },
 
   async listarParaAluno(alunoId: string, turmaIds: string[] = []): Promise<Avaliacao[]> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("vw_aluno_avaliacoes")
-        .select("*")
-        .order("created_at", { ascending: false });
+    const supabase = getSupabase();
+    
+    // Tenta primeiro a view de segurança vw_aluno_avaliacoes
+    const { data, error } = await supabase
+      .from("vw_aluno_avaliacoes")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-      if (!error && data) {
-        return (data as AvaliacaoDbRow[]).map(mapRowToAvaliacao);
-      }
-
-      const { data: directData, error: directErr } = await supabase
-        .from("avaliacoes")
-        .select("*")
-        .in("status", ["publicada", "encerrada"]);
-
-      if (!directErr && directData) {
-        return (directData as AvaliacaoDbRow[])
-          .map(mapRowToAvaliacao)
-          .filter((a) => {
-            if (a.destinoTipo === "geral") return true;
-            if (a.destinoTipo === "aluno" && a.destinoAlunoId === alunoId) return true;
-            if (a.destinoTipo === "turma" && a.destinoTurmaId && turmaIds.includes(a.destinoTurmaId)) return true;
-            return false;
-          });
-      }
-
-      return avaliacaoLocalStorageRepository.listarParaAluno(alunoId, turmaIds);
-    } catch {
-      return avaliacaoLocalStorageRepository.listarParaAluno(alunoId, turmaIds);
+    if (!error && data) {
+      return (data as AvaliacaoDbRow[]).map(mapRowToAvaliacao);
     }
+
+    // Se a view não estiver acessível, consulta direta com filtros RLS
+    const { data: directData, error: directErr } = await supabase
+      .from("avaliacoes")
+      .select("*")
+      .in("status", ["publicada", "encerrada"])
+      .order("created_at", { ascending: false });
+
+    if (directErr) {
+      throw new Error(`[Supabase Avaliações] Erro ao listar avaliações para o aluno: ${directErr.message}`);
+    }
+
+    return (directData as AvaliacaoDbRow[])
+      .map(mapRowToAvaliacao)
+      .filter((a) => {
+        if (a.destinoTipo === "geral") return true;
+        if (a.destinoTipo === "aluno" && a.destinoAlunoId === alunoId) return true;
+        if (a.destinoTipo === "turma" && a.destinoTurmaId && turmaIds.includes(a.destinoTurmaId)) return true;
+        return false;
+      });
   },
 
   async obterPorId(id: string): Promise<Avaliacao | null> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase.from("avaliacoes").select("*").eq("id", id).maybeSingle();
-      if (error || !data) return avaliacaoLocalStorageRepository.obterPorId(id);
-      return mapRowToAvaliacao(data as AvaliacaoDbRow);
-    } catch {
-      return avaliacaoLocalStorageRepository.obterPorId(id);
+    const supabase = getSupabase();
+    const { data, error } = await supabase.from("avaliacoes").select("*").eq("id", id).maybeSingle();
+    if (error) {
+      throw new Error(`[Supabase Avaliações] Erro ao obter avaliação ${id}: ${error.message}`);
     }
+    if (!data) return null;
+    return mapRowToAvaliacao(data as AvaliacaoDbRow);
   },
 
   async salvar(
@@ -209,18 +221,22 @@ export const avaliacaoSupabaseRepository = {
 
     try {
       const supabase = getSupabase();
+      const professorIdVal = isUuid(dados.professorId)
+        ? dados.professorId
+        : "00000000-0000-4000-8000-000000000002";
+
       const payload = {
         titulo: dados.titulo.trim(),
         descricao: dados.descricao || null,
         tipo: dados.tipo,
-        programa_id: dados.programaId || null,
-        etapa_id: dados.etapaId || null,
-        modulo_id: dados.moduloId,
-        professor_id: dados.professorId,
+        programa_id: toUuidOrNull(dados.programaId),
+        etapa_id: toUuidOrNull(dados.etapaId),
+        modulo_id: toUuidOrNull(dados.moduloId),
+        professor_id: professorIdVal,
         professor_nome: dados.professorNome || null,
         destino_tipo: dados.destinoTipo || "geral",
-        destino_turma_id: dados.destinoTurmaId || null,
-        destino_aluno_id: dados.destinoAlunoId || null,
+        destino_turma_id: toUuidOrNull(dados.destinoTurmaId),
+        destino_aluno_id: toUuidOrNull(dados.destinoAlunoId),
         status: dados.status || "rascunho",
         data_publicacao: dados.dataPublicacao || null,
         prazo: dados.prazo || null,

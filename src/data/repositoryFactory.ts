@@ -32,6 +32,8 @@ import { baralhoLocalStorageRepository } from "./baralhoLocalStorageRepository";
 import { baralhoSupabaseRepository } from "./baralhoSupabaseRepository";
 import { avaliacaoLocalStorageRepository } from "./avaliacaoLocalStorageRepository";
 import { avaliacaoSupabaseRepository } from "./avaliacaoSupabaseRepository";
+import { tentativaAvaliacaoLocalStorageRepository } from "./tentativaAvaliacaoLocalStorageRepository";
+import { tentativaAvaliacaoSupabaseRepository } from "./tentativaAvaliacaoSupabaseRepository";
 import { comunidadeLocalStorageRepository } from "./comunidadeLocalStorageRepository";
 import { comunidadeSupabaseRepository } from "./comunidadeSupabaseRepository";
 import { gamificacaoLocalStorageRepository } from "./gamificacaoLocalStorageRepository";
@@ -48,6 +50,7 @@ import {
   ISelfPresentationRepository,
   IBaralhoRepository,
   IAvaliacaoRepository,
+  ITentativaAvaliacaoRepository,
   IComunidadeRepository,
   IGamificacaoRepository,
 } from "./contracts/repositoryContracts";
@@ -128,6 +131,22 @@ export function getAcademicContentDataSource(): DataSource {
   try {
     const clientEnv = getClientEnv();
     return clientEnv.academicContentDataSource || "local";
+  } catch {
+    return "local";
+  }
+}
+
+/**
+ * Retorna a fonte de dados configurada para os módulos de Avaliações e Tentativas (Etapa 10.4B).
+ */
+export function getAcademicEvaluationsDataSource(): DataSource {
+  if (typeof window === "undefined") {
+    const env = getServerEnv();
+    return env.academicEvaluationsDataSource;
+  }
+  try {
+    const clientEnv = getClientEnv();
+    return clientEnv.academicEvaluationsDataSource || "local";
   } catch {
     return "local";
   }
@@ -271,13 +290,23 @@ export function getBaralhoRepository(): IBaralhoRepository {
 }
 
 /**
- * Retorna o repositório de Avaliações ativo para o ambiente.
+ * Retorna o repositório de Avaliações ativo para o ambiente (Etapa 10.4B).
  */
 export function getAvaliacaoRepository(): IAvaliacaoRepository {
-  if (isLocalDataSource()) {
-    return avaliacaoLocalStorageRepository;
+  if (getAcademicEvaluationsDataSource() === "supabase") {
+    return avaliacaoSupabaseRepository;
   }
-  return avaliacaoSupabaseRepository;
+  return avaliacaoLocalStorageRepository;
+}
+
+/**
+ * Retorna o repositório de Tentativas de Avaliação ativo para o ambiente (Etapa 10.4B).
+ */
+export function getTentativaAvaliacaoRepository(): ITentativaAvaliacaoRepository {
+  if (getAcademicEvaluationsDataSource() === "supabase") {
+    return tentativaAvaliacaoSupabaseRepository;
+  }
+  return tentativaAvaliacaoLocalStorageRepository;
 }
 
 /**
@@ -312,6 +341,10 @@ export {
   entregaSupabaseRepository,
   conteudoDiarioLocalStorageRepository,
   conteudoDiarioSupabaseRepository,
+  avaliacaoLocalStorageRepository,
+  avaliacaoSupabaseRepository,
+  tentativaAvaliacaoLocalStorageRepository,
+  tentativaAvaliacaoSupabaseRepository,
   comunidadeLocalStorageRepository,
   comunidadeSupabaseRepository,
   gamificacaoLocalStorageRepository,

@@ -11,7 +11,7 @@ import {
   PoliticaExibicaoGabarito,
 } from "../types";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
-import { tentativaAvaliacaoLocalStorageRepository, sanitizarTentativaParaAluno } from "./tentativaAvaliacaoLocalStorageRepository";
+import { sanitizarTentativaParaAluno } from "./tentativaAvaliacaoLocalStorageRepository";
 import { avaliacaoRepository } from "./avaliacaoRepository";
 import {
   corrigirQuestaoObjetiva,
@@ -79,64 +79,52 @@ function mapRowToTentativa(row: TentativaDbRow): TentativaAvaliacao {
 
 export const tentativaAvaliacaoSupabaseRepository = {
   async listar(filters?: TentativaFilters): Promise<TentativaAvaliacao[]> {
-    try {
-      const supabase = getSupabase();
-      let query = supabase.from("tentativas_avaliacoes").select("*");
+    const supabase = getSupabase();
+    let query = supabase.from("tentativas_avaliacoes").select("*");
 
-      if (filters?.avaliacaoId) query = query.eq("avaliacao_id", filters.avaliacaoId);
-      if (filters?.alunoId) query = query.eq("aluno_id", filters.alunoId);
-      if (filters?.status && filters.status !== "todos") query = query.eq("status", filters.status);
-      if (filters?.resultado && filters.resultado !== "todos") query = query.eq("resultado", filters.resultado);
+    if (filters?.avaliacaoId) query = query.eq("avaliacao_id", filters.avaliacaoId);
+    if (filters?.alunoId) query = query.eq("aluno_id", filters.alunoId);
+    if (filters?.status && filters.status !== "todos") query = query.eq("status", filters.status);
+    if (filters?.resultado && filters.resultado !== "todos") query = query.eq("resultado", filters.resultado);
 
-      const { data, error } = await query.order("iniciada_em", { ascending: false });
-      if (error) {
-        console.warn("[Supabase Tentativas] Erro ao listar, fallback local:", error.message);
-        return tentativaAvaliacaoLocalStorageRepository.listar(filters);
-      }
-      return (data as TentativaDbRow[]).map(mapRowToTentativa);
-    } catch {
-      return tentativaAvaliacaoLocalStorageRepository.listar(filters);
+    const { data, error } = await query.order("iniciada_em", { ascending: false });
+    if (error) {
+      throw new Error(`[Supabase Tentativas] Erro ao listar tentativas: ${error.message}`);
     }
+    return (data as TentativaDbRow[]).map(mapRowToTentativa);
   },
 
   async listarPorAluno(alunoId: string): Promise<TentativaAvaliacao[]> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("tentativas_avaliacoes")
-        .select("*")
-        .eq("aluno_id", alunoId)
-        .order("iniciada_em", { ascending: false });
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from("tentativas_avaliacoes")
+      .select("*")
+      .eq("aluno_id", alunoId)
+      .order("iniciada_em", { ascending: false });
 
-      if (error) {
-        return tentativaAvaliacaoLocalStorageRepository.listarPorAluno(alunoId);
-      }
-      return (data as TentativaDbRow[]).map(mapRowToTentativa).map((t) => sanitizarTentativaParaAluno(t));
-    } catch {
-      return tentativaAvaliacaoLocalStorageRepository.listarPorAluno(alunoId);
+    if (error) {
+      throw new Error(`[Supabase Tentativas] Erro ao listar tentativas do aluno ${alunoId}: ${error.message}`);
     }
+    return (data as TentativaDbRow[]).map(mapRowToTentativa).map((t) => sanitizarTentativaParaAluno(t));
   },
 
   async obterPorId(id: string, paraAluno = false): Promise<TentativaAvaliacao | null> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("tentativas_avaliacoes")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from("tentativas_avaliacoes")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
 
-      if (error || !data) {
-        return tentativaAvaliacaoLocalStorageRepository.obterPorId(id, paraAluno);
-      }
-      const tent = mapRowToTentativa(data as TentativaDbRow);
-      if (paraAluno) {
-        return sanitizarTentativaParaAluno(tent);
-      }
-      return tent;
-    } catch {
-      return tentativaAvaliacaoLocalStorageRepository.obterPorId(id, paraAluno);
+    if (error) {
+      throw new Error(`[Supabase Tentativas] Erro ao obter tentativa ${id}: ${error.message}`);
     }
+    if (!data) return null;
+    const tent = mapRowToTentativa(data as TentativaDbRow);
+    if (paraAluno) {
+      return sanitizarTentativaParaAluno(tent);
+    }
+    return tent;
   },
 
   async iniciarTentativa(
@@ -161,7 +149,10 @@ export const tentativaAvaliacaoSupabaseRepository = {
         .eq("aluno_id", alunoId);
 
       if (tErr) {
-        return tentativaAvaliacaoLocalStorageRepository.iniciarTentativa(avaliacaoId, alunoId, alunoNome);
+        return {
+          success: false,
+          error: `[Supabase Tentativas] Erro ao verificar tentativas anteriores: ${tErr.message}`,
+        };
       }
 
       const rows = (tentativasAluno as TentativaDbRow[]).map(mapRowToTentativa);

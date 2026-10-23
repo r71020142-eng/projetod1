@@ -30,6 +30,13 @@ import {
   BaralhoFilters,
   Avaliacao,
   AvaliacaoFilters,
+  TentativaAvaliacao,
+  TentativaFilters,
+  RespostaAvaliacaoPratica,
+  RespostaQuestaoObjetiva,
+  CorrecaoItemRubrica,
+  ResultadoAvaliacao,
+  AutorizacaoTentativaExtra,
   EspacoComunidade,
   PublicacaoComunidade,
   ComentarioPublicacao,
@@ -284,6 +291,52 @@ export interface IAvaliacaoRepository {
   ): Promise<OperationResult<Avaliacao>>;
   duplicarComoNovaVersao(avaliacaoId: string): Promise<OperationResult<Avaliacao>>;
   alterarStatus(id: string, status: import("@/types").StatusAvaliacao): Promise<OperationResult<Avaliacao>>;
+}
+
+export interface ITentativaAvaliacaoRepository {
+  listar(filters?: TentativaFilters): Promise<TentativaAvaliacao[]>;
+  listarPorAluno(alunoId: string): Promise<TentativaAvaliacao[]>;
+  obterPorId(id: string, paraAluno?: boolean): Promise<TentativaAvaliacao | null>;
+  iniciarTentativa(avaliacaoId: string, alunoId: string, alunoNome: string): Promise<OperationResult<TentativaAvaliacao>>;
+  salvarRascunho(
+    tentativaId: string,
+    alunoId: string,
+    dadosEnvio?:
+      | {
+          respostasObjetivasMap?: Record<string, string>;
+          respostaPratica?: RespostaAvaliacaoPratica;
+        }
+      | RespostaQuestaoObjetiva[],
+    respostaPraticaExtra?: RespostaAvaliacaoPratica
+  ): Promise<OperationResult<TentativaAvaliacao>>;
+  enviarTentativa(
+    tentativaId: string,
+    alunoId: string,
+    dadosEnvio: {
+      respostasObjetivasMap?: Record<string, string>;
+      respostaPratica?: RespostaAvaliacaoPratica;
+    }
+  ): Promise<OperationResult<TentativaAvaliacao>>;
+  corrigirTentativaPratica(
+    tentativaId: string,
+    professorId: string,
+    professorNome: string,
+    dadosCorrecao: {
+      itensRubrica: CorrecaoItemRubrica[];
+      pontosFortes: string;
+      pontosADesenvolver: string;
+      orientacoes: string;
+      observacoesInternas?: string;
+      resultado?: ResultadoAvaliacao;
+    }
+  ): Promise<OperationResult<TentativaAvaliacao>>;
+  autorizarTentativaExtra(
+    avaliacaoId: string,
+    alunoId: string,
+    professorId: string,
+    professorNome: string,
+    justificativa: string
+  ): Promise<OperationResult<AutorizacaoTentativaExtra>>;
 }
 
 import { ContextoAvaliacaoConquistas } from "../gamificacaoMotor";
