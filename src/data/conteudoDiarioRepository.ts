@@ -1,15 +1,15 @@
 import { ConteudoDiario, ConteudoDiarioFilters, OperationResult } from "@/types";
 import { conteudoDiarioLocalStorageRepository } from "./conteudoDiarioLocalStorageRepository";
 import { conteudoDiarioSupabaseRepository } from "./conteudoDiarioSupabaseRepository";
-import { isLocalDataSource } from "./repositoryFactory";
+import { getAcademicContentDataSource } from "./repositoryFactory";
 
 export { conteudoDiarioLocalStorageRepository, conteudoDiarioSupabaseRepository };
 
 function getActiveRepository() {
-  if (isLocalDataSource()) {
-    return conteudoDiarioLocalStorageRepository;
+  if (getAcademicContentDataSource() === "supabase") {
+    return conteudoDiarioSupabaseRepository;
   }
-  return conteudoDiarioSupabaseRepository;
+  return conteudoDiarioLocalStorageRepository;
 }
 
 export const conteudoDiarioRepository = {

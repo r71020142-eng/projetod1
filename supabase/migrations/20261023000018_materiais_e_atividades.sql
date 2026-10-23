@@ -189,6 +189,9 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.aluno_has_access_to_material(TEXT, UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.aluno_has_access_to_material(TEXT, UUID) TO authenticated, service_role;
+
 -- 6. VIEWS DE LEITURA COM SECURITY BARRIER E HIGIENIZAÇÃO DE PRIVACIDADE
 DROP VIEW IF EXISTS public.vw_aluno_materiais;
 CREATE VIEW public.vw_aluno_materiais
@@ -261,11 +264,13 @@ ALTER TABLE public.conteudos_diarios ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS admin_all_materiais ON public.materiais;
 DROP POLICY IF EXISTS professor_select_materiais ON public.materiais;
 DROP POLICY IF EXISTS professor_write_materiais ON public.materiais;
+DROP POLICY IF EXISTS professor_update_materiais ON public.materiais;
 DROP POLICY IF EXISTS aluno_select_materiais ON public.materiais;
 
 DROP POLICY IF EXISTS admin_all_atividades ON public.atividades;
 DROP POLICY IF EXISTS professor_select_atividades ON public.atividades;
 DROP POLICY IF EXISTS professor_write_atividades ON public.atividades;
+DROP POLICY IF EXISTS professor_update_atividades ON public.atividades;
 DROP POLICY IF EXISTS aluno_select_atividades ON public.atividades;
 
 DROP POLICY IF EXISTS admin_all_entregas ON public.entregas_atividades;
@@ -298,6 +303,13 @@ FOR INSERT
 TO authenticated
 WITH CHECK (public.get_current_professor_id() IS NOT NULL);
 
+CREATE POLICY professor_update_materiais
+ON public.materiais
+FOR UPDATE
+TO authenticated
+USING (public.get_current_professor_id() IS NOT NULL)
+WITH CHECK (public.get_current_professor_id() IS NOT NULL);
+
 CREATE POLICY aluno_select_materiais
 ON public.materiais
 FOR SELECT
@@ -326,6 +338,13 @@ CREATE POLICY professor_write_atividades
 ON public.atividades
 FOR INSERT
 TO authenticated
+WITH CHECK (public.get_current_professor_id() IS NOT NULL);
+
+CREATE POLICY professor_update_atividades
+ON public.atividades
+FOR UPDATE
+TO authenticated
+USING (public.get_current_professor_id() IS NOT NULL)
 WITH CHECK (public.get_current_professor_id() IS NOT NULL);
 
 CREATE POLICY aluno_select_atividades
@@ -404,3 +423,11 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.materiais TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.atividades TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.entregas_atividades TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.conteudos_diarios TO authenticated;
+
+-- 8. ALIASES E COMPATIBILIDADE DE NOMENCLATURA
+CREATE OR REPLACE VIEW public.materiais_didaticos AS SELECT * FROM public.materiais;
+GRANT SELECT ON public.materiais_didaticos TO authenticated;
+
+CREATE OR REPLACE VIEW public.atividades_praticas AS SELECT * FROM public.atividades;
+GRANT SELECT ON public.atividades_praticas TO authenticated;
+

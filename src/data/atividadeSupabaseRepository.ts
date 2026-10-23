@@ -1,6 +1,5 @@
 import { Atividade, AtividadeFilters, OperationResult } from "@/types";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
-import { atividadeLocalStorageRepository } from "./atividadeLocalStorageRepository";
 import { validateAtividadeInput, normalizeText } from "./validators";
 
 interface AtividadeDbRow {
@@ -59,47 +58,42 @@ function mapRowToAtividade(row: AtividadeDbRow): Atividade {
 
 export const atividadeSupabaseRepository = {
   async listar(filters?: AtividadeFilters): Promise<Atividade[]> {
-    try {
-      const supabase = getSupabase();
-      let query = supabase.from("atividades").select("*");
+    const supabase = getSupabase();
+    let query = supabase.from("atividades").select("*");
 
-      if (filters?.status && filters.status !== "todos") {
-        query = query.eq("status", filters.status);
-      }
-      if (filters?.tipo && filters.tipo !== "todos") {
-        query = query.eq("tipo", filters.tipo);
-      }
-      if (filters?.destinoTipo && filters.destinoTipo !== "todos") {
-        query = query.eq("destino_tipo", filters.destinoTipo);
-      }
-      if (filters?.destinoId) {
-        query = query.eq("destino_id", filters.destinoId);
-      }
-      if (filters?.professorId) {
-        query = query.eq("professor_id", filters.professorId);
-      }
-
-      const { data, error } = await query.order("created_at", { ascending: false });
-      if (error) {
-        console.warn("[Supabase Atividades] Erro ao listar, fallback local:", error.message);
-        return atividadeLocalStorageRepository.listar(filters);
-      }
-
-      let result = (data as AtividadeDbRow[]).map(mapRowToAtividade);
-
-      if (filters?.busca) {
-        const q = filters.busca.toLowerCase();
-        result = result.filter(
-          (a) =>
-            a.titulo.toLowerCase().includes(q) ||
-            a.instrucoes.toLowerCase().includes(q)
-        );
-      }
-
-      return result;
-    } catch {
-      return atividadeLocalStorageRepository.listar(filters);
+    if (filters?.status && filters.status !== "todos") {
+      query = query.eq("status", filters.status);
     }
+    if (filters?.tipo && filters.tipo !== "todos") {
+      query = query.eq("tipo", filters.tipo);
+    }
+    if (filters?.destinoTipo && filters.destinoTipo !== "todos") {
+      query = query.eq("destino_tipo", filters.destinoTipo);
+    }
+    if (filters?.destinoId) {
+      query = query.eq("destino_id", filters.destinoId);
+    }
+    if (filters?.professorId) {
+      query = query.eq("professor_id", filters.professorId);
+    }
+
+    const { data, error } = await query.order("created_at", { ascending: false });
+    if (error) {
+      throw new Error(`[Supabase Atividades] Erro ao listar atividades: ${error.message}`);
+    }
+
+    let result = (data as AtividadeDbRow[]).map(mapRowToAtividade);
+
+    if (filters?.busca) {
+      const q = filters.busca.toLowerCase();
+      result = result.filter(
+        (a) =>
+          a.titulo.toLowerCase().includes(q) ||
+          a.instrucoes.toLowerCase().includes(q)
+      );
+    }
+
+    return result;
   },
 
   async listarParaAluno(
@@ -107,66 +101,61 @@ export const atividadeSupabaseRepository = {
     turmasDoAluno: string[] = [],
     filters?: AtividadeFilters
   ): Promise<Atividade[]> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("vw_aluno_atividades")
-        .select("*")
-        .order("created_at", { ascending: false });
+    const supabase = getSupabase();
+    // Consulta prioritária via view com security_barrier
+    const { data, error } = await supabase
+      .from("vw_aluno_atividades")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-      if (!error && data) {
-        let list = (data as AtividadeDbRow[]).map(mapRowToAtividade);
-        if (filters?.tipo && filters.tipo !== "todos") {
-          list = list.filter((a) => a.tipo === filters.tipo);
-        }
-        if (filters?.busca) {
-          const q = filters.busca.toLowerCase();
-          list = list.filter((a) => a.titulo.toLowerCase().includes(q) || a.instrucoes.toLowerCase().includes(q));
-        }
-        return list;
+    if (!error && data) {
+      let list = (data as AtividadeDbRow[]).map(mapRowToAtividade);
+      if (filters?.tipo && filters.tipo !== "todos") {
+        list = list.filter((a) => a.tipo === filters.tipo);
       }
-
-      const query = supabase
-        .from("atividades")
-        .select("*")
-        .in("status", ["publicada", "encerrada"])
-        .lte("data_publicacao", new Date().toISOString().slice(0, 10));
-
-      const { data: directData, error: directErr } = await query;
-      if (!directErr && directData) {
-        let list = (directData as AtividadeDbRow[])
-          .map(mapRowToAtividade)
-          .filter((a) => {
-            if (a.destinoTipo === "geral") return true;
-            if (a.destinoTipo === "turma" && a.destinoId && turmasDoAluno.includes(a.destinoId)) return true;
-            if (a.destinoTipo === "aluno" && a.destinoId === alunoId) return true;
-            return false;
-          })
-          .map((a) => ({ ...a, observacoesInternas: undefined }));
-
-        if (filters?.tipo && filters.tipo !== "todos") {
-          list = list.filter((a) => a.tipo === filters.tipo);
-        }
-        return list;
+      if (filters?.busca) {
+        const q = filters.busca.toLowerCase();
+        list = list.filter((a) => a.titulo.toLowerCase().includes(q) || a.instrucoes.toLowerCase().includes(q));
       }
-
-      return atividadeLocalStorageRepository.listarParaAluno(alunoId, turmasDoAluno, filters);
-    } catch {
-      return atividadeLocalStorageRepository.listarParaAluno(alunoId, turmasDoAluno, filters);
+      return list;
     }
+
+    // Fallback restrito para consulta na tabela
+    const query = supabase
+      .from("atividades")
+      .select("*")
+      .in("status", ["publicada", "encerrada"])
+      .lte("data_publicacao", new Date().toISOString().slice(0, 10));
+
+    const { data: directData, error: directErr } = await query;
+    if (directErr) {
+      throw new Error(`[Supabase Atividades] Erro ao listar atividades para aluno: ${directErr.message}`);
+    }
+
+    let list = (directData as AtividadeDbRow[])
+      .map(mapRowToAtividade)
+      .filter((a) => {
+        if (a.destinoTipo === "geral") return true;
+        if (a.destinoTipo === "turma" && a.destinoId && turmasDoAluno.includes(a.destinoId)) return true;
+        if (a.destinoTipo === "aluno" && a.destinoId === alunoId) return true;
+        return false;
+      })
+      .map((a) => ({ ...a, observacoesInternas: undefined }));
+
+    if (filters?.tipo && filters.tipo !== "todos") {
+      list = list.filter((a) => a.tipo === filters.tipo);
+    }
+    return list;
   },
 
   async obterPorId(id: string): Promise<Atividade | null> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase.from("atividades").select("*").eq("id", id).maybeSingle();
-      if (error || !data) {
-        return atividadeLocalStorageRepository.obterPorId(id);
-      }
-      return mapRowToAtividade(data as AtividadeDbRow);
-    } catch {
-      return atividadeLocalStorageRepository.obterPorId(id);
+    const supabase = getSupabase();
+    const { data, error } = await supabase.from("atividades").select("*").eq("id", id).maybeSingle();
+    if (error) {
+      throw new Error(`[Supabase Atividades] Erro ao obter atividade ${id}: ${error.message}`);
     }
+    if (!data) return null;
+    return mapRowToAtividade(data as AtividadeDbRow);
   },
 
   async obterPorIdParaAluno(
@@ -283,16 +272,14 @@ export const atividadeSupabaseRepository = {
   },
 
   async contarPublicadas(): Promise<number> {
-    try {
-      const supabase = getSupabase();
-      const { count, error } = await supabase
-        .from("atividades")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "publicada");
-      if (!error && count !== null) return count;
-      return atividadeLocalStorageRepository.contarPublicadas();
-    } catch {
-      return atividadeLocalStorageRepository.contarPublicadas();
+    const supabase = getSupabase();
+    const { count, error } = await supabase
+      .from("atividades")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "publicada");
+    if (error) {
+      throw new Error(`[Supabase Atividades] Erro ao contar atividades publicadas: ${error.message}`);
     }
+    return count ?? 0;
   },
 };

@@ -1,6 +1,5 @@
 import { Material, MaterialFilters, OperationResult } from "@/types";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
-import { materialLocalStorageRepository } from "./materialLocalStorageRepository";
 import { validateMaterialInput, normalizeText } from "./validators";
 
 interface MaterialDbRow {
@@ -65,109 +64,96 @@ function mapRowToMaterial(row: MaterialDbRow): Material {
 
 export const materialSupabaseRepository = {
   async listar(filters?: MaterialFilters): Promise<Material[]> {
-    try {
-      const supabase = getSupabase();
-      let query = supabase.from("materiais").select("*");
+    const supabase = getSupabase();
+    let query = supabase.from("materiais").select("*");
 
-      if (filters?.status && filters.status !== "todos") {
-        query = query.eq("status", filters.status);
-      }
-      if (filters?.tipo && filters.tipo !== "todos") {
-        query = query.eq("tipo", filters.tipo);
-      }
-      if (filters?.nivel && filters.nivel !== "todos") {
-        query = query.in("nivel_recomendado", [filters.nivel, "todos"]);
-      }
-      if (filters?.destinoTipo && filters.destinoTipo !== "todos") {
-        query = query.eq("destino_tipo", filters.destinoTipo);
-      }
-      if (filters?.destinoId) {
-        query = query.eq("destino_id", filters.destinoId);
-      }
-      if (filters?.moduloId) {
-        query = query.eq("modulo_id", filters.moduloId);
-      }
-
-      const { data, error } = await query.order("created_at", { ascending: false });
-
-      if (error) {
-        // Fallback defensivo para localStorage caso as migrations não tenham sido aplicadas no banco remoto
-        console.warn("[Supabase Materiais] Erro ao listar, utilizando fallback local:", error.message);
-        return materialLocalStorageRepository.listar(filters);
-      }
-
-      let result = (data as MaterialDbRow[]).map(mapRowToMaterial);
-
-      if (filters?.busca) {
-        const q = filters.busca.toLowerCase();
-        result = result.filter(
-          (m) =>
-            m.titulo.toLowerCase().includes(q) ||
-            m.descricao.toLowerCase().includes(q) ||
-            m.categoria.toLowerCase().includes(q) ||
-            m.tags.some((t) => t.toLowerCase().includes(q))
-        );
-      }
-
-      return result;
-    } catch {
-      return materialLocalStorageRepository.listar(filters);
+    if (filters?.status && filters.status !== "todos") {
+      query = query.eq("status", filters.status);
     }
+    if (filters?.tipo && filters.tipo !== "todos") {
+      query = query.eq("tipo", filters.tipo);
+    }
+    if (filters?.nivel && filters.nivel !== "todos") {
+      query = query.in("nivel_recomendado", [filters.nivel, "todos"]);
+    }
+    if (filters?.destinoTipo && filters.destinoTipo !== "todos") {
+      query = query.eq("destino_tipo", filters.destinoTipo);
+    }
+    if (filters?.destinoId) {
+      query = query.eq("destino_id", filters.destinoId);
+    }
+    if (filters?.moduloId) {
+      query = query.eq("modulo_id", filters.moduloId);
+    }
+
+    const { data, error } = await query.order("created_at", { ascending: false });
+
+    if (error) {
+      throw new Error(`[Supabase Materiais] Erro ao listar materiais: ${error.message}`);
+    }
+
+    let result = (data as MaterialDbRow[]).map(mapRowToMaterial);
+
+    if (filters?.busca) {
+      const q = filters.busca.toLowerCase();
+      result = result.filter(
+        (m) =>
+          m.titulo.toLowerCase().includes(q) ||
+          m.descricao.toLowerCase().includes(q) ||
+          m.categoria.toLowerCase().includes(q) ||
+          m.tags.some((t) => t.toLowerCase().includes(q))
+      );
+    }
+
+    return result;
   },
 
   async listarParaAluno(alunoId: string, turmasIds: string[] = []): Promise<Material[]> {
-    try {
-      const supabase = getSupabase();
-      // Consulta a view de segurança ou a tabela aplicando os filtros autorizados
-      const { data, error } = await supabase
-        .from("vw_aluno_materiais")
-        .select("*")
-        .order("data_publicacao", { ascending: false });
+    const supabase = getSupabase();
+    // Consulta prioritária via view de segurança com security_barrier
+    const { data, error } = await supabase
+      .from("vw_aluno_materiais")
+      .select("*")
+      .order("data_publicacao", { ascending: false });
 
-      if (!error && data) {
-        return (data as MaterialDbRow[]).map(mapRowToMaterial);
-      }
-
-      // Se a view não estiver criada ainda, tenta consultar a tabela diretamente com os filtros de destino
-      const query = supabase
-        .from("materiais")
-        .select("*")
-        .eq("status", "publicado")
-        .lte("data_publicacao", new Date().toISOString().slice(0, 10));
-
-      const { data: directData, error: directErr } = await query;
-      if (!directErr && directData) {
-        return (directData as MaterialDbRow[])
-          .map(mapRowToMaterial)
-          .filter((m) => {
-            if (m.destinoTipo === "geral") return true;
-            if (m.destinoTipo === "turma" && m.destinoId && turmasIds.includes(m.destinoId)) return true;
-            if (m.destinoTipo === "aluno" && m.destinoId === alunoId) return true;
-            return false;
-          })
-          .map((m) => ({
-            ...m,
-            observacoesInternas: undefined,
-          }));
-      }
-
-      return materialLocalStorageRepository.listarParaAluno(alunoId, turmasIds);
-    } catch {
-      return materialLocalStorageRepository.listarParaAluno(alunoId, turmasIds);
+    if (!error && data) {
+      return (data as MaterialDbRow[]).map(mapRowToMaterial);
     }
+
+    // Se view retornar erro, consulta tabela aplicando isolamento estrito
+    const query = supabase
+      .from("materiais")
+      .select("*")
+      .eq("status", "publicado")
+      .lte("data_publicacao", new Date().toISOString().slice(0, 10));
+
+    const { data: directData, error: directErr } = await query;
+    if (directErr) {
+      throw new Error(`[Supabase Materiais] Erro ao listar materiais para aluno: ${directErr.message}`);
+    }
+
+    return (directData as MaterialDbRow[])
+      .map(mapRowToMaterial)
+      .filter((m) => {
+        if (m.destinoTipo === "geral") return true;
+        if (m.destinoTipo === "turma" && m.destinoId && turmasIds.includes(m.destinoId)) return true;
+        if (m.destinoTipo === "aluno" && m.destinoId === alunoId) return true;
+        return false;
+      })
+      .map((m) => ({
+        ...m,
+        observacoesInternas: undefined,
+      }));
   },
 
   async obterPorId(id: string): Promise<Material | null> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase.from("materiais").select("*").eq("id", id).maybeSingle();
-      if (error || !data) {
-        return materialLocalStorageRepository.obterPorId(id);
-      }
-      return mapRowToMaterial(data as MaterialDbRow);
-    } catch {
-      return materialLocalStorageRepository.obterPorId(id);
+    const supabase = getSupabase();
+    const { data, error } = await supabase.from("materiais").select("*").eq("id", id).maybeSingle();
+    if (error) {
+      throw new Error(`[Supabase Materiais] Erro ao obter material ${id}: ${error.message}`);
     }
+    if (!data) return null;
+    return mapRowToMaterial(data as MaterialDbRow);
   },
 
   async obterPorIdParaAluno(
@@ -290,30 +276,26 @@ export const materialSupabaseRepository = {
   },
 
   async contarPublicados(): Promise<number> {
-    try {
-      const supabase = getSupabase();
-      const { count, error } = await supabase
-        .from("materiais")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "publicado");
-      if (!error && count !== null) return count;
-      return materialLocalStorageRepository.contarPublicados();
-    } catch {
-      return materialLocalStorageRepository.contarPublicados();
+    const supabase = getSupabase();
+    const { count, error } = await supabase
+      .from("materiais")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "publicado");
+    if (error) {
+      throw new Error(`[Supabase Materiais] Erro ao contar materiais publicados: ${error.message}`);
     }
+    return count ?? 0;
   },
 
   async contarAgendados(): Promise<number> {
-    try {
-      const supabase = getSupabase();
-      const { count, error } = await supabase
-        .from("materiais")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "agendado");
-      if (!error && count !== null) return count;
-      return materialLocalStorageRepository.contarAgendados();
-    } catch {
-      return materialLocalStorageRepository.contarAgendados();
+    const supabase = getSupabase();
+    const { count, error } = await supabase
+      .from("materiais")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "agendado");
+    if (error) {
+      throw new Error(`[Supabase Materiais] Erro ao contar materiais agendados: ${error.message}`);
     }
+    return count ?? 0;
   },
 };

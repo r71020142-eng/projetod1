@@ -1,6 +1,5 @@
 import { Entrega, EntregaFilters, HistoricoEnvio, OperationResult } from "@/types";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
-import { entregaLocalStorageRepository } from "./entregaLocalStorageRepository";
 import { atividadeRepository } from "./atividadeRepository";
 import { validateEntregaInput, validateCorrecaoInput } from "./validators";
 
@@ -54,56 +53,45 @@ function mapRowToEntrega(row: EntregaDbRow): Entrega {
 
 export const entregaSupabaseRepository = {
   async listar(filters?: EntregaFilters): Promise<Entrega[]> {
-    try {
-      const supabase = getSupabase();
-      let query = supabase.from("entregas_atividades").select("*");
+    const supabase = getSupabase();
+    let query = supabase.from("entregas_atividades").select("*");
 
-      if (filters?.atividadeId) query = query.eq("atividade_id", filters.atividadeId);
-      if (filters?.alunoId) query = query.eq("aluno_id", filters.alunoId);
-      if (filters?.status && filters.status !== "todos") query = query.eq("status", filters.status);
+    if (filters?.atividadeId) query = query.eq("atividade_id", filters.atividadeId);
+    if (filters?.alunoId) query = query.eq("aluno_id", filters.alunoId);
+    if (filters?.status && filters.status !== "todos") query = query.eq("status", filters.status);
 
-      const { data, error } = await query.order("updated_at", { ascending: false });
-      if (error) {
-        console.warn("[Supabase Entregas] Erro ao listar, fallback local:", error.message);
-        return entregaLocalStorageRepository.listar(filters);
-      }
-
-      return (data as EntregaDbRow[]).map(mapRowToEntrega);
-    } catch {
-      return entregaLocalStorageRepository.listar(filters);
+    const { data, error } = await query.order("updated_at", { ascending: false });
+    if (error) {
+      throw new Error(`[Supabase Entregas] Erro ao listar entregas: ${error.message}`);
     }
+
+    return (data as EntregaDbRow[]).map(mapRowToEntrega);
   },
 
   async obterPorId(id: string): Promise<Entrega | null> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase.from("entregas_atividades").select("*").eq("id", id).maybeSingle();
-      if (error || !data) {
-        return entregaLocalStorageRepository.obterPorId(id);
-      }
-      return mapRowToEntrega(data as EntregaDbRow);
-    } catch {
-      return entregaLocalStorageRepository.obterPorId(id);
+    const supabase = getSupabase();
+    const { data, error } = await supabase.from("entregas_atividades").select("*").eq("id", id).maybeSingle();
+    if (error) {
+      throw new Error(`[Supabase Entregas] Erro ao obter entrega ${id}: ${error.message}`);
     }
+    if (!data) return null;
+    return mapRowToEntrega(data as EntregaDbRow);
   },
 
   async obterPorAtividadeEAluno(atividadeId: string, alunoId: string): Promise<Entrega | null> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("entregas_atividades")
-        .select("*")
-        .eq("atividade_id", atividadeId)
-        .eq("aluno_id", alunoId)
-        .maybeSingle();
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from("entregas_atividades")
+      .select("*")
+      .eq("atividade_id", atividadeId)
+      .eq("aluno_id", alunoId)
+      .maybeSingle();
 
-      if (error || !data) {
-        return entregaLocalStorageRepository.obterPorAtividadeEAluno(atividadeId, alunoId);
-      }
-      return mapRowToEntrega(data as EntregaDbRow);
-    } catch {
-      return entregaLocalStorageRepository.obterPorAtividadeEAluno(atividadeId, alunoId);
+    if (error) {
+      throw new Error(`[Supabase Entregas] Erro ao obter entrega da atividade ${atividadeId} para aluno ${alunoId}: ${error.message}`);
     }
+    if (!data) return null;
+    return mapRowToEntrega(data as EntregaDbRow);
   },
 
   async salvarRascunho(
@@ -336,48 +324,42 @@ export const entregaSupabaseRepository = {
   },
 
   async contarAguardandoCorrecao(): Promise<number> {
-    try {
-      const supabase = getSupabase();
-      const { count, error } = await supabase
-        .from("entregas_atividades")
-        .select("*", { count: "exact", head: true })
-        .in("status", ["entregue", "atrasada"]);
+    const supabase = getSupabase();
+    const { count, error } = await supabase
+      .from("entregas_atividades")
+      .select("*", { count: "exact", head: true })
+      .in("status", ["entregue", "atrasada"]);
 
-      if (!error && count !== null) return count;
-      return entregaLocalStorageRepository.contarAguardandoCorrecao();
-    } catch {
-      return entregaLocalStorageRepository.contarAguardandoCorrecao();
+    if (error) {
+      throw new Error(`[Supabase Entregas] Erro ao contar entregas aguardando correção: ${error.message}`);
     }
+    return count ?? 0;
   },
 
   async contarAtrasadas(): Promise<number> {
-    try {
-      const supabase = getSupabase();
-      const { count, error } = await supabase
-        .from("entregas_atividades")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "atrasada");
+    const supabase = getSupabase();
+    const { count, error } = await supabase
+      .from("entregas_atividades")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "atrasada");
 
-      if (!error && count !== null) return count;
-      return entregaLocalStorageRepository.contarAtrasadas();
-    } catch {
-      return entregaLocalStorageRepository.contarAtrasadas();
+    if (error) {
+      throw new Error(`[Supabase Entregas] Erro ao contar entregas atrasadas: ${error.message}`);
     }
+    return count ?? 0;
   },
 
   async contarConcluidasPorAluno(alunoId: string): Promise<number> {
-    try {
-      const supabase = getSupabase();
-      const { count, error } = await supabase
-        .from("entregas_atividades")
-        .select("*", { count: "exact", head: true })
-        .eq("aluno_id", alunoId)
-        .in("status", ["corrigida", "entregue"]);
+    const supabase = getSupabase();
+    const { count, error } = await supabase
+      .from("entregas_atividades")
+      .select("*", { count: "exact", head: true })
+      .eq("aluno_id", alunoId)
+      .in("status", ["corrigida", "entregue"]);
 
-      if (!error && count !== null) return count;
-      return entregaLocalStorageRepository.contarConcluidasPorAluno(alunoId);
-    } catch {
-      return entregaLocalStorageRepository.contarConcluidasPorAluno(alunoId);
+    if (error) {
+      throw new Error(`[Supabase Entregas] Erro ao contar entregas concluídas por aluno: ${error.message}`);
     }
+    return count ?? 0;
   },
 };

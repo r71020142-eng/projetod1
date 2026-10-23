@@ -24,6 +24,8 @@ import { atividadeLocalStorageRepository } from "./atividadeLocalStorageReposito
 import { atividadeSupabaseRepository } from "./atividadeSupabaseRepository";
 import { entregaLocalStorageRepository } from "./entregaLocalStorageRepository";
 import { entregaSupabaseRepository } from "./entregaSupabaseRepository";
+import { conteudoDiarioLocalStorageRepository } from "./conteudoDiarioLocalStorageRepository";
+import { conteudoDiarioSupabaseRepository } from "./conteudoDiarioSupabaseRepository";
 import { selfPresentationLocalStorageRepository } from "./selfPresentationLocalStorageRepository";
 import { selfPresentationSupabaseRepository } from "./selfPresentationSupabaseRepository";
 import { baralhoLocalStorageRepository } from "./baralhoLocalStorageRepository";
@@ -115,6 +117,22 @@ export function getAcademicAgendaDataSource(): DataSource {
   }
 }
 
+/**
+ * Retorna a fonte de dados configurada para os módulos de Materiais Didáticos e Atividades (Etapa 10.4A).
+ */
+export function getAcademicContentDataSource(): DataSource {
+  if (typeof window === "undefined") {
+    const env = getServerEnv();
+    return env.academicContentDataSource;
+  }
+  try {
+    const clientEnv = getClientEnv();
+    return clientEnv.academicContentDataSource || "local";
+  } catch {
+    return "local";
+  }
+}
+
 export class UnimplementedSupabaseRepositoryError extends Error {
   constructor(nomeRepositorio: string, etapaPlanejada: string) {
     super(
@@ -193,33 +211,43 @@ export function getPresencaRepository(): IPresencaRepository {
 }
 
 /**
- * Retorna o repositório de Materiais ativo para o ambiente.
+ * Retorna o repositório de Materiais ativo para o ambiente (Etapa 10.4A).
  */
 export function getMaterialRepository(): IMaterialRepository {
-  if (isLocalDataSource()) {
-    return materialLocalStorageRepository;
+  if (getAcademicContentDataSource() === "supabase") {
+    return materialSupabaseRepository;
   }
-  return materialSupabaseRepository;
+  return materialLocalStorageRepository;
 }
 
 /**
- * Retorna o repositório de Atividades ativo para o ambiente.
+ * Retorna o repositório de Atividades ativo para o ambiente (Etapa 10.4A).
  */
 export function getAtividadeRepository(): IAtividadeRepository {
-  if (isLocalDataSource()) {
-    return atividadeLocalStorageRepository;
+  if (getAcademicContentDataSource() === "supabase") {
+    return atividadeSupabaseRepository;
   }
-  return atividadeSupabaseRepository;
+  return atividadeLocalStorageRepository;
 }
 
 /**
- * Retorna o repositório de Entregas ativo para o ambiente.
+ * Retorna o repositório de Entregas ativo para o ambiente (Etapa 10.4A).
  */
 export function getEntregaRepository(): IEntregaRepository {
-  if (isLocalDataSource()) {
-    return entregaLocalStorageRepository;
+  if (getAcademicContentDataSource() === "supabase") {
+    return entregaSupabaseRepository;
   }
-  return entregaSupabaseRepository;
+  return entregaLocalStorageRepository;
+}
+
+/**
+ * Retorna o repositório de Conteúdos Diários ativo para o ambiente (Etapa 10.4A).
+ */
+export function getConteudoDiarioRepository() {
+  if (getAcademicContentDataSource() === "supabase") {
+    return conteudoDiarioSupabaseRepository;
+  }
+  return conteudoDiarioLocalStorageRepository;
 }
 
 /**
@@ -276,6 +304,14 @@ export {
   aulaLocalStorageRepository,
   aulaSupabaseRepository,
   presencaSupabaseRepository,
+  materialLocalStorageRepository,
+  materialSupabaseRepository,
+  atividadeLocalStorageRepository,
+  atividadeSupabaseRepository,
+  entregaLocalStorageRepository,
+  entregaSupabaseRepository,
+  conteudoDiarioLocalStorageRepository,
+  conteudoDiarioSupabaseRepository,
   comunidadeLocalStorageRepository,
   comunidadeSupabaseRepository,
   gamificacaoLocalStorageRepository,

@@ -1,6 +1,5 @@
 import { ConteudoDiario, ConteudoDiarioFilters, OperationResult } from "@/types";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
-import { conteudoDiarioLocalStorageRepository } from "./conteudoDiarioLocalStorageRepository";
 import { validateConteudoDiarioInput, normalizeText } from "./validators";
 
 interface ConteudoDiarioDbRow {
@@ -46,81 +45,75 @@ function mapRowToConteudo(row: ConteudoDiarioDbRow): ConteudoDiario {
 
 export const conteudoDiarioSupabaseRepository = {
   async listar(filters?: ConteudoDiarioFilters): Promise<ConteudoDiario[]> {
-    try {
-      const supabase = getSupabase();
-      let query = supabase.from("conteudos_diarios").select("*");
+    const supabase = getSupabase();
+    let query = supabase.from("conteudos_diarios").select("*");
 
-      if (filters?.status && filters.status !== "todos") query = query.eq("status", filters.status);
-      if (filters?.data) query = query.eq("data_programada", filters.data);
+    if (filters?.status && filters.status !== "todos") query = query.eq("status", filters.status);
+    if (filters?.data) query = query.eq("data_programada", filters.data);
 
-      const { data, error } = await query.order("data_programada", { ascending: false });
-      if (error) {
-        console.warn("[Supabase Conteúdos Diários] Erro ao listar, fallback local:", error.message);
-        return conteudoDiarioLocalStorageRepository.listar(filters);
-      }
-
-      let result = (data as ConteudoDiarioDbRow[]).map(mapRowToConteudo);
-
-      if (filters?.busca) {
-        const q = filters.busca.toLowerCase();
-        result = result.filter((c) => c.titulo.toLowerCase().includes(q) || c.texto.toLowerCase().includes(q));
-      }
-
-      return result;
-    } catch {
-      return conteudoDiarioLocalStorageRepository.listar(filters);
+    const { data, error } = await query.order("data_programada", { ascending: false });
+    if (error) {
+      throw new Error(`[Supabase Conteúdos Diários] Erro ao listar: ${error.message}`);
     }
+
+    let result = (data as ConteudoDiarioDbRow[]).map(mapRowToConteudo);
+
+    if (filters?.busca) {
+      const q = filters.busca.toLowerCase();
+      result = result.filter((c) => c.titulo.toLowerCase().includes(q) || c.texto.toLowerCase().includes(q));
+    }
+
+    return result;
   },
 
   async obterPraticaDeHoje(
     alunoId?: string,
     turmasDoAluno: string[] = []
   ): Promise<ConteudoDiario | null> {
-    try {
-      const supabase = getSupabase();
-      const hoje = new Date().toISOString().slice(0, 10);
+    const supabase = getSupabase();
+    const hoje = new Date().toISOString().slice(0, 10);
 
-      const { data, error } = await supabase
-        .from("conteudos_diarios")
-        .select("*")
-        .eq("status", "publicado")
-        .lte("data_programada", hoje)
-        .order("data_programada", { ascending: false });
+    const { data, error } = await supabase
+      .from("conteudos_diarios")
+      .select("*")
+      .eq("status", "publicado")
+      .lte("data_programada", hoje)
+      .order("data_programada", { ascending: false });
 
-      if (!error && data) {
-        const candidatos = (data as ConteudoDiarioDbRow[])
-          .map(mapRowToConteudo)
-          .filter((c) => {
-            if (alunoId) {
-              if (c.destinoTipo === "geral") return true;
-              if (c.destinoTipo === "turma" && c.destinoId && turmasDoAluno.includes(c.destinoId)) return true;
-              if (c.destinoTipo === "aluno" && c.destinoId === alunoId) return true;
-              return false;
-            }
-            return true;
-          });
-
-        if (candidatos.length > 0) {
-          const exato = candidatos.find((c) => c.dataProgramada === hoje);
-          return exato || candidatos[0];
-        }
-      }
-
-      return conteudoDiarioLocalStorageRepository.obterPraticaDeHoje(alunoId, turmasDoAluno);
-    } catch {
-      return conteudoDiarioLocalStorageRepository.obterPraticaDeHoje(alunoId, turmasDoAluno);
+    if (error) {
+      throw new Error(`[Supabase Conteúdos Diários] Erro ao obter prática de hoje: ${error.message}`);
     }
+
+    if (data) {
+      const candidatos = (data as ConteudoDiarioDbRow[])
+        .map(mapRowToConteudo)
+        .filter((c) => {
+          if (alunoId) {
+            if (c.destinoTipo === "geral") return true;
+            if (c.destinoTipo === "turma" && c.destinoId && turmasDoAluno.includes(c.destinoId)) return true;
+            if (c.destinoTipo === "aluno" && c.destinoId === alunoId) return true;
+            return false;
+          }
+          return true;
+        });
+
+      if (candidatos.length > 0) {
+        const exato = candidatos.find((c) => c.dataProgramada === hoje);
+        return exato || candidatos[0];
+      }
+    }
+
+    return null;
   },
 
   async obterPorId(id: string): Promise<ConteudoDiario | null> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase.from("conteudos_diarios").select("*").eq("id", id).maybeSingle();
-      if (error || !data) return conteudoDiarioLocalStorageRepository.obterPorId(id);
-      return mapRowToConteudo(data as ConteudoDiarioDbRow);
-    } catch {
-      return conteudoDiarioLocalStorageRepository.obterPorId(id);
+    const supabase = getSupabase();
+    const { data, error } = await supabase.from("conteudos_diarios").select("*").eq("id", id).maybeSingle();
+    if (error) {
+      throw new Error(`[Supabase Conteúdos Diários] Erro ao obter conteúdo diário ${id}: ${error.message}`);
     }
+    if (!data) return null;
+    return mapRowToConteudo(data as ConteudoDiarioDbRow);
   },
 
   async criar(dados: Partial<ConteudoDiario>): Promise<OperationResult<ConteudoDiario>> {
@@ -196,17 +189,15 @@ export const conteudoDiarioSupabaseRepository = {
   },
 
   async contarAgendados(): Promise<number> {
-    try {
-      const supabase = getSupabase();
-      const { count, error } = await supabase
-        .from("conteudos_diarios")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "agendado");
+    const supabase = getSupabase();
+    const { count, error } = await supabase
+      .from("conteudos_diarios")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "agendado");
 
-      if (!error && count !== null) return count;
-      return conteudoDiarioLocalStorageRepository.contarAgendados();
-    } catch {
-      return conteudoDiarioLocalStorageRepository.contarAgendados();
+    if (error) {
+      throw new Error(`[Supabase Conteúdos Diários] Erro ao contar agendados: ${error.message}`);
     }
+    return count ?? 0;
   },
 };
