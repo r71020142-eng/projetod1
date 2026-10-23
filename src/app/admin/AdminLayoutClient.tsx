@@ -25,7 +25,7 @@ export function AdminLayoutClient({
 
   return (
     <AdminIdentityContext.Provider value={identity}>
-      <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex">
+      <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex overflow-x-hidden relative">
         {/* Dark Permanent Admin Sidebar on Desktop / Drawer on Mobile */}
         <AdminSidebar
           isOpenMobile={isMobileMenuOpen}
@@ -49,8 +49,8 @@ export function AdminLayoutClient({
           />
 
           {/* Page Body */}
-          <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-            <div className="max-w-7xl mx-auto">{children}</div>
+          <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-6 sm:py-8 overflow-x-hidden">
+            <div className="max-w-7xl mx-auto min-w-0">{children}</div>
           </main>
         </div>
 
