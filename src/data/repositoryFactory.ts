@@ -18,12 +18,18 @@ import { turmaSupabaseRepository } from "./turmaSupabaseRepository";
 import { aulaLocalStorageRepository } from "./aulaLocalStorageRepository";
 import { aulaSupabaseRepository } from "./aulaSupabaseRepository";
 import { presencaSupabaseRepository } from "./presencaSupabaseRepository";
-import { materialRepository } from "./materialRepository";
-import { atividadeRepository } from "./atividadeRepository";
-import { entregaRepository } from "./entregaRepository";
-import { selfPresentationRepository } from "./selfPresentationRepository";
-import * as baralhoRepo from "./baralhoRepository";
-import { avaliacaoRepository } from "./avaliacaoRepository";
+import { materialLocalStorageRepository } from "./materialLocalStorageRepository";
+import { materialSupabaseRepository } from "./materialSupabaseRepository";
+import { atividadeLocalStorageRepository } from "./atividadeLocalStorageRepository";
+import { atividadeSupabaseRepository } from "./atividadeSupabaseRepository";
+import { entregaLocalStorageRepository } from "./entregaLocalStorageRepository";
+import { entregaSupabaseRepository } from "./entregaSupabaseRepository";
+import { selfPresentationLocalStorageRepository } from "./selfPresentationLocalStorageRepository";
+import { selfPresentationSupabaseRepository } from "./selfPresentationSupabaseRepository";
+import { baralhoLocalStorageRepository } from "./baralhoLocalStorageRepository";
+import { baralhoSupabaseRepository } from "./baralhoSupabaseRepository";
+import { avaliacaoLocalStorageRepository } from "./avaliacaoLocalStorageRepository";
+import { avaliacaoSupabaseRepository } from "./avaliacaoSupabaseRepository";
 import { comunidadeRepository } from "./comunidadeRepository";
 import { gamificacaoRepository } from "./gamificacaoRepository";
 import {
@@ -184,9 +190,9 @@ export function getPresencaRepository(): IPresencaRepository {
  */
 export function getMaterialRepository(): IMaterialRepository {
   if (isLocalDataSource()) {
-    return materialRepository;
+    return materialLocalStorageRepository;
   }
-  throw new UnimplementedSupabaseRepositoryError("MaterialRepository", "Etapa 10.4");
+  return materialSupabaseRepository;
 }
 
 /**
@@ -194,9 +200,9 @@ export function getMaterialRepository(): IMaterialRepository {
  */
 export function getAtividadeRepository(): IAtividadeRepository {
   if (isLocalDataSource()) {
-    return atividadeRepository;
+    return atividadeLocalStorageRepository;
   }
-  throw new UnimplementedSupabaseRepositoryError("AtividadeRepository", "Etapa 10.4");
+  return atividadeSupabaseRepository;
 }
 
 /**
@@ -204,9 +210,9 @@ export function getAtividadeRepository(): IAtividadeRepository {
  */
 export function getEntregaRepository(): IEntregaRepository {
   if (isLocalDataSource()) {
-    return entregaRepository;
+    return entregaLocalStorageRepository;
   }
-  throw new UnimplementedSupabaseRepositoryError("EntregaRepository", "Etapa 10.4");
+  return entregaSupabaseRepository;
 }
 
 /**
@@ -214,9 +220,9 @@ export function getEntregaRepository(): IEntregaRepository {
  */
 export function getSelfPresentationRepository(): ISelfPresentationRepository {
   if (isLocalDataSource()) {
-    return selfPresentationRepository;
+    return selfPresentationLocalStorageRepository;
   }
-  throw new UnimplementedSupabaseRepositoryError("SelfPresentationRepository", "Etapa 10.4");
+  return selfPresentationSupabaseRepository;
 }
 
 /**
@@ -224,9 +230,9 @@ export function getSelfPresentationRepository(): ISelfPresentationRepository {
  */
 export function getBaralhoRepository(): IBaralhoRepository {
   if (isLocalDataSource()) {
-    return baralhoRepo;
+    return baralhoLocalStorageRepository;
   }
-  throw new UnimplementedSupabaseRepositoryError("BaralhoRepository", "Etapa 10.5");
+  return baralhoSupabaseRepository;
 }
 
 /**
@@ -234,9 +240,9 @@ export function getBaralhoRepository(): IBaralhoRepository {
  */
 export function getAvaliacaoRepository(): IAvaliacaoRepository {
   if (isLocalDataSource()) {
-    return avaliacaoRepository;
+    return avaliacaoLocalStorageRepository;
   }
-  throw new UnimplementedSupabaseRepositoryError("AvaliacaoRepository", "Etapa 10.5");
+  return avaliacaoSupabaseRepository;
 }
 
 /**

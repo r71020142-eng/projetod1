@@ -443,6 +443,7 @@ export interface MaterialFilters {
   destinoTipo?: DestinoTipo | "todos";
   destinoId?: string;
   categoria?: string | "todas";
+  moduloId?: string;
 }
 
 export interface AtividadeFilters {
@@ -1041,6 +1042,7 @@ export interface TentativaFilters {
   alunoId?: string;
   status?: StatusTentativa | "todos";
   tipo?: TipoAvaliacao | "todos";
+  resultado?: ResultadoAvaliacao | "todos";
 }
 
 export interface ProgressoModuloFilters {

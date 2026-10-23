@@ -194,18 +194,54 @@ export interface IPresencaRepository {
 export interface IMaterialRepository {
   listar(filters?: MaterialFilters): Promise<Material[]>;
   obterPorId(id: string, paraAluno?: boolean): Promise<Material | null>;
+  listarParaAluno(alunoId: string, turmasIds?: string[]): Promise<Material[]>;
+  obterPorIdParaAluno(id: string, alunoId: string, turmasIds?: string[]): Promise<Material | null>;
+  criar(dados: Partial<Material>): Promise<OperationResult<Material>>;
+  atualizar(id: string, dados: Partial<Material>): Promise<OperationResult<Material>>;
+  arquivar(id: string): Promise<OperationResult<Material>>;
+  restaurar(id: string): Promise<OperationResult<Material>>;
+  contarPublicados(): Promise<number>;
+  contarAgendados(): Promise<number>;
 }
 
 export interface IAtividadeRepository {
   listar(filters?: AtividadeFilters): Promise<Atividade[]>;
   obterPorId(id: string, paraAluno?: boolean): Promise<Atividade | null>;
-  listarParaAluno(alunoId: string, turmasIds?: string[]): Promise<Atividade[]>;
+  listarParaAluno(alunoId: string, turmasIds?: string[], filters?: AtividadeFilters): Promise<Atividade[]>;
+  obterPorIdParaAluno(id: string, alunoId: string, turmasIds?: string[]): Promise<Atividade | null>;
+  criar(dados: Partial<Atividade>): Promise<OperationResult<Atividade>>;
+  atualizar(id: string, dados: Partial<Atividade>): Promise<OperationResult<Atividade>>;
+  encerrar(id: string): Promise<OperationResult<Atividade>>;
+  arquivar(id: string): Promise<OperationResult<Atividade>>;
+  contarPublicadas(): Promise<number>;
 }
 
 export interface IEntregaRepository {
   listar(filters?: EntregaFilters): Promise<Entrega[]>;
   obterPorId(id: string): Promise<Entrega | null>;
   obterPorAtividadeEAluno(atividadeId: string, alunoId: string): Promise<Entrega | null>;
+  salvarRascunho(
+    atividadeId: string,
+    alunoId: string,
+    dados: { respostaTexto?: string; respostaLink?: string }
+  ): Promise<OperationResult<Entrega>>;
+  enviarEntrega(
+    atividadeId: string,
+    alunoId: string,
+    dados: { respostaTexto?: string; respostaLink?: string }
+  ): Promise<OperationResult<Entrega>>;
+  corrigir(
+    entregaId: string,
+    professorId: string,
+    dados: { feedback: string; pontuacao?: number | null }
+  ): Promise<OperationResult<Entrega>>;
+  solicitarReenvio(
+    entregaId: string,
+    professorId: string,
+    motivo: string
+  ): Promise<OperationResult<Entrega>>;
+  contarAguardandoCorrecao(): Promise<number>;
+  contarAtrasadas(): Promise<number>;
   contarConcluidasPorAluno(alunoId: string): Promise<number>;
 }
 
@@ -224,6 +260,13 @@ export interface IBaralhoRepository {
 export interface IAvaliacaoRepository {
   listar(filters?: AvaliacaoFilters): Promise<Avaliacao[]>;
   obterPorId(id: string, paraAluno?: boolean): Promise<Avaliacao | null>;
+  listarParaAluno(alunoId: string, turmaIds?: string[]): Promise<Avaliacao[]>;
+  salvar(
+    dados: Omit<Avaliacao, "id" | "criadoEm" | "atualizadoEm"> & { id?: string },
+    possuiTentativas?: boolean
+  ): Promise<OperationResult<Avaliacao>>;
+  duplicarComoNovaVersao(avaliacaoId: string): Promise<OperationResult<Avaliacao>>;
+  alterarStatus(id: string, status: import("@/types").StatusAvaliacao): Promise<OperationResult<Avaliacao>>;
 }
 
 export interface IComunidadeRepository {
