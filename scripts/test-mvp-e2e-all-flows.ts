@@ -30,6 +30,27 @@ const dummyLocalStorage = {
   CustomEvent: class {},
 };
 
+import * as fs from "fs";
+import * as path from "path";
+
+// Carregar .env.local se variáveis não estiverem no ambiente
+const envPath = path.resolve(__dirname, "../.env.local");
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, "utf8");
+  for (const line of envContent.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIdx = trimmed.indexOf("=");
+    if (eqIdx !== -1) {
+      const key = trimmed.slice(0, eqIdx).trim();
+      const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, "");
+      if (!process.env[key]) {
+        process.env[key] = val;
+      }
+    }
+  }
+}
+
 import { createClient } from "@supabase/supabase-js";
 import { materialRepository } from "../src/data/materialRepository";
 import { atividadeRepository } from "../src/data/atividadeRepository";

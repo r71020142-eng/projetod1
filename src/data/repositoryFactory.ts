@@ -30,6 +30,10 @@ import { selfPresentationLocalStorageRepository } from "./selfPresentationLocalS
 import { selfPresentationSupabaseRepository } from "./selfPresentationSupabaseRepository";
 import { baralhoLocalStorageRepository } from "./baralhoLocalStorageRepository";
 import { baralhoSupabaseRepository } from "./baralhoSupabaseRepository";
+import { cartaoLocalStorageRepository } from "./cartaoLocalStorageRepository";
+import { cartaoSupabaseRepository } from "./cartaoSupabaseRepository";
+import { progressoCartaoLocalStorageRepository } from "./progressoCartaoLocalStorageRepository";
+import { progressoCartaoSupabaseRepository } from "./progressoCartaoSupabaseRepository";
 import { avaliacaoLocalStorageRepository } from "./avaliacaoLocalStorageRepository";
 import { avaliacaoSupabaseRepository } from "./avaliacaoSupabaseRepository";
 import { tentativaAvaliacaoLocalStorageRepository } from "./tentativaAvaliacaoLocalStorageRepository";
@@ -49,6 +53,8 @@ import {
   IEntregaRepository,
   ISelfPresentationRepository,
   IBaralhoRepository,
+  ICartaoRepository,
+  IProgressoCartaoRepository,
   IAvaliacaoRepository,
   ITentativaAvaliacaoRepository,
   IComunidadeRepository,
@@ -147,6 +153,22 @@ export function getAcademicEvaluationsDataSource(): DataSource {
   try {
     const clientEnv = getClientEnv();
     return clientEnv.academicEvaluationsDataSource || "local";
+  } catch {
+    return "local";
+  }
+}
+
+/**
+ * Retorna a fonte de dados configurada para os módulos de Flashcards e SRS (Etapa 10.4C).
+ */
+export function getAcademicFlashcardsDataSource(): DataSource {
+  if (typeof window === "undefined") {
+    const env = getServerEnv();
+    return env.academicFlashcardsDataSource;
+  }
+  try {
+    const clientEnv = getClientEnv();
+    return clientEnv.academicFlashcardsDataSource || "local";
   } catch {
     return "local";
   }
@@ -280,13 +302,33 @@ export function getSelfPresentationRepository(): ISelfPresentationRepository {
 }
 
 /**
- * Retorna o repositório de Flashcards/Baralhos ativo para o ambiente.
+ * Retorna o repositório de Flashcards/Baralhos ativo para o ambiente (Etapa 10.4C).
  */
 export function getBaralhoRepository(): IBaralhoRepository {
-  if (isLocalDataSource()) {
-    return baralhoLocalStorageRepository;
+  if (getAcademicFlashcardsDataSource() === "supabase") {
+    return baralhoSupabaseRepository;
   }
-  return baralhoSupabaseRepository;
+  return baralhoLocalStorageRepository;
+}
+
+/**
+ * Retorna o repositório de Cartões individual ativo para o ambiente (Etapa 10.4C).
+ */
+export function getCartaoRepository(): ICartaoRepository {
+  if (getAcademicFlashcardsDataSource() === "supabase") {
+    return cartaoSupabaseRepository;
+  }
+  return cartaoLocalStorageRepository;
+}
+
+/**
+ * Retorna o repositório de Progresso de Cartões (SRS) ativo para o ambiente (Etapa 10.4C).
+ */
+export function getProgressoCartaoRepository(): IProgressoCartaoRepository {
+  if (getAcademicFlashcardsDataSource() === "supabase") {
+    return progressoCartaoSupabaseRepository;
+  }
+  return progressoCartaoLocalStorageRepository;
 }
 
 /**
@@ -345,6 +387,12 @@ export {
   avaliacaoSupabaseRepository,
   tentativaAvaliacaoLocalStorageRepository,
   tentativaAvaliacaoSupabaseRepository,
+  baralhoLocalStorageRepository,
+  baralhoSupabaseRepository,
+  cartaoLocalStorageRepository,
+  cartaoSupabaseRepository,
+  progressoCartaoLocalStorageRepository,
+  progressoCartaoSupabaseRepository,
   comunidadeLocalStorageRepository,
   comunidadeSupabaseRepository,
   gamificacaoLocalStorageRepository,

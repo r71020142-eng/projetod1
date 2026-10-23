@@ -1,10 +1,16 @@
 import { SessaoEstudoResumo } from "@/types";
 import { SEED_SESSOES_ESTUDO } from "./mockData";
+import { sessaoEstudoSupabaseRepository } from "./sessaoEstudoSupabaseRepository";
+import { getAcademicFlashcardsDataSource } from "./repositoryFactory";
 
 const STORAGE_KEY = "mtd_demonstrativo_sessoes_estudo_v1";
 
 function isBrowser(): boolean {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+}
+
+function isSupabase(): boolean {
+  return getAcademicFlashcardsDataSource() === "supabase";
 }
 
 export function loadSessoesFromStorage(): SessaoEstudoResumo[] {
@@ -60,6 +66,9 @@ function generateSessaoId(existingList: SessaoEstudoResumo[]): string {
 export async function salvarSessaoEstudo(
   dados: Omit<SessaoEstudoResumo, "id">
 ): Promise<SessaoEstudoResumo> {
+  if (isSupabase()) {
+    return sessaoEstudoSupabaseRepository.salvarSessaoEstudo(dados);
+  }
   const list = loadSessoesFromStorage();
   const nova: SessaoEstudoResumo = {
     id: generateSessaoId(list),
@@ -75,6 +84,9 @@ export async function obterSessoesPorAluno(
   alunoId: string,
   baralhoId?: string
 ): Promise<SessaoEstudoResumo[]> {
+  if (isSupabase()) {
+    return sessaoEstudoSupabaseRepository.obterSessoesPorAluno(alunoId, baralhoId);
+  }
   const list = loadSessoesFromStorage();
   let filtradas = list.filter((s) => s.alunoId === alunoId);
   if (baralhoId) {

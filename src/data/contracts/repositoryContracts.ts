@@ -279,6 +279,59 @@ export interface IBaralhoRepository {
   getBaralhos(filters?: BaralhoFilters): Promise<Baralho[]>;
   getBaralhoById(id: string): Promise<Baralho | null>;
   getBaralhosAluno(alunoId: string, turmasIds?: string[]): Promise<Baralho[]>;
+  salvarBaralho?(dados: Partial<Baralho>): Promise<OperationResult<Baralho>>;
+  atualizarStatusBaralho?(id: string, novoStatus: import("@/types").StatusBaralho): Promise<OperationResult<Baralho>>;
+  excluirBaralho?(id: string): Promise<OperationResult<boolean>>;
+  sincronizarContagemCartoes?(baralhoId: string, total: number): void;
+}
+
+export interface ICartaoRepository {
+  getCartoesPorBaralho(baralhoId: string, apenasAtivos?: boolean): Promise<import("@/types").Cartao[]>;
+  getCartaoById(id: string): Promise<import("@/types").Cartao | null>;
+  salvarCartao(dados: Partial<import("@/types").Cartao>): Promise<OperationResult<import("@/types").Cartao>>;
+  atualizarStatusCartao(id: string, novoStatus: import("@/types").StatusCartao): Promise<OperationResult<import("@/types").Cartao>>;
+  excluirCartao(id: string): Promise<OperationResult<boolean>>;
+  importarCartoesCSV(
+    baralhoId: string,
+    itensValidos: Array<{
+      frente: string;
+      verso: string;
+      exemplo?: string;
+      traducao?: string;
+      dica?: string;
+      pronuncia?: string;
+      tags?: string[];
+    }>
+  ): Promise<OperationResult<import("@/types").Cartao[]>>;
+}
+
+export interface IProgressoCartaoRepository {
+  obterProgresso(alunoId: string, cartaoId: string): Promise<import("@/types").CartaoProgressoAluno | null>;
+  obterOuCriarProgresso(
+    alunoId: string,
+    cartaoId: string,
+    baralhoId: string,
+    dataReferencia?: Date
+  ): import("@/types").CartaoProgressoAluno;
+  obterFilaEstudoBaralho(
+    alunoId: string,
+    baralhoId: string,
+    limiteDiarioNovos?: number,
+    dataReferencia?: Date
+  ): Promise<unknown>;
+  registrarRespostaEstudo(
+    alunoId: string,
+    cartaoId: string,
+    baralhoId: string,
+    resposta: import("@/types").RespostaSRS,
+    dataReferencia?: Date
+  ): Promise<{
+    progresso: import("@/types").CartaoProgressoAluno;
+    historicoId: string;
+    reagendadoParaRevisao: boolean;
+    reagendadoMinutos?: number;
+    reagendadoMesmaSessao: boolean;
+  }>;
 }
 
 export interface IAvaliacaoRepository {

@@ -5,7 +5,7 @@ import {
   saveCartoesToStorage,
 } from "./cartaoLocalStorageRepository";
 import { cartaoSupabaseRepository } from "./cartaoSupabaseRepository";
-import { isLocalDataSource } from "./repositoryFactory";
+import { getAcademicFlashcardsDataSource } from "./repositoryFactory";
 
 export {
   cartaoLocalStorageRepository,
@@ -15,10 +15,10 @@ export {
 };
 
 function getActiveRepository() {
-  if (isLocalDataSource()) {
-    return cartaoLocalStorageRepository;
+  if (getAcademicFlashcardsDataSource() === "supabase") {
+    return cartaoSupabaseRepository;
   }
-  return cartaoSupabaseRepository;
+  return cartaoLocalStorageRepository;
 }
 
 export async function getCartoesPorBaralho(

@@ -1,6 +1,5 @@
 import { Cartao, OperationResult, StatusCartao } from "@/types";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
-import { cartaoLocalStorageRepository } from "./cartaoLocalStorageRepository";
 import { validateCartaoInput } from "./validators";
 
 interface CartaoDbRow {
@@ -43,36 +42,30 @@ function getSupabase() {
 
 export const cartaoSupabaseRepository = {
   async getCartoesPorBaralho(baralhoId: string, apenasAtivos = false): Promise<Cartao[]> {
-    try {
-      const supabase = getSupabase();
-      let query = supabase.from("cartoes").select("*").eq("baralho_id", baralhoId);
-      if (apenasAtivos) {
-        query = query.eq("status", "ativo");
-      }
-      query = query.order("created_at", { ascending: true });
-
-      const { data, error } = await query;
-      if (error) {
-        console.warn("[Supabase Cartoes] Erro ao listar por baralho, fallback local:", error.message);
-        return cartaoLocalStorageRepository.getCartoesPorBaralho(baralhoId, apenasAtivos);
-      }
-      return ((data || []) as unknown as CartaoDbRow[]).map(mapRowToCartao);
-    } catch {
-      return cartaoLocalStorageRepository.getCartoesPorBaralho(baralhoId, apenasAtivos);
+    const supabase = getSupabase();
+    let query = supabase.from("cartoes").select("*").eq("baralho_id", baralhoId);
+    if (apenasAtivos) {
+      query = query.eq("status", "ativo");
     }
+    query = query.order("created_at", { ascending: true });
+
+    const { data, error } = await query;
+    if (error) {
+      throw new Error(`[Supabase Cartoes] Erro ao listar cartões do baralho ${baralhoId}: ${error.message}`);
+    }
+    return ((data || []) as unknown as CartaoDbRow[]).map(mapRowToCartao);
   },
 
   async getCartaoById(id: string): Promise<Cartao | null> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase.from("cartoes").select("*").eq("id", id).maybeSingle();
-      if (error || !data) {
-        return cartaoLocalStorageRepository.getCartaoById(id);
-      }
-      return mapRowToCartao(data as CartaoDbRow);
-    } catch {
-      return cartaoLocalStorageRepository.getCartaoById(id);
+    const supabase = getSupabase();
+    const { data, error } = await supabase.from("cartoes").select("*").eq("id", id).maybeSingle();
+    if (error) {
+      throw new Error(`[Supabase Cartoes] Erro ao buscar cartão ${id}: ${error.message}`);
     }
+    if (!data) {
+      return null;
+    }
+    return mapRowToCartao(data as CartaoDbRow);
   },
 
   async salvarCartao(dados: Partial<Cartao>): Promise<OperationResult<Cartao>> {

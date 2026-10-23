@@ -27,6 +27,7 @@ export interface ClientEnv {
   academicAgendaDataSource: DataSource;
   academicContentDataSource: DataSource;
   academicEvaluationsDataSource: DataSource;
+  academicFlashcardsDataSource: DataSource;
 }
 
 export interface ServerEnv extends ClientEnv {
@@ -38,6 +39,7 @@ export interface ServerEnv extends ClientEnv {
   academicAgendaDataSource: DataSource;
   academicContentDataSource: DataSource;
   academicEvaluationsDataSource: DataSource;
+  academicFlashcardsDataSource: DataSource;
   isAuthTestWithLocalData: boolean;
   supabaseSecretKey: string;
 }
@@ -246,6 +248,39 @@ export function getServerEnv(): ServerEnv {
   }
   const academicEvaluationsDataSource: DataSource = rawAcademicEvaluations;
 
+  const serverAcademicFlashcards = process.env.ACADEMIC_FLASHCARDS_DATA_SOURCE;
+  const clientAcademicFlashcards = process.env.NEXT_PUBLIC_ACADEMIC_FLASHCARDS_DATA_SOURCE;
+
+  if (
+    serverAcademicFlashcards &&
+    clientAcademicFlashcards &&
+    serverAcademicFlashcards !== clientAcademicFlashcards
+  ) {
+    throw new Error(
+      `[Configuração MTD] Divergência crítica detectada entre ACADEMIC_FLASHCARDS_DATA_SOURCE ("${serverAcademicFlashcards}") e NEXT_PUBLIC_ACADEMIC_FLASHCARDS_DATA_SOURCE ("${clientAcademicFlashcards}"). Ambas as variáveis devem ser estritamente idênticas ('supabase' ou 'local') para garantir consistência entre o servidor e o navegador.`
+    );
+  }
+
+  if (serverAcademicFlashcards === "supabase" && clientAcademicFlashcards !== "supabase") {
+    throw new Error(
+      `[Configuração MTD] ACADEMIC_FLASHCARDS_DATA_SOURCE está configurada como 'supabase', mas NEXT_PUBLIC_ACADEMIC_FLASHCARDS_DATA_SOURCE não é 'supabase' (atual: "${clientAcademicFlashcards || "indefinida"}"). Configure ambas com o mesmo valor.`
+    );
+  }
+
+  if (clientAcademicFlashcards === "supabase" && serverAcademicFlashcards !== "supabase") {
+    throw new Error(
+      `[Configuração MTD] NEXT_PUBLIC_ACADEMIC_FLASHCARDS_DATA_SOURCE está configurada como 'supabase', mas ACADEMIC_FLASHCARDS_DATA_SOURCE não é 'supabase' (atual: "${serverAcademicFlashcards || "indefinida"}"). Configure ambas com o mesmo valor.`
+    );
+  }
+
+  const rawAcademicFlashcards = serverAcademicFlashcards || clientAcademicFlashcards || dataSource;
+  if (rawAcademicFlashcards !== "local" && rawAcademicFlashcards !== "supabase") {
+    throw new Error(
+      `[Configuração MTD] ACADEMIC_FLASHCARDS_DATA_SOURCE inválido: "${rawAcademicFlashcards}". Esperado: "local" ou "supabase".`
+    );
+  }
+  const academicFlashcardsDataSource: DataSource = rawAcademicFlashcards;
+
   const isVercelProduction = process.env.VERCEL_ENV === "production";
   const isAuthTestWithLocalData =
     authMode === "supabase" && dataSource === "local";
@@ -298,6 +333,7 @@ export function getServerEnv(): ServerEnv {
     academicAgendaDataSource,
     academicContentDataSource,
     academicEvaluationsDataSource,
+    academicFlashcardsDataSource,
     isAuthTestWithLocalData,
     supabaseUrl,
     supabasePublishableKey,
@@ -329,6 +365,8 @@ export function getClientEnv(): ClientEnv {
     (process.env.NEXT_PUBLIC_ACADEMIC_CONTENT_DATA_SOURCE as DataSource) || defaultClientDataSource;
   const academicEvaluationsDataSource: DataSource =
     (process.env.NEXT_PUBLIC_ACADEMIC_EVALUATIONS_DATA_SOURCE as DataSource) || defaultClientDataSource;
+  const academicFlashcardsDataSource: DataSource =
+    (process.env.NEXT_PUBLIC_ACADEMIC_FLASHCARDS_DATA_SOURCE as DataSource) || defaultClientDataSource;
 
   return {
     supabaseUrl,
@@ -341,5 +379,6 @@ export function getClientEnv(): ClientEnv {
     academicAgendaDataSource,
     academicContentDataSource,
     academicEvaluationsDataSource,
+    academicFlashcardsDataSource,
   };
 }

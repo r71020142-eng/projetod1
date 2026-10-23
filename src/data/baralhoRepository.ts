@@ -5,7 +5,7 @@ import {
   saveBaralhosToStorage,
 } from "./baralhoLocalStorageRepository";
 import { baralhoSupabaseRepository } from "./baralhoSupabaseRepository";
-import { isLocalDataSource } from "./repositoryFactory";
+import { getAcademicFlashcardsDataSource } from "./repositoryFactory";
 
 export {
   baralhoLocalStorageRepository,
@@ -15,10 +15,10 @@ export {
 };
 
 function getActiveRepository() {
-  if (isLocalDataSource()) {
-    return baralhoLocalStorageRepository;
+  if (getAcademicFlashcardsDataSource() === "supabase") {
+    return baralhoSupabaseRepository;
   }
-  return baralhoSupabaseRepository;
+  return baralhoLocalStorageRepository;
 }
 
 export async function getBaralhos(filtros?: BaralhoFilters): Promise<Baralho[]> {

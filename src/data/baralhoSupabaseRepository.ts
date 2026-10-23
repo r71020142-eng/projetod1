@@ -1,6 +1,5 @@
 import { Baralho, BaralhoFilters, OperationResult, StatusBaralho } from "@/types";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
-import { baralhoLocalStorageRepository } from "./baralhoLocalStorageRepository";
 import { validateBaralhoInput } from "./validators";
 
 interface BaralhoDbRow {
@@ -63,98 +62,90 @@ function getSupabase() {
 
 export const baralhoSupabaseRepository = {
   async getBaralhos(filtros?: BaralhoFilters): Promise<Baralho[]> {
-    try {
-      const supabase = getSupabase();
-      let query = supabase.from("baralhos").select("*, total_cartoes:cartoes(count)");
+    const supabase = getSupabase();
+    let query = supabase.from("baralhos").select("*, total_cartoes:cartoes(count)");
 
-      if (filtros) {
-        if (filtros.status && filtros.status !== "todos") {
-          query = query.eq("status", filtros.status);
-        }
-        if (filtros.nivel && filtros.nivel !== "todos") {
-          query = query.or(`nivel_recomendado.eq.${filtros.nivel},nivel_recomendado.eq.todos`);
-        }
-        if (filtros.destinoTipo && filtros.destinoTipo !== "todos") {
-          query = query.eq("destino_tipo", filtros.destinoTipo);
-        }
-        if (filtros.professorId) {
-          query = query.eq("professor_id", filtros.professorId);
-        }
-        if (filtros.categoria && filtros.categoria !== "todas") {
-          query = query.ilike("categoria", filtros.categoria);
-        }
-        if (filtros.busca) {
-          query = query.or(`nome.ilike.%${filtros.busca}%,descricao.ilike.%${filtros.busca}%`);
-        }
+    if (filtros) {
+      if (filtros.status && filtros.status !== "todos") {
+        query = query.eq("status", filtros.status);
       }
-
-      query = query.order("created_at", { ascending: false });
-
-      const { data, error } = await query;
-      if (error) {
-        console.warn("[Supabase Baralhos] Erro ao listar, fallback local:", error.message);
-        return baralhoLocalStorageRepository.getBaralhos(filtros);
+      if (filtros.nivel && filtros.nivel !== "todos") {
+        query = query.or(`nivel_recomendado.eq.${filtros.nivel},nivel_recomendado.eq.todos`);
       }
-
-      return ((data || []) as unknown as BaralhoWithCountRow[]).map((row) => {
-        const total = Array.isArray(row.total_cartoes) && row.total_cartoes[0]
-          ? row.total_cartoes[0].count
-          : typeof row.total_cartoes === "number"
-          ? row.total_cartoes
-          : 0;
-        return mapRowToBaralho({ ...row, total_cartoes: total });
-      });
-    } catch {
-      return baralhoLocalStorageRepository.getBaralhos(filtros);
+      if (filtros.destinoTipo && filtros.destinoTipo !== "todos") {
+        query = query.eq("destino_tipo", filtros.destinoTipo);
+      }
+      if (filtros.professorId) {
+        query = query.eq("professor_id", filtros.professorId);
+      }
+      if (filtros.categoria && filtros.categoria !== "todas") {
+        query = query.ilike("categoria", filtros.categoria);
+      }
+      if (filtros.busca) {
+        query = query.or(`nome.ilike.%${filtros.busca}%,descricao.ilike.%${filtros.busca}%`);
+      }
     }
+
+    query = query.order("created_at", { ascending: false });
+
+    const { data, error } = await query;
+    if (error) {
+      throw new Error(`[Supabase Baralhos] Erro ao listar baralhos: ${error.message}`);
+    }
+
+    return ((data || []) as unknown as BaralhoWithCountRow[]).map((row) => {
+      const total = Array.isArray(row.total_cartoes) && row.total_cartoes[0]
+        ? row.total_cartoes[0].count
+        : typeof row.total_cartoes === "number"
+        ? row.total_cartoes
+        : 0;
+      return mapRowToBaralho({ ...row, total_cartoes: total });
+    });
   },
 
   async getBaralhosAluno(
-    alunoId: string,
-    turmasIdsAluno: string[] = []
+    _alunoId: string,
+    _turmasIdsAluno: string[] = []
   ): Promise<Baralho[]> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("vw_aluno_baralhos")
-        .select("*")
-        .order("created_at", { ascending: false });
+    void _alunoId;
+    void _turmasIdsAluno;
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from("vw_aluno_baralhos")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-      if (error) {
-        console.warn("[Supabase Baralhos] Erro na view do aluno, fallback local:", error.message);
-        return baralhoLocalStorageRepository.getBaralhosAluno(alunoId, turmasIdsAluno);
-      }
-
-      return ((data || []) as unknown as BaralhoDbRow[]).map((row) => mapRowToBaralho(row));
-    } catch {
-      return baralhoLocalStorageRepository.getBaralhosAluno(alunoId, turmasIdsAluno);
+    if (error) {
+      throw new Error(`[Supabase Baralhos] Erro na view de baralhos do aluno: ${error.message}`);
     }
+
+    return ((data || []) as unknown as BaralhoDbRow[]).map((row) => mapRowToBaralho(row));
   },
 
   async getBaralhoById(id: string): Promise<Baralho | null> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("baralhos")
-        .select("*, total_cartoes:cartoes(count)")
-        .eq("id", id)
-        .maybeSingle();
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from("baralhos")
+      .select("*, total_cartoes:cartoes(count)")
+      .eq("id", id)
+      .maybeSingle();
 
-      if (error || !data) {
-        return baralhoLocalStorageRepository.getBaralhoById(id);
-      }
-
-      const typedData = data as unknown as BaralhoWithCountRow;
-      const total = Array.isArray(typedData.total_cartoes) && typedData.total_cartoes[0]
-        ? typedData.total_cartoes[0].count
-        : typeof typedData.total_cartoes === "number"
-        ? typedData.total_cartoes
-        : 0;
-
-      return mapRowToBaralho({ ...typedData, total_cartoes: total });
-    } catch {
-      return baralhoLocalStorageRepository.getBaralhoById(id);
+    if (error) {
+      throw new Error(`[Supabase Baralhos] Erro ao buscar baralho ${id}: ${error.message}`);
     }
+
+    if (!data) {
+      return null;
+    }
+
+    const typedData = data as unknown as BaralhoWithCountRow;
+    const total = Array.isArray(typedData.total_cartoes) && typedData.total_cartoes[0]
+      ? typedData.total_cartoes[0].count
+      : typeof typedData.total_cartoes === "number"
+      ? typedData.total_cartoes
+      : 0;
+
+    return mapRowToBaralho({ ...typedData, total_cartoes: total });
   },
 
   async salvarBaralho(dados: Partial<Baralho>): Promise<OperationResult<Baralho>> {
@@ -275,7 +266,9 @@ export const baralhoSupabaseRepository = {
     }
   },
 
-  sincronizarContagemCartoes(baralhoId: string, total: number): void {
-    baralhoLocalStorageRepository.sincronizarContagemCartoes(baralhoId, total);
+  sincronizarContagemCartoes(_baralhoId: string, _total: number): void {
+    void _baralhoId;
+    void _total;
+    // No Supabase PostgreSQL, a contagem de cartões é resolvida dinamicamente via agregação (count) e views com security barrier
   },
 };

@@ -6,7 +6,7 @@ import {
   FilaEstudoBaralhoResultado,
 } from "./progressoCartaoLocalStorageRepository";
 import { progressoCartaoSupabaseRepository } from "./progressoCartaoSupabaseRepository";
-import { isLocalDataSource } from "./repositoryFactory";
+import { getAcademicFlashcardsDataSource } from "./repositoryFactory";
 
 export {
   progressoCartaoLocalStorageRepository,
@@ -17,10 +17,10 @@ export {
 export type { FilaEstudoBaralhoResultado };
 
 function getActiveRepository() {
-  if (isLocalDataSource()) {
-    return progressoCartaoLocalStorageRepository;
+  if (getAcademicFlashcardsDataSource() === "supabase") {
+    return progressoCartaoSupabaseRepository;
   }
-  return progressoCartaoSupabaseRepository;
+  return progressoCartaoLocalStorageRepository;
 }
 
 export async function obterProgresso(

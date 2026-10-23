@@ -155,8 +155,12 @@ BEGIN
   END IF;
 
   -- Geral: acesso para todos os discentes
-  IF p_destino_tipo = 'geral' OR p_destino_id IS NULL THEN
+  IF p_destino_tipo = 'geral' OR p_destino_tipo IS NULL THEN
     RETURN true;
+  END IF;
+
+  IF p_destino_id IS NULL THEN
+    RETURN false;
   END IF;
 
   -- Aluno individual
@@ -301,3 +305,11 @@ CREATE POLICY "sessoes_srs_aluno_manage" ON public.sessoes_estudo_srs
   TO authenticated
   USING (aluno_id = public.get_current_aluno_id())
   WITH CHECK (aluno_id = public.get_current_aluno_id());
+
+-- PERMISSÕES GERAIS PARA TABELAS E VIEW
+GRANT SELECT ON public.vw_aluno_baralhos TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.baralhos TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.cartoes TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.progresso_cartoes_alunos TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.historico_revisoes_srs TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.sessoes_estudo_srs TO authenticated, service_role;
