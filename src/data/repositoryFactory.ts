@@ -30,8 +30,10 @@ import { baralhoLocalStorageRepository } from "./baralhoLocalStorageRepository";
 import { baralhoSupabaseRepository } from "./baralhoSupabaseRepository";
 import { avaliacaoLocalStorageRepository } from "./avaliacaoLocalStorageRepository";
 import { avaliacaoSupabaseRepository } from "./avaliacaoSupabaseRepository";
-import { comunidadeRepository } from "./comunidadeRepository";
-import { gamificacaoRepository } from "./gamificacaoRepository";
+import { comunidadeLocalStorageRepository } from "./comunidadeLocalStorageRepository";
+import { comunidadeSupabaseRepository } from "./comunidadeSupabaseRepository";
+import { gamificacaoLocalStorageRepository } from "./gamificacaoLocalStorageRepository";
+import { gamificacaoSupabaseRepository } from "./gamificacaoSupabaseRepository";
 import {
   IAlunoRepository,
   IProfessorRepository,
@@ -255,9 +257,9 @@ export function getAvaliacaoRepository(): IAvaliacaoRepository {
  */
 export function getComunidadeRepository(): IComunidadeRepository {
   if (isLocalDataSource()) {
-    return comunidadeRepository;
+    return comunidadeLocalStorageRepository;
   }
-  throw new UnimplementedSupabaseRepositoryError("ComunidadeRepository", "Etapa 10.6");
+  return comunidadeSupabaseRepository;
 }
 
 /**
@@ -265,9 +267,17 @@ export function getComunidadeRepository(): IComunidadeRepository {
  */
 export function getGamificacaoRepository(): IGamificacaoRepository {
   if (isLocalDataSource()) {
-    return gamificacaoRepository;
+    return gamificacaoLocalStorageRepository;
   }
-  throw new UnimplementedSupabaseRepositoryError("GamificacaoRepository", "Etapa 10.6");
+  return gamificacaoSupabaseRepository;
 }
 
-export { aulaLocalStorageRepository, aulaSupabaseRepository, presencaSupabaseRepository };
+export {
+  aulaLocalStorageRepository,
+  aulaSupabaseRepository,
+  presencaSupabaseRepository,
+  comunidadeLocalStorageRepository,
+  comunidadeSupabaseRepository,
+  gamificacaoLocalStorageRepository,
+  gamificacaoSupabaseRepository,
+};

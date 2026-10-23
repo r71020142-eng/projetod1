@@ -17,6 +17,8 @@ import { baralhoSupabaseRepository } from "../src/data/baralhoSupabaseRepository
 import { cartaoSupabaseRepository } from "../src/data/cartaoSupabaseRepository";
 import { progressoCartaoSupabaseRepository } from "../src/data/progressoCartaoSupabaseRepository";
 import { selfPresentationSupabaseRepository } from "../src/data/selfPresentationSupabaseRepository";
+import { comunidadeSupabaseRepository } from "../src/data/comunidadeSupabaseRepository";
+import { gamificacaoSupabaseRepository } from "../src/data/gamificacaoSupabaseRepository";
 import { isLocalDataSource } from "../src/data/repositoryFactory";
 
 async function runTests() {
@@ -282,6 +284,85 @@ async function runTests() {
     }
   } catch (err: unknown) {
     assert(false, "SelfPresentationSupabaseRepository.salvarRascunho tratou erro", String(err));
+  }
+
+  // 12. Teste ComunidadeSupabaseRepository: criarPublicacao & salvarEspaco
+  console.log("\n12. ComunidadeSupabaseRepository (salvarEspaco & criarPublicacao):");
+  try {
+    const resEspaco = await comunidadeSupabaseRepository.salvarEspaco({
+      nome: "Espaço Teste Sem Fallback",
+      descricao: "Validação de mutação explícita",
+      tipo: "geral",
+    });
+    if (!resEspaco.success) {
+      assert(
+        typeof resEspaco.error === "string" && resEspaco.error.length > 0,
+        "ComunidadeSupabaseRepository.salvarEspaco falha explicitamente com erro",
+        resEspaco.error
+      );
+    } else {
+      assert(resEspaco.success && resEspaco.data !== undefined, "Espaço persistido no Supabase");
+    }
+
+    const resPub = await comunidadeSupabaseRepository.criarPublicacao({
+      espacoId: "esp-001",
+      autorId: "00000000-0000-0000-0000-000000000001",
+      autorNome: "Aluno Teste",
+      autorPapel: "aluno",
+      tipo: "discussao",
+      conteudo: "Publicação de teste sem fallback silencioso",
+    });
+    if (!resPub.success) {
+      assert(
+        typeof resPub.error === "string" && resPub.error.length > 0,
+        "ComunidadeSupabaseRepository.criarPublicacao falha explicitamente com erro",
+        resPub.error
+      );
+    } else {
+      assert(resPub.success, "Publicação persistida no Supabase");
+    }
+  } catch (err: unknown) {
+    assert(false, "ComunidadeSupabaseRepository tratou erro sem crash", String(err));
+  }
+
+  // 13. Teste GamificacaoSupabaseRepository: salvarModelo & registrarInteressePlacaFisica
+  console.log("\n13. GamificacaoSupabaseRepository (salvarModelo & registrarInteressePlacaFisica):");
+  try {
+    const resModelo = await gamificacaoSupabaseRepository.salvarModelo({
+      nome: "Conquista Teste Sem Fallback",
+      descricao: "Validação de mutação explícita sem fallback silencioso",
+      categoria: "dedicacao",
+      tipoCriterio: "horas_aulas_presenca",
+      tipoPremio: "badge_digital",
+      icone: "Award",
+    });
+    if (!resModelo.success) {
+      assert(
+        typeof resModelo.error === "string" && resModelo.error.length > 0,
+        "GamificacaoSupabaseRepository.salvarModelo falha explicitamente com erro",
+        resModelo.error
+      );
+    } else {
+      assert(resModelo.success && resModelo.data !== undefined, "Modelo persistido no Supabase");
+    }
+
+    const resPlaca = await gamificacaoSupabaseRepository.registrarInteressePlacaFisica({
+      alunoId: "00000000-0000-0000-0000-000000000001",
+      alunoNome: "Aluno Teste",
+      conquistaId: "conq-001",
+      conquistaNome: "Marco B1",
+    });
+    if (!resPlaca.success) {
+      assert(
+        typeof resPlaca.error === "string" && resPlaca.error.length > 0,
+        "GamificacaoSupabaseRepository.registrarInteressePlacaFisica falha explicitamente com mensagem explicativa",
+        resPlaca.error
+      );
+    } else {
+      assert(resPlaca.success, "Solicitação de placa persistida no Supabase");
+    }
+  } catch (err: unknown) {
+    assert(false, "GamificacaoSupabaseRepository tratou erro sem crash", String(err));
   }
 
   console.log("\n===============================================================================");

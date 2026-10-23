@@ -32,9 +32,26 @@ import {
   AvaliacaoFilters,
   EspacoComunidade,
   PublicacaoComunidade,
+  ComentarioPublicacao,
+  DenunciaConteudo,
+  OportunidadeIntercambio,
+  InteresseOportunidade,
+  MetricasComunidadeAdmin,
+  TipoPublicacaoComunidade,
+  AcaoModeracao,
+  MotivoDenuncia,
   ModeloConquista,
   ConquistaConcedida,
+  CategoriaConquista,
+  TipoCriterioConquista,
+  TipoPremioConquista,
+  StatusPlacaFisica,
   SolicitacaoPlacaFisica,
+  TipoAcaoPontos,
+  EventoPontos,
+  TipoNotificacaoInterna,
+  NotificacaoInterna,
+  MetricasGamificacaoAdmin,
   OperationResult,
   NivelAluno,
   OrigemAlteracaoNivel,
@@ -269,13 +286,158 @@ export interface IAvaliacaoRepository {
   alterarStatus(id: string, status: import("@/types").StatusAvaliacao): Promise<OperationResult<Avaliacao>>;
 }
 
+import { ContextoAvaliacaoConquistas } from "../gamificacaoMotor";
+
 export interface IComunidadeRepository {
-  listarEspacos(): Promise<EspacoComunidade[]>;
+  listarEspacos(
+    paraAdmin?: boolean,
+    aluno?: Aluno,
+    turmasMatriculado?: string[]
+  ): Promise<EspacoComunidade[]>;
+  obterEspacoPorId(id: string): Promise<EspacoComunidade | null>;
+  salvarEspaco(
+    dados: Partial<EspacoComunidade> & { nome: string; descricao: string }
+  ): Promise<OperationResult<EspacoComunidade>>;
   listarPublicacoes(espacoId?: string, paraAluno?: boolean): Promise<PublicacaoComunidade[]>;
+  obterPublicacaoPorId(id: string, paraAluno?: boolean): Promise<PublicacaoComunidade | null>;
+  criarPublicacao(
+    dados: {
+      espacoId: string;
+      autorId: string;
+      autorNome: string;
+      autorAvatar?: string;
+      autorPapel: "aluno" | "professor" | "admin" | "administrador";
+      tipo: TipoPublicacaoComunidade;
+      titulo?: string;
+      conteudo: string;
+      linkExternoUrl?: string;
+      linkExternoTitulo?: string;
+      oportunidadeId?: string;
+    },
+    alunoValidador?: Aluno,
+    turmasMatriculado?: string[]
+  ): Promise<OperationResult<PublicacaoComunidade>>;
+  alternarReacaoPublicacao(
+    publicacaoId: string,
+    tipo: string,
+    usuarioId: string
+  ): Promise<OperationResult<PublicacaoComunidade>>;
+  listarComentarios(publicacaoId: string, paraAluno?: boolean): Promise<ComentarioPublicacao[]>;
+  criarComentario(
+    dados: {
+      publicacaoId: string;
+      autorId: string;
+      autorNome: string;
+      autorAvatar?: string;
+      autorPapel: "aluno" | "professor" | "admin" | "administrador";
+      conteudo: string;
+    },
+    alunoValidador?: Aluno,
+    turmasMatriculado?: string[]
+  ): Promise<OperationResult<ComentarioPublicacao>>;
+  denunciarConteudo(dados: {
+    alvoTipo: "publicacao" | "comentario";
+    alvoId: string;
+    publicacaoId: string;
+    denuncianteId: string;
+    denuncianteNome: string;
+    motivo: MotivoDenuncia;
+    descricao?: string;
+  }): Promise<OperationResult<DenunciaConteudo>>;
+  listarDenuncias(): Promise<DenunciaConteudo[]>;
+  moderarPublicacao(
+    publicacaoId: string,
+    acao: AcaoModeracao,
+    motivo: string,
+    moderadorId: string,
+    moderadorNome: string
+  ): Promise<OperationResult<PublicacaoComunidade>>;
+  moderarComentario(
+    comentarioId: string,
+    acao: AcaoModeracao,
+    motivo: string,
+    moderadorId: string,
+    moderadorNome: string
+  ): Promise<OperationResult<ComentarioPublicacao>>;
+  listarOportunidades(): Promise<OportunidadeIntercambio[]>;
+  obterOportunidadePorId(id: string): Promise<OportunidadeIntercambio | null>;
+  registrarInteresseOportunidade(dados: {
+    oportunidadeId: string;
+    alunoId: string;
+    alunoNome: string;
+    alunoEmail: string;
+    alunoNivelAtual?: string;
+    observacoesAluno?: string;
+  }): Promise<OperationResult<InteresseOportunidade>>;
+  listarInteressesPorOportunidade(oportunidadeId: string): Promise<InteresseOportunidade[]>;
+  obterMetricasAdmin(): Promise<MetricasComunidadeAdmin>;
 }
 
 export interface IGamificacaoRepository {
   listarModelos(status?: string): Promise<ModeloConquista[]>;
+  obterModeloPorId(id: string): Promise<ModeloConquista | null>;
+  salvarModelo(
+    dados: Partial<ModeloConquista> & {
+      nome: string;
+      descricao: string;
+      categoria: CategoriaConquista;
+      tipoCriterio: TipoCriterioConquista;
+      tipoPremio: TipoPremioConquista;
+      icone: string;
+    }
+  ): Promise<OperationResult<ModeloConquista>>;
   listarConquistasAluno(alunoId: string): Promise<ConquistaConcedida[]>;
+  listarTodasConcedidas(): Promise<ConquistaConcedida[]>;
+  concederConquistaManual(dados: {
+    alunoId: string;
+    alunoNome: string;
+    modeloId: string;
+    professorId?: string;
+    professorNome?: string;
+    justificativaDocente?: string;
+  }): Promise<OperationResult<ConquistaConcedida>>;
+  verificarEConcederAutomaticas(
+    contexto: ContextoAvaliacaoConquistas,
+    alunoNome: string
+  ): Promise<ConquistaConcedida[]>;
+  registrarEventoPontos(dados: {
+    alunoId: string;
+    alunoNome: string;
+    tipoAcao: TipoAcaoPontos;
+    pontos?: number;
+    descricao?: string;
+    referenciaId?: string;
+  }): Promise<EventoPontos>;
+  obterPontosAluno(alunoId: string): Promise<{
+    pontosTotais: number;
+    historicoEventos: EventoPontos[];
+  }>;
   listarSolicitacoesPlacas(alunoId?: string): Promise<SolicitacaoPlacaFisica[]>;
+  obterSolicitacaoPlacaPorId(id: string): Promise<SolicitacaoPlacaFisica | null>;
+  registrarInteressePlacaFisica(dados: {
+    alunoId: string;
+    alunoNome: string;
+    conquistaId: string;
+    conquistaNome: string;
+    nivelMarco?: string;
+  }): Promise<OperationResult<SolicitacaoPlacaFisica>>;
+  atualizarStatusPlacaFisica(
+    solicitacaoId: string,
+    novoStatus: StatusPlacaFisica,
+    responsavelNome: string,
+    observacao?: string,
+    codigoRastreio?: string,
+    observacoesInternas?: string
+  ): Promise<OperationResult<SolicitacaoPlacaFisica>>;
+  criarNotificacao(dados: {
+    usuarioId: string;
+    tipo: TipoNotificacaoInterna;
+    titulo: string;
+    mensagem: string;
+    linkDestino?: string;
+  }): Promise<NotificacaoInterna>;
+  listarNotificacoes(usuarioId: string): Promise<NotificacaoInterna[]>;
+  marcarNotificacaoComoLida(id: string): Promise<OperationResult<boolean>>;
+  marcarTodasComoLidas(usuarioId: string): Promise<OperationResult<boolean>>;
+  obterMetricasAdmin(): Promise<MetricasGamificacaoAdmin>;
 }
