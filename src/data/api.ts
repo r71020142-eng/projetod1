@@ -27,7 +27,6 @@ import { avaliacaoRepository } from "./avaliacaoRepository";
 import { tentativaAvaliacaoRepository } from "./tentativaAvaliacaoRepository";
 import { comunidadeRepository } from "./comunidadeRepository";
 import { gamificacaoRepository } from "./gamificacaoRepository";
-import { isDemoMode } from "@/lib/demoMode";
 
 /**
  * Camada de acesso a dados demonstrativos para a plataforma DEMOSTRATIVO MTD.
@@ -35,26 +34,23 @@ import { isDemoMode } from "@/lib/demoMode";
  * facilitando a migração futura para backend sem alterar os componentes da interface.
  */
 
-export async function getAlunoDashboardData(): Promise<AlunoDashboardData> {
-  if (!isDemoMode()) {
-    throw new Error("Modo demonstrativo desativado. Autenticação de backend necessária para carregar dados do aluno.");
-  }
+export async function getAlunoDashboardData(alunoId?: string): Promise<AlunoDashboardData> {
   await new Promise((resolve) => setTimeout(resolve, 10));
   const data: AlunoDashboardData = JSON.parse(JSON.stringify(MOCK_ALUNO_DATA));
+  const targetAlunoId = alunoId || "alu-001";
 
-  // Aluno demonstrativo fixo: Mariana Oliveira (alu-001)
   try {
-    const turmasDoAluno = await turmaRepository.listarPorAluno("alu-001");
+    const turmasDoAluno = await turmaRepository.listarPorAluno(targetAlunoId);
     const turmaIds = turmasDoAluno.map((t) => t.id);
 
     const [proxima, praticaHoje, atividadesRepo, entregasAluno, totalConcluidas, spAtiva] =
       await Promise.all([
-        aulaRepository.obterProximaAulaAluno("alu-001"),
-        conteudoDiarioRepository.obterPraticaDeHoje("alu-001", turmaIds),
-        atividadeRepository.listarParaAluno("alu-001", turmaIds),
-        entregaRepository.listar({ alunoId: "alu-001" }),
-        entregaRepository.contarConcluidasPorAluno("alu-001"),
-        selfPresentationRepository.obterAtivaParaAluno("alu-001"),
+        aulaRepository.obterProximaAulaAluno(targetAlunoId),
+        conteudoDiarioRepository.obterPraticaDeHoje(targetAlunoId, turmaIds),
+        atividadeRepository.listarParaAluno(targetAlunoId, turmaIds),
+        entregaRepository.listar({ alunoId: targetAlunoId }),
+        entregaRepository.contarConcluidasPorAluno(targetAlunoId),
+        selfPresentationRepository.obterAtivaParaAluno(targetAlunoId),
       ]);
 
     if (spAtiva) {
@@ -71,8 +67,8 @@ export async function getAlunoDashboardData(): Promise<AlunoDashboardData> {
 
     // Etapa 6: Métricas Reais de Flashcards (SRS)
     try {
-      const baralhosAluno = await baralhoRepository.getBaralhosAluno("alu-001", turmaIds);
-      const metricasFlashcards = await historicoRevisaoRepository.obterMetricasAluno("alu-001", baralhosAluno);
+      const baralhosAluno = await baralhoRepository.getBaralhosAluno(targetAlunoId, turmaIds);
+      const metricasFlashcards = await historicoRevisaoRepository.obterMetricasAluno(targetAlunoId, baralhosAluno);
       data.flashcardsMetricas = metricasFlashcards;
       data.flashcardsResumo = {
         totalParaRevisarHoje: metricasFlashcards.revisoesHoje,
@@ -150,12 +146,12 @@ export async function getAlunoDashboardData(): Promise<AlunoDashboardData> {
     try {
       const [progressoModulos, modulos, etapas, programas, avaliacoesDisponiveis, tentativasAluno] =
         await Promise.all([
-          progressoModuloRepository.listar({ alunoId: "alu-001" }),
+          progressoModuloRepository.listar({ alunoId: targetAlunoId }),
           moduloRepository.listar(),
           etapaRepository.listar(),
           programaRepository.listar(),
-          avaliacaoRepository.listarParaAluno("alu-001", turmaIds),
-          tentativaAvaliacaoRepository.listarPorAluno("alu-001"),
+          avaliacaoRepository.listarParaAluno(targetAlunoId, turmaIds),
+          tentativaAvaliacaoRepository.listarPorAluno(targetAlunoId),
         ]);
 
       const moduloAtualProg =
@@ -301,9 +297,6 @@ export async function getAlunoDashboardData(): Promise<AlunoDashboardData> {
 }
 
 export async function getAdminDashboardData(): Promise<AdminDashboardData> {
-  if (!isDemoMode()) {
-    throw new Error("Modo demonstrativo desativado. Autenticação de backend necessária para carregar dados administrativos.");
-  }
   await new Promise((resolve) => setTimeout(resolve, 10));
   const data: AdminDashboardData = JSON.parse(JSON.stringify(MOCK_ADMIN_DATA));
 

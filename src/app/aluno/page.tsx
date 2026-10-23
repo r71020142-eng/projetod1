@@ -13,14 +13,15 @@ import { calcularPlanoDiario, ContextoPlanoDiario } from "@/data/planoDiarioMoto
 import { getServerIdentity } from "@/lib/auth/session";
 
 export default async function AlunoDashboardPage() {
-  const [data, identity] = await Promise.all([
-    getAlunoDashboardData(),
-    getServerIdentity("aluno"),
-  ]);
+  const identity = await getServerIdentity("aluno");
+  const targetAlunoId = identity?.alunoId || "alu-001";
 
-  const conquistasAluno = await gamificacaoRepository
-    .listarConquistasAluno("alu-001")
-    .catch(() => []);
+  const [data, conquistasAluno] = await Promise.all([
+    getAlunoDashboardData(targetAlunoId),
+    gamificacaoRepository
+      .listarConquistasAluno(targetAlunoId)
+      .catch(() => []),
+  ]);
 
   const conquistaDestaque = conquistasAluno[0];
 
@@ -57,7 +58,7 @@ export default async function AlunoDashboardPage() {
 
   // Monta contexto para o motor determinístico do plano diário (máximo 3 ações reais pendentes)
   const contextoPlano: ContextoPlanoDiario = {
-    alunoId: "alu-001",
+    alunoId: targetAlunoId,
     proximaAula: data.proximaAula
       ? {
           id: data.proximaAula.id,

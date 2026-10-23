@@ -35,6 +35,12 @@ yarn-error.log*
 supabase/.temp/
 .temp/
 
+# provisioning state and secrets
+*.secret
+.provisioning-state.json
+scripts/.provisioning-state.json
+scripts/.primeiro-acesso.secret
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
