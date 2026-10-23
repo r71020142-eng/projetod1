@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Search, Bell, Menu, X, ChevronDown, LogOut } from "lucide-react";
 import { NotificacoesDrawer } from "@/components/notificacoes/NotificacoesDrawer";
 import { DemoRoleSwitcher } from "@/components/layout/DemoRoleSwitcher";
+import { AuthTestBanner } from "@/components/AuthTestBanner";
 import { gamificacaoRepository } from "@/data/api";
 
 interface HeaderProps {
@@ -15,6 +16,7 @@ interface HeaderProps {
   userInitials?: string;
   userEmail?: string;
   isRealAuth?: boolean;
+  isAuthTest?: boolean;
   onToggleMobileMenu: () => void;
   isMobileMenuOpen: boolean;
 }
@@ -27,6 +29,7 @@ export function Header({
   userInitials,
   userEmail,
   isRealAuth = false,
+  isAuthTest = false,
   onToggleMobileMenu,
   isMobileMenuOpen,
 }: HeaderProps) {
@@ -68,7 +71,14 @@ export function Header({
       : "Buscar alunos, professores, aulas...";
 
   return (
-    <header className="sticky top-0 z-30 w-full border-b border-[#E5E2DA] bg-[#FAF8F3]/95 backdrop-blur-md select-none transition-colors pt-[env(safe-area-inset-top,0px)]">
+    <header
+      style={{
+        WebkitTransform: "translateZ(0)",
+        transform: "translateZ(0)",
+      }}
+      className="sticky top-0 z-30 w-full border-b border-[#E5E2DA] bg-[#FAF8F3]/95 backdrop-blur-md select-none transition-colors pt-[env(safe-area-inset-top,0px)]"
+    >
+      {isAuthTest && <AuthTestBanner />}
       <div className="flex h-16 sm:h-20 w-full items-center justify-between px-4 sm:px-6 lg:px-8 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]">
         {/* Left side: Mobile Toggle & Brand (on mobile only, since desktop has persistent sidebar) */}
         <div className="flex items-center gap-2 sm:gap-3">

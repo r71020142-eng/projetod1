@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { NotificacaoInterna } from "@/types";
 import { gamificacaoRepository } from "@/data/api";
@@ -21,6 +22,11 @@ export function NotificacoesDrawer({
 }: NotificacoesDrawerProps) {
   const [notificacoes, setNotificacoes] = useState<NotificacaoInterna[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const carregar = useCallback(async () => {
     try {
@@ -39,6 +45,27 @@ export function NotificacoesDrawer({
     }
   }, [isOpen, carregar]);
 
+  // Trava a rolagem do body quando o drawer estiver aberto
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
+  // Fechar no teclado ESC
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   async function handleMarcarLida(id: string) {
     await gamificacaoRepository.marcarNotificacaoComoLida(id);
     setNotificacoes((prev) =>
@@ -53,15 +80,25 @@ export function NotificacoesDrawer({
     if (onNotificacaoLida) onNotificacaoLida();
   }
 
-  if (!isOpen) return null;
+  // Se não estiver montado ou fechado, não renderiza
+  if (!isOpen || !mounted) return null;
 
   const naoLidasCount = notificacoes.filter((n) => !n.lida).length;
 
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/40 backdrop-blur-xs animate-in fade-in">
-      <div className="bg-white w-full max-w-sm h-full shadow-2xl border-l border-slate-200 flex flex-col justify-between animate-in slide-in-from-right duration-200">
-        {/* Header */}
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+  const drawerContent = (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Central de notificações"
+      className="fixed inset-0 z-[100] flex justify-end bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white w-full sm:max-w-sm h-full min-h-[100dvh] max-h-[100dvh] shadow-2xl border-l border-slate-200 flex flex-col justify-between animate-in slide-in-from-right duration-250 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header com Safe Area Top */}
+        <div className="p-4 pt-[max(1rem,env(safe-area-inset-top,0px))] border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
           <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
             <Bell className="w-4 h-4 text-indigo-600" />
             <span>Notificações</span>
@@ -74,6 +111,7 @@ export function NotificacoesDrawer({
           <div className="flex items-center gap-1">
             {naoLidasCount > 0 && (
               <button
+                type="button"
                 onClick={handleMarcarTodasLidas}
                 className="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold p-1 hover:bg-slate-100 rounded transition"
                 title="Marcar todas como lidas"
@@ -82,7 +120,9 @@ export function NotificacoesDrawer({
               </button>
             )}
             <button
+              type="button"
               onClick={onClose}
+              aria-label="Fechar painel de notificações"
               className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition"
             >
               <X className="w-5 h-5" />
@@ -90,8 +130,8 @@ export function NotificacoesDrawer({
           </div>
         </div>
 
-        {/* Lista */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {/* Lista com scroll isolado */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 overscroll-contain">
           {loading ? (
             <p className="text-xs text-slate-400 text-center py-6">Carregando notificações...</p>
           ) : notificacoes.length === 0 ? (
@@ -130,6 +170,7 @@ export function NotificacoesDrawer({
 
                     {!n.lida && (
                       <button
+                        type="button"
                         onClick={() => handleMarcarLida(n.id)}
                         className="text-[10px] text-indigo-600 hover:underline font-semibold shrink-0"
                       >
@@ -170,8 +211,8 @@ export function NotificacoesDrawer({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-3 border-t border-slate-100 text-center bg-slate-50">
+        {/* Footer com Safe Area Bottom */}
+        <div className="p-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] border-t border-slate-100 text-center bg-slate-50 shrink-0">
           <p className="text-[11px] text-slate-400">
             Central de notificações pedagógicas da MTD
           </p>
@@ -179,4 +220,6 @@ export function NotificacoesDrawer({
       </div>
     </div>
   );
+
+  return createPortal(drawerContent, document.body);
 }

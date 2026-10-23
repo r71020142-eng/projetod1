@@ -14,17 +14,19 @@ export function useAlunoIdentity(): UserIdentity | null {
 interface AlunoLayoutClientProps {
   children: React.ReactNode;
   identity: UserIdentity;
+  isAuthTest?: boolean;
 }
 
 export function AlunoLayoutClient({
   children,
   identity,
+  isAuthTest = false,
 }: AlunoLayoutClientProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
     <AlunoIdentityContext.Provider value={identity}>
-      <div className="student-main min-h-screen bg-[#F5F3EE] text-[#07132E] relative overflow-x-clip selection:bg-[#5B2FE8] selection:text-white">
+      <div className="student-main min-h-screen bg-[#F5F3EE] text-[#07132E] relative selection:bg-[#5B2FE8] selection:text-white">
         {/* Decoupled Fixed Background Layer */}
         <div
           className="student-main-background fixed inset-0 pointer-events-none z-0 bg-[#F8F6F1] bg-[url('/assets/mtd/mtd-main-background.webp')] bg-cover bg-top bg-no-repeat"
@@ -49,6 +51,7 @@ export function AlunoLayoutClient({
             userInitials={identity.initials}
             userEmail={identity.email}
             isRealAuth={identity.isRealAuth}
+            isAuthTest={isAuthTest}
             onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             isMobileMenuOpen={isMobileMenuOpen}
           />

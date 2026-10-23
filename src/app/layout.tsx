@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { DM_Serif_Display, Inter } from "next/font/google";
-import { getServerEnv } from "@/lib/env";
-import { AuthTestBanner } from "@/components/AuthTestBanner";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import "./globals.css";
@@ -77,21 +75,12 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let isAuthTest = false;
-  try {
-    const env = getServerEnv();
-    isAuthTest = env.isAuthTestWithLocalData;
-  } catch {
-    // Modo seguro se variáveis não estiverem inicializadas
-  }
-
   return (
     <html lang="pt-BR">
       <body
         className={`${inter.variable} ${dmSerif.variable} ${geistSans.variable} ${geistMono.variable} font-sans antialiased selection:bg-[#5B2FE8] selection:text-white`}
       >
         <PwaRegister />
-        {isAuthTest && <AuthTestBanner />}
         {children}
         <PwaInstallPrompt />
       </body>

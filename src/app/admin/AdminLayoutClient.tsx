@@ -15,17 +15,19 @@ export function useAdminIdentity(): UserIdentity | null {
 interface AdminLayoutClientProps {
   children: React.ReactNode;
   identity: UserIdentity;
+  isAuthTest?: boolean;
 }
 
 export function AdminLayoutClient({
   children,
   identity,
+  isAuthTest = false,
 }: AdminLayoutClientProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
     <AdminIdentityContext.Provider value={identity}>
-      <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex overflow-x-clip relative">
+      <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex relative">
         {/* Dark Permanent Admin Sidebar on Desktop / Drawer on Mobile */}
         <AdminSidebar
           isOpenMobile={isMobileMenuOpen}
@@ -44,6 +46,7 @@ export function AdminLayoutClient({
             userInitials={identity.initials}
             userEmail={identity.email}
             isRealAuth={identity.isRealAuth}
+            isAuthTest={isAuthTest}
             onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             isMobileMenuOpen={isMobileMenuOpen}
           />
