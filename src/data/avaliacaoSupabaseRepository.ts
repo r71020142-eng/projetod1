@@ -189,6 +189,24 @@ export const avaliacaoSupabaseRepository = {
       if (!val.isValid) return { success: false, error: val.errors[0] };
     }
 
+    if (dados.id && possuiTentativas) {
+      const anterior = await this.obterPorId(dados.id);
+      if (anterior) {
+        if (dados.tipo === "objetiva" && JSON.stringify(anterior.questoes) !== JSON.stringify(dados.questoes)) {
+          return {
+            success: false,
+            error: "Esta avaliação já possui tentativas enviadas. As questões não podem ser modificadas nesta versão; duplique-a como nova versão para fazer alterações.",
+          };
+        }
+        if (dados.tipo === "pratica" && JSON.stringify(anterior.rubrica) !== JSON.stringify(dados.rubrica)) {
+          return {
+            success: false,
+            error: "Esta avaliação já possui tentativas enviadas. A rubrica não pode ser alterada nesta versão; duplique-a como nova versão.",
+          };
+        }
+      }
+    }
+
     try {
       const supabase = getSupabase();
       const payload = {
@@ -223,20 +241,27 @@ export const avaliacaoSupabaseRepository = {
       if (dados.id) {
         const { data, error } = await supabase.from("avaliacoes").update(payload).eq("id", dados.id).select().single();
         if (error) {
-          console.warn("[Supabase Avaliações] Erro ao atualizar, fallback local:", error.message);
-          return avaliacaoLocalStorageRepository.salvar(dados, possuiTentativas);
+          return {
+            success: false,
+            error: `Erro ao atualizar avaliação no Supabase: ${error.message}`,
+          };
         }
         return { success: true, data: mapRowToAvaliacao(data as AvaliacaoDbRow) };
       }
 
       const { data, error } = await supabase.from("avaliacoes").insert(payload).select().single();
       if (error) {
-        console.warn("[Supabase Avaliações] Erro ao inserir, fallback local:", error.message);
-        return avaliacaoLocalStorageRepository.salvar(dados, possuiTentativas);
+        return {
+          success: false,
+          error: `Erro ao criar avaliação no Supabase: ${error.message}`,
+        };
       }
       return { success: true, data: mapRowToAvaliacao(data as AvaliacaoDbRow) };
-    } catch {
-      return avaliacaoLocalStorageRepository.salvar(dados, possuiTentativas);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao salvar avaliação: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 
@@ -285,11 +310,17 @@ export const avaliacaoSupabaseRepository = {
       }
       const { data, error } = await supabase.from("avaliacoes").update(payload).eq("id", id).select().single();
       if (error) {
-        return avaliacaoLocalStorageRepository.alterarStatus(id, status);
+        return {
+          success: false,
+          error: `Erro ao alterar status da avaliação no Supabase: ${error.message}`,
+        };
       }
       return { success: true, data: mapRowToAvaliacao(data as AvaliacaoDbRow) };
-    } catch {
-      return avaliacaoLocalStorageRepository.alterarStatus(id, status);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao alterar status: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 };

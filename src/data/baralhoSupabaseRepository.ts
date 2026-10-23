@@ -197,14 +197,15 @@ export const baralhoSupabaseRepository = {
           .single();
 
         if (error) {
-          console.warn("[Supabase Baralhos] Erro ao atualizar, fallback local:", error.message);
-          return baralhoLocalStorageRepository.salvarBaralho(dados);
+          return {
+            success: false,
+            error: `Erro ao atualizar baralho no Supabase: ${error.message}`,
+          };
         }
         return { success: true, data: mapRowToBaralho(data as BaralhoDbRow) };
       } else {
-        // Criação com ID gerado
-        const localList = await baralhoLocalStorageRepository.getBaralhos();
-        const nextId = `baralho-${String(localList.length + 1).padStart(3, "0")}`;
+        // Criação com ID determinístico
+        const nextId = `baralho-${Date.now().toString().slice(-6)}`;
         payload.id = nextId;
         payload.created_at = new Date().toISOString();
 
@@ -215,13 +216,18 @@ export const baralhoSupabaseRepository = {
           .single();
 
         if (error) {
-          console.warn("[Supabase Baralhos] Erro ao criar, fallback local:", error.message);
-          return baralhoLocalStorageRepository.salvarBaralho(dados);
+          return {
+            success: false,
+            error: `Erro ao criar baralho no Supabase: ${error.message}`,
+          };
         }
         return { success: true, data: mapRowToBaralho(data as BaralhoDbRow) };
       }
-    } catch {
-      return baralhoLocalStorageRepository.salvarBaralho(dados);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao salvar baralho: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 
@@ -236,11 +242,17 @@ export const baralhoSupabaseRepository = {
         .single();
 
       if (error) {
-        return baralhoLocalStorageRepository.atualizarStatusBaralho(id, novoStatus);
+        return {
+          success: false,
+          error: `Erro ao atualizar status do baralho no Supabase: ${error.message}`,
+        };
       }
       return { success: true, data: mapRowToBaralho(data as BaralhoDbRow) };
-    } catch {
-      return baralhoLocalStorageRepository.atualizarStatusBaralho(id, novoStatus);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao atualizar status do baralho: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 
@@ -249,11 +261,17 @@ export const baralhoSupabaseRepository = {
       const supabase = getSupabase();
       const { error } = await supabase.from("baralhos").delete().eq("id", id);
       if (error) {
-        return baralhoLocalStorageRepository.excluirBaralho(id);
+        return {
+          success: false,
+          error: `Erro ao excluir baralho no Supabase: ${error.message}`,
+        };
       }
       return { success: true, data: true };
-    } catch {
-      return baralhoLocalStorageRepository.excluirBaralho(id);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao excluir baralho: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 

@@ -57,7 +57,12 @@ export function isLocalDataSource(): boolean {
       return true;
     }
   }
-  return true;
+  try {
+    const clientEnv = getClientEnv();
+    return clientEnv.dataSource === "local";
+  } catch {
+    return true;
+  }
 }
 
 /**

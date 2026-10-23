@@ -230,13 +230,18 @@ export const materialSupabaseRepository = {
 
       const { data, error } = await supabase.from("materiais").insert(payload).select().single();
       if (error) {
-        console.warn("[Supabase Materiais] Erro ao inserir, utilizando fallback local:", error.message);
-        return materialLocalStorageRepository.criar(dados);
+        return {
+          success: false,
+          error: `Erro ao salvar material no Supabase: ${error.message}`,
+        };
       }
 
       return { success: true, data: mapRowToMaterial(data as MaterialDbRow) };
-    } catch {
-      return materialLocalStorageRepository.criar(dados);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao criar material: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 
@@ -261,13 +266,18 @@ export const materialSupabaseRepository = {
 
       const { data, error } = await supabase.from("materiais").update(payload).eq("id", id).select().single();
       if (error) {
-        console.warn("[Supabase Materiais] Erro ao atualizar, fallback local:", error.message);
-        return materialLocalStorageRepository.atualizar(id, dados);
+        return {
+          success: false,
+          error: `Erro ao atualizar material no Supabase: ${error.message}`,
+        };
       }
 
       return { success: true, data: mapRowToMaterial(data as MaterialDbRow) };
-    } catch {
-      return materialLocalStorageRepository.atualizar(id, dados);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao atualizar material: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 

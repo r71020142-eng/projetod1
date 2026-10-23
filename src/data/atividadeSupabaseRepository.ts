@@ -226,13 +226,18 @@ export const atividadeSupabaseRepository = {
 
       const { data, error } = await supabase.from("atividades").insert(payload).select().single();
       if (error) {
-        console.warn("[Supabase Atividades] Erro ao inserir, fallback local:", error.message);
-        return atividadeLocalStorageRepository.criar(dados);
+        return {
+          success: false,
+          error: `Erro ao salvar atividade no Supabase: ${error.message}`,
+        };
       }
 
       return { success: true, data: mapRowToAtividade(data as AtividadeDbRow) };
-    } catch {
-      return atividadeLocalStorageRepository.criar(dados);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao criar atividade: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 
@@ -254,13 +259,18 @@ export const atividadeSupabaseRepository = {
 
       const { data, error } = await supabase.from("atividades").update(payload).eq("id", id).select().single();
       if (error) {
-        console.warn("[Supabase Atividades] Erro ao atualizar, fallback local:", error.message);
-        return atividadeLocalStorageRepository.atualizar(id, dados);
+        return {
+          success: false,
+          error: `Erro ao atualizar atividade no Supabase: ${error.message}`,
+        };
       }
 
       return { success: true, data: mapRowToAtividade(data as AtividadeDbRow) };
-    } catch {
-      return atividadeLocalStorageRepository.atualizar(id, dados);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao atualizar atividade: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 

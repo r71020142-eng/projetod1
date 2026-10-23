@@ -9,7 +9,7 @@
 -- 4. public.modelos_conquistas
 -- 5. public.conquistas_concedidas
 -- 6. public.solicitacoes_placas
--- 7. Políticas de Row Level Security (RLS)
+-- 7. Políticas de Row Level Security (RLS) alinhadas às funções canônicas do banco
 -- ==============================================================================
 
 -- 1. ESPAÇOS DA COMUNIDADE
@@ -20,13 +20,13 @@ CREATE TABLE IF NOT EXISTS public.espacos_comunidade (
   icone TEXT NOT NULL DEFAULT 'MessageCircle',
   cor_tema TEXT NOT NULL DEFAULT 'indigo',
   visibilidade TEXT NOT NULL DEFAULT 'geral' CHECK (visibilidade IN ('geral', 'turma', 'nivel')),
-  turma_id TEXT NULL,
+  turma_id UUID REFERENCES public.turmas(id) ON DELETE SET NULL,
   nivel_minimo TEXT NULL,
   ordem INTEGER NOT NULL DEFAULT 0,
   apenas_leitura_alunos BOOLEAN NOT NULL DEFAULT FALSE,
   status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'arquivado')),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
 -- 2. PUBLICAÇÕES DA COMUNIDADE
@@ -45,8 +45,8 @@ CREATE TABLE IF NOT EXISTS public.publicacoes_comunidade (
   total_curtidas INTEGER NOT NULL DEFAULT 0,
   total_comentarios INTEGER NOT NULL DEFAULT 0,
   tags TEXT[] NOT NULL DEFAULT '{}',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
 -- 3. COMENTÁRIOS DE PUBLICAÇÕES
@@ -61,8 +61,8 @@ CREATE TABLE IF NOT EXISTS public.comentarios_comunidade (
   resposta_a_comentario_id TEXT NULL,
   status TEXT NOT NULL DEFAULT 'publicado' CHECK (status IN ('publicado', 'oculto_moderacao', 'removido')),
   total_curtidas INTEGER NOT NULL DEFAULT 0,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
 -- 4. MODELOS DE CONQUISTAS (GAMIFICAÇÃO)
@@ -78,26 +78,26 @@ CREATE TABLE IF NOT EXISTS public.modelos_conquistas (
   habilitar_placa_fisica BOOLEAN NOT NULL DEFAULT FALSE,
   ordem INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'arquivado')),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
 -- 5. CONQUISTAS CONCEDIDAS AOS ALUNOS
 CREATE TABLE IF NOT EXISTS public.conquistas_concedidas (
   id TEXT PRIMARY KEY,
-  aluno_id TEXT NOT NULL REFERENCES public.alunos(id) ON DELETE CASCADE,
+  aluno_id UUID NOT NULL REFERENCES public.alunos(id) ON DELETE CASCADE,
   modelo_id TEXT NOT NULL REFERENCES public.modelos_conquistas(id) ON DELETE CASCADE,
-  concedida_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  concedida_em TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
   notificada BOOLEAN NOT NULL DEFAULT FALSE,
   metadata JSONB NOT NULL DEFAULT '{}'::JSONB,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
   CONSTRAINT uq_aluno_conquista UNIQUE (aluno_id, modelo_id)
 );
 
 -- 6. SOLICITAÇÕES DE PLACAS FÍSICAS
 CREATE TABLE IF NOT EXISTS public.solicitacoes_placas (
   id TEXT PRIMARY KEY,
-  aluno_id TEXT NOT NULL REFERENCES public.alunos(id) ON DELETE CASCADE,
+  aluno_id UUID NOT NULL REFERENCES public.alunos(id) ON DELETE CASCADE,
   aluno_nome TEXT NOT NULL,
   conquista_id TEXT NOT NULL REFERENCES public.modelos_conquistas(id) ON DELETE RESTRICT,
   nome_gravacao TEXT NOT NULL,
@@ -105,8 +105,8 @@ CREATE TABLE IF NOT EXISTS public.solicitacoes_placas (
   status TEXT NOT NULL DEFAULT 'solicitada' CHECK (status IN ('solicitada', 'em_analise', 'aprovada', 'em_producao', 'enviada', 'entregue', 'rejeitada')),
   codigo_rastreio TEXT NULL,
   motivo_rejeicao TEXT NULL,
-  solicitada_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  atualizada_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  solicitada_em TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  atualizada_em TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
 -- ÍNDICES
@@ -114,6 +114,31 @@ CREATE INDEX IF NOT EXISTS idx_pub_espaco_status ON public.publicacoes_comunidad
 CREATE INDEX IF NOT EXISTS idx_comentarios_pub ON public.comentarios_comunidade(publicacao_id, status);
 CREATE INDEX IF NOT EXISTS idx_conquistas_aluno ON public.conquistas_concedidas(aluno_id);
 CREATE INDEX IF NOT EXISTS idx_placas_aluno ON public.solicitacoes_placas(aluno_id, status);
+
+-- TRIGGERS DE UPDATED_AT
+DROP TRIGGER IF EXISTS trg_espacos_updated_at ON public.espacos_comunidade;
+CREATE TRIGGER trg_espacos_updated_at
+  BEFORE UPDATE ON public.espacos_comunidade
+  FOR EACH ROW
+  EXECUTE FUNCTION public.set_current_timestamp_updated_at();
+
+DROP TRIGGER IF EXISTS trg_publicacoes_updated_at ON public.publicacoes_comunidade;
+CREATE TRIGGER trg_publicacoes_updated_at
+  BEFORE UPDATE ON public.publicacoes_comunidade
+  FOR EACH ROW
+  EXECUTE FUNCTION public.set_current_timestamp_updated_at();
+
+DROP TRIGGER IF EXISTS trg_comentarios_updated_at ON public.comentarios_comunidade;
+CREATE TRIGGER trg_comentarios_updated_at
+  BEFORE UPDATE ON public.comentarios_comunidade
+  FOR EACH ROW
+  EXECUTE FUNCTION public.set_current_timestamp_updated_at();
+
+DROP TRIGGER IF EXISTS trg_modelos_conquistas_updated_at ON public.modelos_conquistas;
+CREATE TRIGGER trg_modelos_conquistas_updated_at
+  BEFORE UPDATE ON public.modelos_conquistas
+  FOR EACH ROW
+  EXECUTE FUNCTION public.set_current_timestamp_updated_at();
 
 -- HABILITAR RLS
 ALTER TABLE public.espacos_comunidade ENABLE ROW LEVEL SECURITY;
@@ -128,24 +153,24 @@ DROP POLICY IF EXISTS "espacos_select_all" ON public.espacos_comunidade;
 CREATE POLICY "espacos_select_all" ON public.espacos_comunidade FOR SELECT TO authenticated USING (true);
 
 DROP POLICY IF EXISTS "pub_select_publicadas" ON public.publicacoes_comunidade;
-CREATE POLICY "pub_select_publicadas" ON public.publicacoes_comunidade FOR SELECT TO authenticated USING (status = 'publicado' OR public.obter_perfil_usuario(auth.uid()) IN ('admin', 'professor'));
+CREATE POLICY "pub_select_publicadas" ON public.publicacoes_comunidade FOR SELECT TO authenticated
+  USING (status = 'publicado' OR public.is_admin() OR public.get_current_professor_id() IS NOT NULL);
 
 DROP POLICY IF EXISTS "comentarios_select_publicados" ON public.comentarios_comunidade;
-CREATE POLICY "comentarios_select_publicados" ON public.comentarios_comunidade FOR SELECT TO authenticated USING (status = 'publicado' OR public.obter_perfil_usuario(auth.uid()) IN ('admin', 'professor'));
+CREATE POLICY "comentarios_select_publicados" ON public.comentarios_comunidade FOR SELECT TO authenticated
+  USING (status = 'publicado' OR public.is_admin() OR public.get_current_professor_id() IS NOT NULL);
 
 DROP POLICY IF EXISTS "modelos_conquistas_select_all" ON public.modelos_conquistas;
 CREATE POLICY "modelos_conquistas_select_all" ON public.modelos_conquistas FOR SELECT TO authenticated USING (true);
 
 DROP POLICY IF EXISTS "conquistas_select_own_or_team" ON public.conquistas_concedidas;
-CREATE POLICY "conquistas_select_own_or_team" ON public.conquistas_concedidas FOR SELECT TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.perfis p WHERE p.aluno_id = conquistas_concedidas.aluno_id AND p.id = auth.uid())
-  OR public.obter_perfil_usuario(auth.uid()) IN ('admin', 'professor')
-);
+CREATE POLICY "conquistas_select_own_or_team" ON public.conquistas_concedidas FOR SELECT TO authenticated
+  USING (aluno_id = public.get_current_aluno_id() OR public.is_admin() OR public.get_current_professor_id() IS NOT NULL);
 
 DROP POLICY IF EXISTS "placas_manage_team" ON public.solicitacoes_placas;
-CREATE POLICY "placas_manage_team" ON public.solicitacoes_placas FOR ALL TO authenticated USING (public.obter_perfil_usuario(auth.uid()) IN ('admin', 'professor'));
+CREATE POLICY "placas_manage_team" ON public.solicitacoes_placas FOR ALL TO authenticated
+  USING (public.is_admin() OR public.get_current_professor_id() IS NOT NULL);
 
 DROP POLICY IF EXISTS "placas_aluno_own" ON public.solicitacoes_placas;
-CREATE POLICY "placas_aluno_own" ON public.solicitacoes_placas FOR SELECT TO authenticated USING (
-  EXISTS (SELECT 1 FROM public.perfis p WHERE p.aluno_id = solicitacoes_placas.aluno_id AND p.id = auth.uid())
-);
+CREATE POLICY "placas_aluno_own" ON public.solicitacoes_placas FOR SELECT TO authenticated
+  USING (aluno_id = public.get_current_aluno_id());

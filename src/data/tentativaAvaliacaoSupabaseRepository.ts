@@ -200,13 +200,18 @@ export const tentativaAvaliacaoSupabaseRepository = {
 
       const { data, error } = await supabase.from("tentativas_avaliacoes").insert(payload).select().single();
       if (error) {
-        console.warn("[Supabase Tentativas] Erro ao iniciar, fallback local:", error.message);
-        return tentativaAvaliacaoLocalStorageRepository.iniciarTentativa(avaliacaoId, alunoId, alunoNome);
+        return {
+          success: false,
+          error: `Erro ao iniciar tentativa de avaliação no Supabase: ${error.message}`,
+        };
       }
 
       return { success: true, data: sanitizarTentativaParaAluno(mapRowToTentativa(data as TentativaDbRow)) };
-    } catch {
-      return tentativaAvaliacaoLocalStorageRepository.iniciarTentativa(avaliacaoId, alunoId, alunoNome);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao iniciar tentativa: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 
@@ -258,21 +263,17 @@ export const tentativaAvaliacaoSupabaseRepository = {
         .single();
 
       if (error) {
-        return tentativaAvaliacaoLocalStorageRepository.salvarRascunho(
-          tentativaId,
-          alunoId,
-          dadosEnvio,
-          respostaPraticaExtra
-        );
+        return {
+          success: false,
+          error: `Erro ao salvar rascunho de tentativa no Supabase: ${error.message}`,
+        };
       }
       return { success: true, data: sanitizarTentativaParaAluno(mapRowToTentativa(data as TentativaDbRow)) };
-    } catch {
-      return tentativaAvaliacaoLocalStorageRepository.salvarRascunho(
-        tentativaId,
-        alunoId,
-        dadosEnvio,
-        respostaPraticaExtra
-      );
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao salvar rascunho: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 
@@ -347,13 +348,18 @@ export const tentativaAvaliacaoSupabaseRepository = {
         .single();
 
       if (error) {
-        console.warn("[Supabase Tentativas] Erro ao enviar tentativa, fallback local:", error.message);
-        return tentativaAvaliacaoLocalStorageRepository.enviarTentativa(tentativaId, alunoId, dadosEnvio);
+        return {
+          success: false,
+          error: `Erro ao enviar tentativa no Supabase: ${error.message}`,
+        };
       }
 
       return { success: true, data: sanitizarTentativaParaAluno(mapRowToTentativa(data as TentativaDbRow)) };
-    } catch {
-      return tentativaAvaliacaoLocalStorageRepository.enviarTentativa(tentativaId, alunoId, dadosEnvio);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao enviar tentativa: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 
@@ -419,23 +425,18 @@ export const tentativaAvaliacaoSupabaseRepository = {
         .single();
 
       if (error) {
-        console.warn("[Supabase Tentativas] Erro ao corrigir prática, fallback local:", error.message);
-        return tentativaAvaliacaoLocalStorageRepository.corrigirTentativaPratica(
-          tentativaId,
-          professorId,
-          professorNome,
-          dadosCorrecao
-        );
+        return {
+          success: false,
+          error: `Erro ao salvar correção de avaliação no Supabase: ${error.message}`,
+        };
       }
 
       return { success: true, data: mapRowToTentativa(data as TentativaDbRow) };
-    } catch {
-      return tentativaAvaliacaoLocalStorageRepository.corrigirTentativaPratica(
-        tentativaId,
-        professorId,
-        professorNome,
-        dadosCorrecao
-      );
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao corrigir avaliação: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 
@@ -468,29 +469,30 @@ export const tentativaAvaliacaoSupabaseRepository = {
         .limit(1);
 
       if (tErr || !tentativas || tentativas.length === 0) {
-        return tentativaAvaliacaoLocalStorageRepository.autorizarTentativaExtra(
-          avaliacaoId,
-          alunoId,
-          professorId,
-          professorNome,
-          justificativa
-        );
+        return {
+          success: false,
+          error: `Nenhuma tentativa encontrada para esta avaliação no Supabase: ${tErr ? tErr.message : "registro ausente"}.`,
+        };
       }
 
-      await supabase
+      const { error: upErr } = await supabase
         .from("tentativas_avaliacoes")
         .update({ autorizacao_tentativa_extra: autorizacao })
         .eq("id", tentativas[0].id);
 
+      if (upErr) {
+        return {
+          success: false,
+          error: `Erro ao autorizar tentativa extra no Supabase: ${upErr.message}`,
+        };
+      }
+
       return { success: true, data: autorizacao };
-    } catch {
-      return tentativaAvaliacaoLocalStorageRepository.autorizarTentativaExtra(
-        avaliacaoId,
-        alunoId,
-        professorId,
-        professorNome,
-        justificativa
-      );
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao autorizar tentativa extra: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 };

@@ -149,13 +149,18 @@ export const conteudoDiarioSupabaseRepository = {
 
       const { data, error } = await supabase.from("conteudos_diarios").insert(payload).select().single();
       if (error) {
-        console.warn("[Supabase Conteúdos Diários] Erro ao criar, fallback local:", error.message);
-        return conteudoDiarioLocalStorageRepository.criar(dados);
+        return {
+          success: false,
+          error: `Erro ao criar conteúdo diário no Supabase: ${error.message}`,
+        };
       }
 
       return { success: true, data: mapRowToConteudo(data as ConteudoDiarioDbRow) };
-    } catch {
-      return conteudoDiarioLocalStorageRepository.criar(dados);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao criar conteúdo diário: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 
@@ -171,13 +176,18 @@ export const conteudoDiarioSupabaseRepository = {
 
       const { data, error } = await supabase.from("conteudos_diarios").update(payload).eq("id", id).select().single();
       if (error) {
-        console.warn("[Supabase Conteúdos Diários] Erro ao atualizar, fallback local:", error.message);
-        return conteudoDiarioLocalStorageRepository.atualizar(id, dados);
+        return {
+          success: false,
+          error: `Erro ao atualizar conteúdo diário no Supabase: ${error.message}`,
+        };
       }
 
       return { success: true, data: mapRowToConteudo(data as ConteudoDiarioDbRow) };
-    } catch {
-      return conteudoDiarioLocalStorageRepository.atualizar(id, dados);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao atualizar conteúdo diário: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 

@@ -107,8 +107,10 @@ export const cartaoSupabaseRepository = {
           .single();
 
         if (error) {
-          console.warn("[Supabase Cartoes] Erro ao atualizar cartão, fallback local:", error.message);
-          return cartaoLocalStorageRepository.salvarCartao(dados);
+          return {
+            success: false,
+            error: `Erro ao atualizar cartão no Supabase: ${error.message}`,
+          };
         }
         return { success: true, data: mapRowToCartao(data as CartaoDbRow) };
       } else {
@@ -122,13 +124,18 @@ export const cartaoSupabaseRepository = {
           .single();
 
         if (error) {
-          console.warn("[Supabase Cartoes] Erro ao inserir cartão, fallback local:", error.message);
-          return cartaoLocalStorageRepository.salvarCartao(dados);
+          return {
+            success: false,
+            error: `Erro ao criar cartão no Supabase: ${error.message}`,
+          };
         }
         return { success: true, data: mapRowToCartao(data as CartaoDbRow) };
       }
-    } catch {
-      return cartaoLocalStorageRepository.salvarCartao(dados);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao salvar cartão: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 
@@ -143,11 +150,17 @@ export const cartaoSupabaseRepository = {
         .single();
 
       if (error) {
-        return cartaoLocalStorageRepository.atualizarStatusCartao(id, novoStatus);
+        return {
+          success: false,
+          error: `Erro ao atualizar status do cartão no Supabase: ${error.message}`,
+        };
       }
       return { success: true, data: mapRowToCartao(data as CartaoDbRow) };
-    } catch {
-      return cartaoLocalStorageRepository.atualizarStatusCartao(id, novoStatus);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao atualizar status: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 
@@ -156,11 +169,17 @@ export const cartaoSupabaseRepository = {
       const supabase = getSupabase();
       const { error } = await supabase.from("cartoes").delete().eq("id", id);
       if (error) {
-        return cartaoLocalStorageRepository.excluirCartao(id);
+        return {
+          success: false,
+          error: `Erro ao excluir cartão no Supabase: ${error.message}`,
+        };
       }
       return { success: true, data: true };
-    } catch {
-      return cartaoLocalStorageRepository.excluirCartao(id);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao excluir cartão: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 
@@ -199,12 +218,17 @@ export const cartaoSupabaseRepository = {
 
       const { data, error } = await supabase.from("cartoes").insert(rows).select();
       if (error) {
-        console.warn("[Supabase Cartoes] Erro na importação CSV, fallback local:", error.message);
-        return cartaoLocalStorageRepository.importarCartoesCSV(baralhoId, itensValidos);
+        return {
+          success: false,
+          error: `Erro ao importar cartões via CSV no Supabase: ${error.message}`,
+        };
       }
       return { success: true, data: ((data || []) as unknown as CartaoDbRow[]).map(mapRowToCartao) };
-    } catch {
-      return cartaoLocalStorageRepository.importarCartoesCSV(baralhoId, itensValidos);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao importar CSV: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 };

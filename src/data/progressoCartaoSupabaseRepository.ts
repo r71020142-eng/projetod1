@@ -225,14 +225,7 @@ export const progressoCartaoSupabaseRepository = {
         .upsert(payloadProgresso);
 
       if (upsertError) {
-        console.warn("[Supabase SRS] Erro ao registrar resposta, fallback local:", upsertError.message);
-        return progressoCartaoLocalStorageRepository.registrarRespostaEstudo(
-          alunoId,
-          cartaoId,
-          baralhoId,
-          resposta,
-          dataReferencia
-        );
+        throw new Error(`Erro ao salvar progresso do cartão no Supabase: ${upsertError.message}`);
       }
 
       // Inserção no histórico
@@ -251,9 +244,12 @@ export const progressoCartaoSupabaseRepository = {
         tempo_resposta_ms: null,
       };
 
-      await supabase.from("historico_revisoes_srs").insert(payloadHist);
+      const { error: histError } = await supabase.from("historico_revisoes_srs").insert(payloadHist);
+      if (histError) {
+        console.warn("[Supabase SRS] Aviso ao inserir histórico de revisão:", histError.message);
+      }
 
-      // Também sincroniza com cache local para que hooks locais fiquem reativos
+      // Sincroniza em cache local sem engolir erro de banco
       progressoCartaoLocalStorageRepository.registrarRespostaEstudo(
         alunoId,
         cartaoId,
@@ -269,14 +265,9 @@ export const progressoCartaoSupabaseRepository = {
         reagendadoMinutos: resultado.reagendadoMinutos,
         reagendadoMesmaSessao: resultado.reagendadoMesmaSessao,
       };
-    } catch {
-      return progressoCartaoLocalStorageRepository.registrarRespostaEstudo(
-        alunoId,
-        cartaoId,
-        baralhoId,
-        resposta,
-        dataReferencia
-      );
+    } catch (err: unknown) {
+      if (err instanceof Error) throw err;
+      throw new Error(`Falha de conexão com o Supabase ao registrar resposta de estudo: ${String(err)}`);
     }
   },
 };

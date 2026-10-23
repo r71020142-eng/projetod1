@@ -21,6 +21,7 @@ export interface ClientEnv {
   supabasePublishableKey: string;
   isDemoClient: boolean;
   isAuthTestBannerVisible: boolean;
+  dataSource: DataSource;
   coreUsersDataSource: DataSource;
   academicCoreDataSource: DataSource;
   academicAgendaDataSource: DataSource;
@@ -258,6 +259,7 @@ export function getClientEnv(): ClientEnv {
     supabasePublishableKey,
     isDemoClient: isDemo,
     isAuthTestBannerVisible: isAuthTestBanner,
+    dataSource: defaultClientDataSource,
     coreUsersDataSource,
     academicCoreDataSource,
     academicAgendaDataSource,

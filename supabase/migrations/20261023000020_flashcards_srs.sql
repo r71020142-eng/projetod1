@@ -8,8 +8,9 @@
 -- 3. public.progresso_cartoes_alunos (algoritmo SRS SM-2 determinístico por aluno)
 -- 4. public.historico_revisoes_srs (log de auditoria imutável de cada revisão)
 -- 5. public.sessoes_estudo_srs (consolidação de sessões de estudo diárias)
--- 6. view public.vw_aluno_baralhos com security_barrier = true
--- 7. Políticas de Row Level Security (RLS) com isolamento rigoroso por discente
+-- 6. função de validação de acesso public.aluno_has_access_to_baralho
+-- 7. view public.vw_aluno_baralhos com security_barrier = true
+-- 8. Políticas de Row Level Security (RLS) com isolamento rigoroso por discente
 -- ==============================================================================
 
 -- 1. TABELA DE BARALHOS
@@ -32,8 +33,8 @@ CREATE TABLE IF NOT EXISTS public.baralhos (
   atividade_id TEXT NULL,
   aula_id TEXT NULL,
   modulo_id TEXT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
 -- 2. TABELA DE CARTÕES
@@ -49,14 +50,14 @@ CREATE TABLE IF NOT EXISTS public.cartoes (
   link_audio TEXT NULL,
   tags TEXT[] NOT NULL DEFAULT '{}',
   status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'suspenso')),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
 -- 3. TABELA DE PROGRESSO INDIVIDUAL DE CARTÕES (SRS SM-2)
 CREATE TABLE IF NOT EXISTS public.progresso_cartoes_alunos (
   id TEXT PRIMARY KEY,
-  aluno_id TEXT NOT NULL REFERENCES public.alunos(id) ON DELETE CASCADE,
+  aluno_id UUID NOT NULL REFERENCES public.alunos(id) ON DELETE CASCADE,
   cartao_id TEXT NOT NULL REFERENCES public.cartoes(id) ON DELETE CASCADE,
   baralho_id TEXT NOT NULL REFERENCES public.baralhos(id) ON DELETE CASCADE,
   estado TEXT NOT NULL DEFAULT 'novo' CHECK (estado IN ('novo', 'aprendendo', 'revisao', 'suspenso')),
@@ -65,37 +66,37 @@ CREATE TABLE IF NOT EXISTS public.progresso_cartoes_alunos (
   fator_facilidade NUMERIC(4,2) NOT NULL DEFAULT 2.50 CHECK (fator_facilidade >= 1.30),
   intervalo_dias INTEGER NOT NULL DEFAULT 0,
   intervalo_minutos INTEGER NULL,
-  proxima_revisao TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  proxima_revisao TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
   ultima_revisao TIMESTAMPTZ NULL,
   ultima_resposta TEXT NULL CHECK (ultima_resposta IS NULL OR ultima_resposta IN ('errei', 'dificil', 'bom', 'facil')),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
   CONSTRAINT uq_progresso_cartao_aluno UNIQUE (aluno_id, cartao_id)
 );
 
 -- 4. TABELA DE HISTÓRICO DE REVISÕES (AUDITORIA IMUTÁVEL SRS)
 CREATE TABLE IF NOT EXISTS public.historico_revisoes_srs (
   id TEXT PRIMARY KEY,
-  aluno_id TEXT NOT NULL REFERENCES public.alunos(id) ON DELETE CASCADE,
+  aluno_id UUID NOT NULL REFERENCES public.alunos(id) ON DELETE CASCADE,
   cartao_id TEXT NOT NULL REFERENCES public.cartoes(id) ON DELETE CASCADE,
   baralho_id TEXT NOT NULL REFERENCES public.baralhos(id) ON DELETE CASCADE,
-  data_hora TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  data_hora TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
   resposta TEXT NOT NULL CHECK (resposta IN ('errei', 'dificil', 'bom', 'facil')),
   estado_anterior TEXT NOT NULL CHECK (estado_anterior IN ('novo', 'aprendendo', 'revisao', 'suspenso')),
   intervalo_anterior INTEGER NOT NULL DEFAULT 0,
   novo_estado TEXT NOT NULL CHECK (novo_estado IN ('novo', 'aprendendo', 'revisao', 'suspenso')),
   novo_intervalo INTEGER NOT NULL DEFAULT 0,
   tempo_resposta_ms INTEGER NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
 -- 5. TABELA DE SESSÕES DE ESTUDO
 CREATE TABLE IF NOT EXISTS public.sessoes_estudo_srs (
   id TEXT PRIMARY KEY,
-  aluno_id TEXT NOT NULL REFERENCES public.alunos(id) ON DELETE CASCADE,
+  aluno_id UUID NOT NULL REFERENCES public.alunos(id) ON DELETE CASCADE,
   baralho_id TEXT NOT NULL REFERENCES public.baralhos(id) ON DELETE CASCADE,
-  iniciada_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  concluida_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  iniciada_em TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  concluida_em TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
   total_estudado INTEGER NOT NULL DEFAULT 0,
   erros INTEGER NOT NULL DEFAULT 0,
   dificeis INTEGER NOT NULL DEFAULT 0,
@@ -104,7 +105,7 @@ CREATE TABLE IF NOT EXISTS public.sessoes_estudo_srs (
   tempo_segundos INTEGER NOT NULL DEFAULT 0,
   revisoes_reagendadas INTEGER NOT NULL DEFAULT 0,
   proxima_revisao_prevista TIMESTAMPTZ NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
 -- ÍNDICES DE PERFORMANCE E INTEGRIDADE
@@ -115,23 +116,72 @@ CREATE INDEX IF NOT EXISTS idx_progresso_baralho_aluno ON public.progresso_carto
 CREATE INDEX IF NOT EXISTS idx_historico_aluno_data ON public.historico_revisoes_srs(aluno_id, data_hora DESC);
 CREATE INDEX IF NOT EXISTS idx_sessoes_aluno_baralho ON public.sessoes_estudo_srs(aluno_id, baralho_id);
 
--- TRIGGER PARA UPDATED_AT
-CREATE OR REPLACE TRIGGER trg_baralhos_updated_at
+-- TRIGGERS DE UPDATED_AT (utilizando a função canônica do projeto: set_current_timestamp_updated_at)
+DROP TRIGGER IF EXISTS trg_baralhos_updated_at ON public.baralhos;
+CREATE TRIGGER trg_baralhos_updated_at
   BEFORE UPDATE ON public.baralhos
   FOR EACH ROW
-  EXECUTE FUNCTION public.atualizar_updated_at();
+  EXECUTE FUNCTION public.set_current_timestamp_updated_at();
 
-CREATE OR REPLACE TRIGGER trg_cartoes_updated_at
+DROP TRIGGER IF EXISTS trg_cartoes_updated_at ON public.cartoes;
+CREATE TRIGGER trg_cartoes_updated_at
   BEFORE UPDATE ON public.cartoes
   FOR EACH ROW
-  EXECUTE FUNCTION public.atualizar_updated_at();
+  EXECUTE FUNCTION public.set_current_timestamp_updated_at();
 
-CREATE OR REPLACE TRIGGER trg_progresso_cartoes_updated_at
+DROP TRIGGER IF EXISTS trg_progresso_cartoes_updated_at ON public.progresso_cartoes_alunos;
+CREATE TRIGGER trg_progresso_cartoes_updated_at
   BEFORE UPDATE ON public.progresso_cartoes_alunos
   FOR EACH ROW
-  EXECUTE FUNCTION public.atualizar_updated_at();
+  EXECUTE FUNCTION public.set_current_timestamp_updated_at();
 
--- 6. VIEW ISOLADA PARA O DISCENTE COM SECURITY BARRIER
+-- 6. FUNÇÃO DE CONTROLE DE ACESSO A BARALHOS
+CREATE OR REPLACE FUNCTION public.aluno_has_access_to_baralho(p_destino_tipo text, p_destino_id text)
+RETURNS boolean
+LANGUAGE plpgsql
+STABLE SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+DECLARE
+  v_aluno_id UUID;
+BEGIN
+  IF public.is_admin() THEN
+    RETURN true;
+  END IF;
+
+  v_aluno_id := public.get_current_aluno_id();
+  IF v_aluno_id IS NULL THEN
+    RETURN false;
+  END IF;
+
+  -- Geral: acesso para todos os discentes
+  IF p_destino_tipo = 'geral' OR p_destino_id IS NULL THEN
+    RETURN true;
+  END IF;
+
+  -- Aluno individual
+  IF p_destino_tipo = 'aluno' AND p_destino_id = v_aluno_id::text THEN
+    RETURN true;
+  END IF;
+
+  -- Turma: verifica matrícula ativa na turma especificada
+  IF p_destino_tipo = 'turma' THEN
+    RETURN EXISTS (
+      SELECT 1 FROM public.matriculas_turmas mt
+      WHERE mt.turma_id::text = p_destino_id
+        AND mt.aluno_id = v_aluno_id
+        AND mt.status = 'ativa'
+    );
+  END IF;
+
+  RETURN false;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.aluno_has_access_to_baralho(text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.aluno_has_access_to_baralho(text, text) TO authenticated, service_role;
+
+-- 7. VIEW ISOLADA PARA O DISCENTE COM SECURITY BARRIER
 CREATE OR REPLACE VIEW public.vw_aluno_baralhos
 WITH (security_barrier = true) AS
 SELECT
@@ -159,26 +209,9 @@ SELECT
 FROM public.baralhos b
 WHERE b.status = 'publicado'
   AND (
-    b.destino_tipo = 'geral'
-    OR (
-      b.destino_tipo = 'turma'
-      AND EXISTS (
-        SELECT 1 FROM public.matriculas m
-        JOIN public.perfis p ON p.aluno_id = m.aluno_id
-        WHERE m.turma_id = b.destino_id
-          AND m.status = 'ativa'
-          AND p.id = auth.uid()
-      )
-    )
-    OR (
-      b.destino_tipo = 'aluno'
-      AND EXISTS (
-        SELECT 1 FROM public.perfis p
-        WHERE p.aluno_id = b.destino_id
-          AND p.id = auth.uid()
-      )
-    )
-    OR public.obter_perfil_usuario(auth.uid()) IN ('admin', 'professor')
+    public.is_admin()
+    OR public.get_current_professor_id() IS NOT NULL
+    OR public.aluno_has_access_to_baralho(b.destino_tipo, b.destino_id)
   );
 
 -- HABILITAR RLS EM TODAS AS TABELAS
@@ -193,8 +226,8 @@ DROP POLICY IF EXISTS "baralhos_equipe_manage" ON public.baralhos;
 CREATE POLICY "baralhos_equipe_manage" ON public.baralhos
   FOR ALL
   TO authenticated
-  USING (public.obter_perfil_usuario(auth.uid()) IN ('admin', 'professor'))
-  WITH CHECK (public.obter_perfil_usuario(auth.uid()) IN ('admin', 'professor'));
+  USING (public.is_admin() OR public.get_current_professor_id() IS NOT NULL)
+  WITH CHECK (public.is_admin() OR public.get_current_professor_id() IS NOT NULL);
 
 DROP POLICY IF EXISTS "baralhos_aluno_select" ON public.baralhos;
 CREATE POLICY "baralhos_aluno_select" ON public.baralhos
@@ -202,27 +235,7 @@ CREATE POLICY "baralhos_aluno_select" ON public.baralhos
   TO authenticated
   USING (
     status = 'publicado'
-    AND (
-      destino_tipo = 'geral'
-      OR (
-        destino_tipo = 'turma'
-        AND EXISTS (
-          SELECT 1 FROM public.matriculas m
-          JOIN public.perfis p ON p.aluno_id = m.aluno_id
-          WHERE m.turma_id = baralhos.destino_id
-            AND m.status = 'ativa'
-            AND p.id = auth.uid()
-        )
-      )
-      OR (
-        destino_tipo = 'aluno'
-        AND EXISTS (
-          SELECT 1 FROM public.perfis p
-          WHERE p.aluno_id = baralhos.destino_id
-            AND p.id = auth.uid()
-        )
-      )
-    )
+    AND public.aluno_has_access_to_baralho(destino_tipo, destino_id)
   );
 
 -- POLÍTICAS RLS: CARTÕES
@@ -230,8 +243,8 @@ DROP POLICY IF EXISTS "cartoes_equipe_manage" ON public.cartoes;
 CREATE POLICY "cartoes_equipe_manage" ON public.cartoes
   FOR ALL
   TO authenticated
-  USING (public.obter_perfil_usuario(auth.uid()) IN ('admin', 'professor'))
-  WITH CHECK (public.obter_perfil_usuario(auth.uid()) IN ('admin', 'professor'));
+  USING (public.is_admin() OR public.get_current_professor_id() IS NOT NULL)
+  WITH CHECK (public.is_admin() OR public.get_current_professor_id() IS NOT NULL);
 
 DROP POLICY IF EXISTS "cartoes_aluno_select" ON public.cartoes;
 CREATE POLICY "cartoes_aluno_select" ON public.cartoes
@@ -243,27 +256,7 @@ CREATE POLICY "cartoes_aluno_select" ON public.cartoes
       SELECT 1 FROM public.baralhos b
       WHERE b.id = cartoes.baralho_id
         AND b.status = 'publicado'
-        AND (
-          b.destino_tipo = 'geral'
-          OR (
-            b.destino_tipo = 'turma'
-            AND EXISTS (
-              SELECT 1 FROM public.matriculas m
-              JOIN public.perfis p ON p.aluno_id = m.aluno_id
-              WHERE m.turma_id = b.destino_id
-                AND m.status = 'ativa'
-                AND p.id = auth.uid()
-            )
-          )
-          OR (
-            b.destino_tipo = 'aluno'
-            AND EXISTS (
-              SELECT 1 FROM public.perfis p
-              WHERE p.aluno_id = b.destino_id
-                AND p.id = auth.uid()
-            )
-          )
-        )
+        AND public.aluno_has_access_to_baralho(b.destino_tipo, b.destino_id)
     )
   );
 
@@ -272,75 +265,39 @@ DROP POLICY IF EXISTS "progresso_equipe_select" ON public.progresso_cartoes_alun
 CREATE POLICY "progresso_equipe_select" ON public.progresso_cartoes_alunos
   FOR SELECT
   TO authenticated
-  USING (public.obter_perfil_usuario(auth.uid()) IN ('admin', 'professor'));
+  USING (public.is_admin() OR public.get_current_professor_id() IS NOT NULL);
 
 DROP POLICY IF EXISTS "progresso_aluno_manage_own" ON public.progresso_cartoes_alunos;
 CREATE POLICY "progresso_aluno_manage_own" ON public.progresso_cartoes_alunos
   FOR ALL
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.perfis p
-      WHERE p.aluno_id = progresso_cartoes_alunos.aluno_id
-        AND p.id = auth.uid()
-    )
-  )
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.perfis p
-      WHERE p.aluno_id = progresso_cartoes_alunos.aluno_id
-        AND p.id = auth.uid()
-    )
-  );
+  USING (aluno_id = public.get_current_aluno_id())
+  WITH CHECK (aluno_id = public.get_current_aluno_id());
 
 -- POLÍTICAS RLS: HISTÓRICO DE REVISÕES
 DROP POLICY IF EXISTS "historico_srs_equipe_select" ON public.historico_revisoes_srs;
 CREATE POLICY "historico_srs_equipe_select" ON public.historico_revisoes_srs
   FOR SELECT
   TO authenticated
-  USING (public.obter_perfil_usuario(auth.uid()) IN ('admin', 'professor'));
+  USING (public.is_admin() OR public.get_current_professor_id() IS NOT NULL);
 
 DROP POLICY IF EXISTS "historico_srs_aluno_manage" ON public.historico_revisoes_srs;
 CREATE POLICY "historico_srs_aluno_manage" ON public.historico_revisoes_srs
   FOR ALL
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.perfis p
-      WHERE p.aluno_id = historico_revisoes_srs.aluno_id
-        AND p.id = auth.uid()
-    )
-  )
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.perfis p
-      WHERE p.aluno_id = historico_revisoes_srs.aluno_id
-        AND p.id = auth.uid()
-    )
-  );
+  USING (aluno_id = public.get_current_aluno_id())
+  WITH CHECK (aluno_id = public.get_current_aluno_id());
 
 -- POLÍTICAS RLS: SESSÕES DE ESTUDO
 DROP POLICY IF EXISTS "sessoes_srs_equipe_select" ON public.sessoes_estudo_srs;
 CREATE POLICY "sessoes_srs_equipe_select" ON public.sessoes_estudo_srs
   FOR SELECT
   TO authenticated
-  USING (public.obter_perfil_usuario(auth.uid()) IN ('admin', 'professor'));
+  USING (public.is_admin() OR public.get_current_professor_id() IS NOT NULL);
 
 DROP POLICY IF EXISTS "sessoes_srs_aluno_manage" ON public.sessoes_estudo_srs;
 CREATE POLICY "sessoes_srs_aluno_manage" ON public.sessoes_estudo_srs
   FOR ALL
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.perfis p
-      WHERE p.aluno_id = sessoes_estudo_srs.aluno_id
-        AND p.id = auth.uid()
-    )
-  )
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.perfis p
-      WHERE p.aluno_id = sessoes_estudo_srs.aluno_id
-        AND p.id = auth.uid()
-    )
-  );
+  USING (aluno_id = public.get_current_aluno_id())
+  WITH CHECK (aluno_id = public.get_current_aluno_id());

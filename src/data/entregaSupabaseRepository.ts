@@ -137,13 +137,18 @@ export const entregaSupabaseRepository = {
         .single();
 
       if (error) {
-        console.warn("[Supabase Entregas] Erro ao salvar rascunho, fallback local:", error.message);
-        return entregaLocalStorageRepository.salvarRascunho(atividadeId, alunoId, dados);
+        return {
+          success: false,
+          error: `Erro ao salvar rascunho de entrega no Supabase: ${error.message}`,
+        };
       }
 
       return { success: true, data: mapRowToEntrega(data as EntregaDbRow) };
-    } catch {
-      return entregaLocalStorageRepository.salvarRascunho(atividadeId, alunoId, dados);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao salvar rascunho: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 
@@ -196,13 +201,18 @@ export const entregaSupabaseRepository = {
         .single();
 
       if (error) {
-        console.warn("[Supabase Entregas] Erro ao enviar, fallback local:", error.message);
-        return entregaLocalStorageRepository.enviarEntrega(atividadeId, alunoId, dados);
+        return {
+          success: false,
+          error: `Erro ao enviar entrega de atividade no Supabase: ${error.message}`,
+        };
       }
 
       return { success: true, data: mapRowToEntrega(data as EntregaDbRow) };
-    } catch {
-      return entregaLocalStorageRepository.enviarEntrega(atividadeId, alunoId, dados);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao enviar entrega: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 
@@ -246,13 +256,18 @@ export const entregaSupabaseRepository = {
         .single();
 
       if (error) {
-        console.warn("[Supabase Entregas] Erro ao corrigir, fallback local:", error.message);
-        return entregaLocalStorageRepository.corrigir(entregaId, professorId, dados);
+        return {
+          success: false,
+          error: `Erro ao salvar correção no Supabase: ${error.message}`,
+        };
       }
 
       return { success: true, data: mapRowToEntrega(data as EntregaDbRow) };
-    } catch {
-      return entregaLocalStorageRepository.corrigir(entregaId, professorId, dados);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao corrigir entrega: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 
@@ -305,13 +320,18 @@ export const entregaSupabaseRepository = {
         .single();
 
       if (error) {
-        console.warn("[Supabase Entregas] Erro ao solicitar reenvio, fallback local:", error.message);
-        return entregaLocalStorageRepository.solicitarReenvio(entregaId, professorId, motivo);
+        return {
+          success: false,
+          error: `Erro ao solicitar reenvio no Supabase: ${error.message}`,
+        };
       }
 
       return { success: true, data: mapRowToEntrega(data as EntregaDbRow) };
-    } catch {
-      return entregaLocalStorageRepository.solicitarReenvio(entregaId, professorId, motivo);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao solicitar reenvio: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 
