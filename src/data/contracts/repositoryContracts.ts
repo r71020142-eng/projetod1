@@ -26,6 +26,10 @@ import {
   EntregaFilters,
   SelfPresentation,
   SelfPresentationFilters,
+  AvaliacaoPedagogica,
+  SolicitacaoReenvio,
+  ConsentimentoUsoVideo,
+  SelfPresentationsMetricasAdmin,
   Baralho,
   BaralhoFilters,
   Avaliacao,
@@ -272,7 +276,59 @@ export interface IEntregaRepository {
 export interface ISelfPresentationRepository {
   listar(filters?: SelfPresentationFilters): Promise<SelfPresentation[]>;
   obterPorId(id: string, paraAluno?: boolean): Promise<SelfPresentation | null>;
+  obterParaAluno(id: string, alunoId: string): Promise<SelfPresentation | null>;
+  listarParaAluno(alunoId: string): Promise<SelfPresentation[]>;
+  listarPorAluno(alunoId: string): Promise<SelfPresentation[]>;
   obterAtivaParaAluno(alunoId: string): Promise<SelfPresentation | null>;
+  salvarRascunho(dados: {
+    id?: string;
+    alunoId: string;
+    alunoNome?: string;
+    tipo?: "nivelamento_inicial" | "reavaliacao";
+    titulo: string;
+    linkVideo?: string;
+    dataGravacao?: string;
+    observacaoAluno?: string;
+    consentimento?: ConsentimentoUsoVideo;
+  }): Promise<OperationResult<SelfPresentation>>;
+  enviar(
+    id: string,
+    dados: {
+      linkVideo: string;
+      dataGravacao: string;
+      observacaoAluno?: string;
+      consentimento: ConsentimentoUsoVideo;
+    }
+  ): Promise<OperationResult<SelfPresentation>>;
+  assumirAvaliacao(
+    id: string,
+    professorId: string,
+    professorNome: string
+  ): Promise<OperationResult<SelfPresentation>>;
+  salvarAvaliacao(
+    id: string,
+    avaliacaoInput: Partial<AvaliacaoPedagogica>,
+    publicar?: boolean
+  ): Promise<OperationResult<SelfPresentation>>;
+  solicitarReenvio(
+    id: string,
+    solicitacao: SolicitacaoReenvio
+  ): Promise<OperationResult<SelfPresentation>>;
+  criarNovaVersao(
+    id: string,
+    dados: {
+      linkVideo: string;
+      dataGravacao: string;
+      observacaoAluno?: string;
+      consentimento: ConsentimentoUsoVideo;
+    }
+  ): Promise<OperationResult<SelfPresentation>>;
+  aplicarNivelAoPerfil(
+    id: string,
+    professorId: string,
+    professorNome: string
+  ): Promise<OperationResult<{ aluno: Aluno; sp: SelfPresentation }>>;
+  contadoresDashboard(): Promise<SelfPresentationsMetricasAdmin>;
 }
 
 export interface IBaralhoRepository {

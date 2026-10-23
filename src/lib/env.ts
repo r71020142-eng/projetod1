@@ -28,6 +28,7 @@ export interface ClientEnv {
   academicContentDataSource: DataSource;
   academicEvaluationsDataSource: DataSource;
   academicFlashcardsDataSource: DataSource;
+  academicSelfPresentationDataSource: DataSource;
 }
 
 export interface ServerEnv extends ClientEnv {
@@ -40,6 +41,7 @@ export interface ServerEnv extends ClientEnv {
   academicContentDataSource: DataSource;
   academicEvaluationsDataSource: DataSource;
   academicFlashcardsDataSource: DataSource;
+  academicSelfPresentationDataSource: DataSource;
   isAuthTestWithLocalData: boolean;
   supabaseSecretKey: string;
 }
@@ -281,6 +283,39 @@ export function getServerEnv(): ServerEnv {
   }
   const academicFlashcardsDataSource: DataSource = rawAcademicFlashcards;
 
+  const serverAcademicSelfPresentation = process.env.ACADEMIC_SELF_PRESENTATION_DATA_SOURCE;
+  const clientAcademicSelfPresentation = process.env.NEXT_PUBLIC_ACADEMIC_SELF_PRESENTATION_DATA_SOURCE;
+
+  if (
+    serverAcademicSelfPresentation &&
+    clientAcademicSelfPresentation &&
+    serverAcademicSelfPresentation !== clientAcademicSelfPresentation
+  ) {
+    throw new Error(
+      `[Configuração MTD] Divergência crítica detectada entre ACADEMIC_SELF_PRESENTATION_DATA_SOURCE ("${serverAcademicSelfPresentation}") e NEXT_PUBLIC_ACADEMIC_SELF_PRESENTATION_DATA_SOURCE ("${clientAcademicSelfPresentation}"). Ambas as variáveis devem ser estritamente idênticas ('supabase' ou 'local') para garantir consistência entre o servidor e o navegador.`
+    );
+  }
+
+  if (serverAcademicSelfPresentation === "supabase" && clientAcademicSelfPresentation !== "supabase") {
+    throw new Error(
+      `[Configuração MTD] ACADEMIC_SELF_PRESENTATION_DATA_SOURCE está configurada como 'supabase', mas NEXT_PUBLIC_ACADEMIC_SELF_PRESENTATION_DATA_SOURCE não é 'supabase' (atual: "${clientAcademicSelfPresentation || "indefinida"}"). Configure ambas com o mesmo valor.`
+    );
+  }
+
+  if (clientAcademicSelfPresentation === "supabase" && serverAcademicSelfPresentation !== "supabase") {
+    throw new Error(
+      `[Configuração MTD] NEXT_PUBLIC_ACADEMIC_SELF_PRESENTATION_DATA_SOURCE está configurada como 'supabase', mas ACADEMIC_SELF_PRESENTATION_DATA_SOURCE não é 'supabase' (atual: "${serverAcademicSelfPresentation || "indefinida"}"). Configure ambas com o mesmo valor.`
+    );
+  }
+
+  const rawAcademicSelfPresentation = serverAcademicSelfPresentation || clientAcademicSelfPresentation || dataSource;
+  if (rawAcademicSelfPresentation !== "local" && rawAcademicSelfPresentation !== "supabase") {
+    throw new Error(
+      `[Configuração MTD] ACADEMIC_SELF_PRESENTATION_DATA_SOURCE inválido: "${rawAcademicSelfPresentation}". Esperado: "local" ou "supabase".`
+    );
+  }
+  const academicSelfPresentationDataSource: DataSource = rawAcademicSelfPresentation;
+
   const isVercelProduction = process.env.VERCEL_ENV === "production";
   const isAuthTestWithLocalData =
     authMode === "supabase" && dataSource === "local";
@@ -334,6 +369,7 @@ export function getServerEnv(): ServerEnv {
     academicContentDataSource,
     academicEvaluationsDataSource,
     academicFlashcardsDataSource,
+    academicSelfPresentationDataSource,
     isAuthTestWithLocalData,
     supabaseUrl,
     supabasePublishableKey,
@@ -367,6 +403,8 @@ export function getClientEnv(): ClientEnv {
     (process.env.NEXT_PUBLIC_ACADEMIC_EVALUATIONS_DATA_SOURCE as DataSource) || defaultClientDataSource;
   const academicFlashcardsDataSource: DataSource =
     (process.env.NEXT_PUBLIC_ACADEMIC_FLASHCARDS_DATA_SOURCE as DataSource) || defaultClientDataSource;
+  const academicSelfPresentationDataSource: DataSource =
+    (process.env.NEXT_PUBLIC_ACADEMIC_SELF_PRESENTATION_DATA_SOURCE as DataSource) || defaultClientDataSource;
 
   return {
     supabaseUrl,
@@ -380,5 +418,6 @@ export function getClientEnv(): ClientEnv {
     academicContentDataSource,
     academicEvaluationsDataSource,
     academicFlashcardsDataSource,
+    academicSelfPresentationDataSource,
   };
 }

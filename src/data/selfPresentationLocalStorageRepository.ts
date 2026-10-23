@@ -265,8 +265,15 @@ export const selfPresentationLocalStorageRepository = {
       return { success: true, data: updated };
     }
 
-    const aluno = await alunoRepository.obterPorId(dados.alunoId);
-    const alunoNome = dados.alunoNome || aluno?.nomeCompleto || "Aluno";
+    let alunoNome = dados.alunoNome;
+    if (!alunoNome) {
+      try {
+        const aluno = await alunoRepository.obterPorId(dados.alunoId);
+        alunoNome = aluno?.nomeCompleto || "Aluno";
+      } catch {
+        alunoNome = "Aluno";
+      }
+    }
 
     const nova: SelfPresentation = {
       id: generateSpId(list),

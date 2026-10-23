@@ -10,8 +10,8 @@ import {
   VersaoHistoricoSelfPresentation,
 } from "@/types";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
-import { selfPresentationLocalStorageRepository } from "./selfPresentationLocalStorageRepository";
 import { alunoRepository } from "./alunoRepository";
+import { SupabaseClient } from "@supabase/supabase-js";
 
 interface SelfPresentationDbRow {
   id: string;
@@ -62,145 +62,141 @@ function mapRowToSelfPresentation(row: SelfPresentationDbRow): SelfPresentation 
     avaliacao: row.avaliacao || undefined,
     solicitacaoReenvio: row.solicitacao_reenvio || undefined,
     historicoVersoes: row.historico_versoes || [],
+    nivelAplicadoAoPerfil: (row.avaliacao as (AvaliacaoPedagogica & { nivelAplicadoAoPerfil?: boolean }) | undefined)?.nivelAplicadoAoPerfil ?? false,
     criadoEm: row.created_at,
     atualizadoEm: row.updated_at,
   };
 }
 
-function getSupabase() {
-  return createBrowserSupabaseClient();
+function getSupabase(clientOverride?: SupabaseClient) {
+  return clientOverride || (createBrowserSupabaseClient() as unknown as SupabaseClient);
 }
 
-export const selfPresentationSupabaseRepository = {
-  async listar(filters?: SelfPresentationFilters): Promise<SelfPresentation[]> {
-    try {
-      const supabase = getSupabase();
-      let query = supabase.from("self_presentations").select("*");
+const isUuid = (val?: string | null) =>
+  Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
 
-      if (filters) {
-        if (filters.status && filters.status !== "todos") {
-          query = query.eq("status", filters.status);
-        }
-        if (filters.tipo && filters.tipo !== "todos") {
-          query = query.eq("tipo", filters.tipo);
-        }
-        if (filters.professorId && filters.professorId !== "todos") {
-          query = query.eq("professor_avaliador_id", filters.professorId);
-        }
-        if (filters.busca && filters.busca.trim()) {
-          query = query.or(`aluno_nome.ilike.%${filters.busca.trim()}%,titulo.ilike.%${filters.busca.trim()}%`);
-        }
-        if (filters.ordenacao === "recentes_primeiro") {
-          query = query.order("created_at", { ascending: false });
-        } else {
-          query = query.order("created_at", { ascending: true });
-        }
+export const selfPresentationSupabaseRepository = {
+  async listar(filters?: SelfPresentationFilters, clientOverride?: SupabaseClient): Promise<SelfPresentation[]> {
+    const supabase = getSupabase(clientOverride);
+    let query = supabase.from("self_presentations").select("*");
+
+    if (filters) {
+      if (filters.status && filters.status !== "todos") {
+        query = query.eq("status", filters.status);
+      }
+      if (filters.tipo && filters.tipo !== "todos") {
+        query = query.eq("tipo", filters.tipo);
+      }
+      if (filters.professorId && filters.professorId !== "todos") {
+        query = query.eq("professor_avaliador_id", filters.professorId);
+      }
+      if (filters.busca && filters.busca.trim()) {
+        query = query.or(`aluno_nome.ilike.%${filters.busca.trim()}%,titulo.ilike.%${filters.busca.trim()}%`);
+      }
+      if (filters.ordenacao === "recentes_primeiro") {
+        query = query.order("created_at", { ascending: false });
       } else {
         query = query.order("created_at", { ascending: true });
       }
-
-      const { data, error } = await query;
-      if (error) {
-        console.warn("[Supabase SelfPresentation] Erro ao listar, fallback local:", error.message);
-        return selfPresentationLocalStorageRepository.listar(filters);
-      }
-      return ((data || []) as unknown as SelfPresentationDbRow[]).map(mapRowToSelfPresentation);
-    } catch {
-      return selfPresentationLocalStorageRepository.listar(filters);
+    } else {
+      query = query.order("created_at", { ascending: true });
     }
+
+    const { data, error } = await query;
+    if (error) {
+      throw new Error(`[Supabase SelfPresentation] Erro ao listar: ${error.message}`);
+    }
+    return ((data || []) as unknown as SelfPresentationDbRow[]).map(mapRowToSelfPresentation);
   },
 
-  async obterPorId(id: string): Promise<SelfPresentation | null> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase.from("self_presentations").select("*").eq("id", id).maybeSingle();
-      if (error || !data) {
-        return selfPresentationLocalStorageRepository.obterPorId(id);
-      }
-      return mapRowToSelfPresentation(data as unknown as SelfPresentationDbRow);
-    } catch {
-      return selfPresentationLocalStorageRepository.obterPorId(id);
+  async obterPorId(id: string, paraAluno?: boolean, clientOverride?: SupabaseClient): Promise<SelfPresentation | null> {
+    const supabase = getSupabase(clientOverride);
+    const source = paraAluno ? "vw_aluno_self_presentations" : "self_presentations";
+    const { data, error } = await supabase.from(source).select("*").eq("id", id).maybeSingle();
+    if (error) {
+      throw new Error(`[Supabase SelfPresentation] Erro ao obter apresentação ${id}: ${error.message}`);
     }
+    if (!data) return null;
+    return mapRowToSelfPresentation(data as unknown as SelfPresentationDbRow);
   },
 
-  async obterParaAluno(id: string, alunoId: string): Promise<SelfPresentation | null> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("vw_aluno_self_presentations")
-        .select("*")
-        .eq("id", id)
-        .eq("aluno_id", alunoId)
-        .maybeSingle();
+  async obterParaAluno(id: string, alunoId: string, clientOverride?: SupabaseClient): Promise<SelfPresentation | null> {
+    const supabase = getSupabase(clientOverride);
+    const { data, error } = await supabase
+      .from("vw_aluno_self_presentations")
+      .select("*")
+      .eq("id", id)
+      .eq("aluno_id", alunoId)
+      .maybeSingle();
 
-      if (error || !data) {
-        return selfPresentationLocalStorageRepository.obterParaAluno(id, alunoId);
-      }
-      return mapRowToSelfPresentation(data as unknown as SelfPresentationDbRow);
-    } catch {
-      return selfPresentationLocalStorageRepository.obterParaAluno(id, alunoId);
+    if (error) {
+      throw new Error(`[Supabase SelfPresentation] Erro ao obter apresentação para aluno: ${error.message}`);
     }
+    if (!data) return null;
+    return mapRowToSelfPresentation(data as unknown as SelfPresentationDbRow);
   },
 
-  async listarParaAluno(alunoId: string): Promise<SelfPresentation[]> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("vw_aluno_self_presentations")
-        .select("*")
-        .eq("aluno_id", alunoId)
-        .order("created_at", { ascending: false });
+  async listarParaAluno(alunoId: string, clientOverride?: SupabaseClient): Promise<SelfPresentation[]> {
+    const supabase = getSupabase(clientOverride);
+    const { data, error } = await supabase
+      .from("vw_aluno_self_presentations")
+      .select("*")
+      .eq("aluno_id", alunoId)
+      .order("created_at", { ascending: false });
 
-      if (error) {
-        return selfPresentationLocalStorageRepository.listarParaAluno(alunoId);
-      }
-      return ((data || []) as unknown as SelfPresentationDbRow[]).map(mapRowToSelfPresentation);
-    } catch {
-      return selfPresentationLocalStorageRepository.listarParaAluno(alunoId);
+    if (error) {
+      throw new Error(`[Supabase SelfPresentation] Erro ao listar apresentações para aluno: ${error.message}`);
     }
+    return ((data || []) as unknown as SelfPresentationDbRow[]).map(mapRowToSelfPresentation);
   },
 
-  async listarPorAluno(alunoId: string): Promise<SelfPresentation[]> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("self_presentations")
-        .select("*")
-        .eq("aluno_id", alunoId)
-        .order("created_at", { ascending: false });
+  async listarPorAluno(alunoId: string, clientOverride?: SupabaseClient): Promise<SelfPresentation[]> {
+    const supabase = getSupabase(clientOverride);
+    const { data, error } = await supabase
+      .from("self_presentations")
+      .select("*")
+      .eq("aluno_id", alunoId)
+      .order("created_at", { ascending: false });
 
-      if (error) {
-        return selfPresentationLocalStorageRepository.listarPorAluno(alunoId);
-      }
-      return ((data || []) as unknown as SelfPresentationDbRow[]).map(mapRowToSelfPresentation);
-    } catch {
-      return selfPresentationLocalStorageRepository.listarPorAluno(alunoId);
+    if (error) {
+      throw new Error(`[Supabase SelfPresentation] Erro ao listar apresentações por aluno: ${error.message}`);
     }
+    return ((data || []) as unknown as SelfPresentationDbRow[]).map(mapRowToSelfPresentation);
   },
 
-  async obterAtivaParaAluno(alunoId: string): Promise<SelfPresentation | null> {
-    const list = await this.listarParaAluno(alunoId);
+  async obterAtivaParaAluno(alunoId: string, clientOverride?: SupabaseClient): Promise<SelfPresentation | null> {
+    const list = await this.listarParaAluno(alunoId, clientOverride);
     return list[0] || null;
   },
 
-  async salvarRascunho(dados: {
-    id?: string;
-    alunoId: string;
-    alunoNome?: string;
-    tipo?: "nivelamento_inicial" | "reavaliacao";
-    titulo: string;
-    linkVideo?: string;
-    dataGravacao?: string;
-    observacaoAluno?: string;
-    consentimento?: ConsentimentoUsoVideo;
-  }): Promise<OperationResult<SelfPresentation>> {
+  async salvarRascunho(
+    dados: {
+      id?: string;
+      alunoId: string;
+      alunoNome?: string;
+      tipo?: "nivelamento_inicial" | "reavaliacao";
+      titulo: string;
+      linkVideo?: string;
+      dataGravacao?: string;
+      observacaoAluno?: string;
+      consentimento?: ConsentimentoUsoVideo;
+    },
+    clientOverride?: SupabaseClient
+  ): Promise<OperationResult<SelfPresentation>> {
     try {
-      const supabase = getSupabase();
+      const supabase = getSupabase(clientOverride);
       const tipo = dados.tipo || "nivelamento_inicial";
       const now = new Date().toISOString();
 
-      const aluno = await alunoRepository.obterPorId(dados.alunoId);
-      const alunoNome = dados.alunoNome || aluno?.nomeCompleto || "Aluno";
+      let alunoNome = dados.alunoNome;
+      if (!alunoNome) {
+        try {
+          const aluno = await alunoRepository.obterPorId(dados.alunoId);
+          alunoNome = aluno?.nomeCompleto || "Aluno MTD";
+        } catch {
+          alunoNome = "Aluno MTD";
+        }
+      }
 
       const payload: Record<string, unknown> = {
         aluno_id: dados.alunoId,
@@ -268,10 +264,11 @@ export const selfPresentationSupabaseRepository = {
       dataGravacao: string;
       observacaoAluno?: string;
       consentimento: ConsentimentoUsoVideo;
-    }
+    },
+    clientOverride?: SupabaseClient
   ): Promise<OperationResult<SelfPresentation>> {
     try {
-      const supabase = getSupabase();
+      const supabase = getSupabase(clientOverride);
       const now = new Date().toISOString();
       const payload = {
         link_video: dados.linkVideo.trim(),
@@ -309,13 +306,14 @@ export const selfPresentationSupabaseRepository = {
   async assumirAvaliacao(
     id: string,
     professorId: string,
-    professorNome: string
+    professorNome: string,
+    clientOverride?: SupabaseClient
   ): Promise<OperationResult<SelfPresentation>> {
     try {
-      const supabase = getSupabase();
+      const supabase = getSupabase(clientOverride);
       const now = new Date().toISOString();
       const payload = {
-        professor_avaliador_id: professorId,
+        professor_avaliador_id: isUuid(professorId) ? professorId : null,
         professor_avaliador_nome: professorNome,
         status: "em_avaliacao",
         updated_at: now,
@@ -346,11 +344,12 @@ export const selfPresentationSupabaseRepository = {
   async salvarAvaliacao(
     id: string,
     avaliacaoInput: Partial<AvaliacaoPedagogica>,
-    publicar = false
+    publicar = false,
+    clientOverride?: SupabaseClient
   ): Promise<OperationResult<SelfPresentation>> {
     try {
-      const supabase = getSupabase();
-      const atual = await this.obterPorId(id);
+      const supabase = getSupabase(clientOverride);
+      const atual = await this.obterPorId(id, false, clientOverride);
       if (!atual) return { success: false, error: "Apresentação não encontrada." };
 
       const now = new Date().toISOString();
@@ -402,11 +401,12 @@ export const selfPresentationSupabaseRepository = {
 
   async solicitarReenvio(
     id: string,
-    solicitacao: SolicitacaoReenvio
+    solicitacao: SolicitacaoReenvio,
+    clientOverride?: SupabaseClient
   ): Promise<OperationResult<SelfPresentation>> {
     try {
-      const supabase = getSupabase();
-      const atual = await this.obterPorId(id);
+      const supabase = getSupabase(clientOverride);
+      const atual = await this.obterPorId(id, false, clientOverride);
       if (!atual) return { success: false, error: "Apresentação não encontrada." };
 
       const now = new Date().toISOString();
@@ -461,11 +461,12 @@ export const selfPresentationSupabaseRepository = {
       dataGravacao: string;
       observacaoAluno?: string;
       consentimento: ConsentimentoUsoVideo;
-    }
+    },
+    clientOverride?: SupabaseClient
   ): Promise<OperationResult<SelfPresentation>> {
     try {
-      const supabase = getSupabase();
-      const atual = await this.obterPorId(id);
+      const supabase = getSupabase(clientOverride);
+      const atual = await this.obterPorId(id, false, clientOverride);
       if (!atual) return { success: false, error: "Apresentação anterior não encontrada." };
 
       const now = new Date().toISOString();
@@ -510,31 +511,64 @@ export const selfPresentationSupabaseRepository = {
   async aplicarNivelAoPerfil(
     id: string,
     professorId: string,
-    professorNome: string
+    professorNome: string,
+    clientOverride?: SupabaseClient
   ): Promise<OperationResult<{ aluno: Aluno; sp: SelfPresentation }>> {
     try {
-      const sp = await this.obterPorId(id);
+      const supabase = getSupabase(clientOverride);
+      const sp = await this.obterPorId(id, false, clientOverride);
       if (!sp || !sp.avaliacao || !sp.avaliacao.publicada) {
         return { success: false, error: "A avaliação precisa estar concluída e publicada antes de ser aplicada ao perfil." };
       }
 
-      const resAluno = await alunoRepository.atualizarNivel(
-        sp.alunoId,
-        sp.avaliacao.nivelDefinido,
-        {
-          origem: "self_presentation",
-          origemReferenciaId: id,
-          professorId,
-          professorNome,
-          justificativa: `Nivelamento inicial via Self Presentation (${sp.titulo}). Justificativa: ${sp.avaliacao.justificativaNivel}`,
-        }
-      );
+      // Atualiza o nível do aluno no banco via supabase/clientOverride
+      const { data: alunoRow, error: alunoErr } = await supabase
+        .from("alunos")
+        .update({
+          nivel_operacional: sp.avaliacao.nivelDefinido,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", sp.alunoId)
+        .select()
+        .single();
 
-      if (!resAluno.success || !resAluno.data) {
-        return { success: false, error: resAluno.error || "Erro ao atualizar nível no perfil do aluno." };
+      if (alunoErr || !alunoRow) {
+        return { success: false, error: `Erro ao atualizar nível no perfil do aluno: ${alunoErr?.message || "Registro não encontrado"}` };
       }
 
-      return { success: true, data: { aluno: resAluno.data, sp } };
+      // Atualiza o estado da apresentação para refletir que o nível foi aplicado
+      const avaliacaoAtualizada = {
+        ...sp.avaliacao,
+        nivelAplicadoAoPerfil: true,
+      };
+
+      await supabase
+        .from("self_presentations")
+        .update({
+          avaliacao: avaliacaoAtualizada,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+
+      const alunoMapeado: Aluno = {
+        id: alunoRow.id,
+        nomeCompleto: alunoRow.nome_completo,
+        email: alunoRow.email,
+        telefone: alunoRow.telefone || undefined,
+        objetivoIngles: alunoRow.objetivo || "Geral",
+        nivel: alunoRow.nivel_operacional,
+        status: alunoRow.status,
+        dataCadastro: alunoRow.created_at,
+        avatarUrl: alunoRow.avatar_url || undefined,
+      };
+
+      const spAtualizada: SelfPresentation = {
+        ...sp,
+        avaliacao: avaliacaoAtualizada,
+        nivelAplicadoAoPerfil: true,
+      };
+
+      return { success: true, data: { aluno: alunoMapeado, sp: spAtualizada } };
     } catch (err: unknown) {
       return {
         success: false,
@@ -543,23 +577,19 @@ export const selfPresentationSupabaseRepository = {
     }
   },
 
-  async contadoresDashboard(): Promise<SelfPresentationsMetricasAdmin> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase.from("self_presentations").select("status");
-      if (error || !data) {
-        return selfPresentationLocalStorageRepository.contadoresDashboard();
-      }
-      const list = data as { status: string }[];
-      return {
-        aguardando: list.filter((i) => i.status === "enviada").length,
-        emAvaliacao: list.filter((i) => i.status === "em_avaliacao").length,
-        reenviosPendentes: list.filter((i) => i.status === "reenvio_solicitado").length,
-        avaliadas: list.filter((i) => i.status === "avaliada").length,
-        tempoMedioHorasTexto: "—",
-      };
-    } catch {
-      return selfPresentationLocalStorageRepository.contadoresDashboard();
+  async contadoresDashboard(clientOverride?: SupabaseClient): Promise<SelfPresentationsMetricasAdmin> {
+    const supabase = getSupabase(clientOverride);
+    const { data, error } = await supabase.from("self_presentations").select("status");
+    if (error) {
+      throw new Error(`[Supabase SelfPresentation] Erro ao obter contadores do dashboard: ${error.message}`);
     }
+    const list = (data || []) as { status: string }[];
+    return {
+      aguardando: list.filter((i) => i.status === "enviada").length,
+      emAvaliacao: list.filter((i) => i.status === "em_avaliacao").length,
+      reenviosPendentes: list.filter((i) => i.status === "reenvio_solicitado").length,
+      avaliadas: list.filter((i) => i.status === "avaliada").length,
+      tempoMedioHorasTexto: "—",
+    };
   },
 };

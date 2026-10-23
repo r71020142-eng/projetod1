@@ -128,3 +128,7 @@ CREATE POLICY "sp_aluno_update_own" ON public.self_presentations
     aluno_id = public.get_current_aluno_id()
     AND status IN ('rascunho', 'enviada')
   );
+
+-- PERMISSÕES GERAIS PARA TABELA E VIEW
+GRANT SELECT ON public.vw_aluno_self_presentations TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.self_presentations TO authenticated, service_role;

@@ -174,6 +174,22 @@ export function getAcademicFlashcardsDataSource(): DataSource {
   }
 }
 
+/**
+ * Retorna a fonte de dados configurada para o módulo de Self Presentation e Nivelamento (Etapa 10.4D).
+ */
+export function getAcademicSelfPresentationDataSource(): DataSource {
+  if (typeof window === "undefined") {
+    const env = getServerEnv();
+    return env.academicSelfPresentationDataSource;
+  }
+  try {
+    const clientEnv = getClientEnv();
+    return clientEnv.academicSelfPresentationDataSource || "local";
+  } catch {
+    return "local";
+  }
+}
+
 export class UnimplementedSupabaseRepositoryError extends Error {
   constructor(nomeRepositorio: string, etapaPlanejada: string) {
     super(
@@ -292,13 +308,13 @@ export function getConteudoDiarioRepository() {
 }
 
 /**
- * Retorna o repositório de Self Presentation ativo para o ambiente.
+ * Retorna o repositório de Self Presentation ativo para o ambiente (Etapa 10.4D).
  */
 export function getSelfPresentationRepository(): ISelfPresentationRepository {
-  if (isLocalDataSource()) {
-    return selfPresentationLocalStorageRepository;
+  if (getAcademicSelfPresentationDataSource() === "supabase") {
+    return selfPresentationSupabaseRepository;
   }
-  return selfPresentationSupabaseRepository;
+  return selfPresentationLocalStorageRepository;
 }
 
 /**

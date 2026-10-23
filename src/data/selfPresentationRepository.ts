@@ -14,7 +14,7 @@ import {
   saveSelfPresentationsToStorage,
 } from "./selfPresentationLocalStorageRepository";
 import { selfPresentationSupabaseRepository } from "./selfPresentationSupabaseRepository";
-import { isLocalDataSource } from "./repositoryFactory";
+import { getAcademicSelfPresentationDataSource } from "./repositoryFactory";
 
 export {
   selfPresentationLocalStorageRepository,
@@ -24,10 +24,10 @@ export {
 };
 
 function getActiveRepository() {
-  if (isLocalDataSource()) {
-    return selfPresentationLocalStorageRepository;
+  if (getAcademicSelfPresentationDataSource() === "supabase") {
+    return selfPresentationSupabaseRepository;
   }
-  return selfPresentationSupabaseRepository;
+  return selfPresentationLocalStorageRepository;
 }
 
 /**
