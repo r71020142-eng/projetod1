@@ -170,15 +170,13 @@ async function runAllTests() {
       titulo: "Exercício Prático 1 • Gravando sua Primeira Frase",
       instrucoes: "Grave uma frase em áudio com sua apresentação pessoal e submeta o link para avaliação.",
       tipo: "link",
-      categoria: "Speaking",
-      nivel: "A1",
       professorId: "efeb8576-aa79-483d-8c19-79d0ff6a9c8a",
       dataPublicacao: "2026-10-23",
       status: "publicada",
       destinoTipo: "turma",
       destinoId: turmaIdReal,
       materialRelacionadoId: novoMaterialId,
-      permiteEnvioAtrasado: true,
+      permitirAtraso: true,
       prazoEntrega: "2026-10-30T23:59:00Z",
     });
     assert(res.success, `Falha ao criar atividade: ${res.error}`);
@@ -350,8 +348,8 @@ async function runAllTests() {
       observacaoAluno: "Apresentação focando nos pontos 1 a 6 do roteiro pedagógico.",
       consentimento: {
         aceito: true,
-        dataAceite: new Date().toISOString(),
-        versaoTermo: "v1.0",
+        dataHora: new Date().toISOString(),
+        versaoTexto: "v1.0",
       },
     });
     assert(rascunhoResult.success, `Falha ao salvar rascunho de Self Presentation: ${rascunhoResult.error}`);
@@ -363,8 +361,8 @@ async function runAllTests() {
       observacaoAluno: "Apresentação focando nos pontos 1 a 6 do roteiro pedagógico.",
       consentimento: {
         aceito: true,
-        dataAceite: new Date().toISOString(),
-        versaoTermo: "v1.0",
+        dataHora: new Date().toISOString(),
+        versaoTexto: "v1.0",
       },
     });
     assert(envioResult.success, `Falha ao enviar Self Presentation: ${envioResult.error}`);
@@ -384,12 +382,12 @@ async function runAllTests() {
         professorId: "efeb8576-aa79-483d-8c19-79d0ff6a9c8a",
         professorNome: "Carlos Mendes",
         rubrica: {
-          fluencia: { pontuacao: 4, observacao: "Bom ritmo e pausas naturais" },
-          vocabulario: { pontuacao: 4, observacao: "Vocabulário adequado ao nível A1" },
-          gramaticaAplicada: { pontuacao: 3, observacao: "Estruturas básicas corretas" },
-          pronunciaInteligibilidade: { pontuacao: 4, observacao: "Boa clareza e dicção" },
-          coerenciaOrganizacao: { pontuacao: 4, observacao: "Raciocínio lógico estruturado" },
-          compreensaoGeral: { pontuacao: 4, observacao: "Mensagem facilmente compreensível" },
+          fluencia: { pontuacao: 4, comentario: "Bom ritmo e pausas naturais" },
+          vocabulario: { pontuacao: 4, comentario: "Vocabulário adequado ao nível A1" },
+          gramaticaAplicada: { pontuacao: 3, comentario: "Estruturas básicas corretas" },
+          pronunciaInteligibilidade: { pontuacao: 4, comentario: "Boa clareza e dicção" },
+          coerenciaOrganizacao: { pontuacao: 4, comentario: "Raciocínio lógico estruturado" },
+          compreensaoGeral: { pontuacao: 4, comentario: "Mensagem facilmente compreensível" },
         },
         pontosFortes: "Boa pronúncia dos fonemas iniciais e ritmo contínuo.",
         pontosADesenvolver: "Expandir o repertório de conectivos conversacionais.",
