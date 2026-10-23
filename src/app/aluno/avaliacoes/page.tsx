@@ -28,10 +28,14 @@ import {
   Play,
   Award,
 } from "lucide-react";
+import { useAlunoIdentity } from "@/app/aluno/AlunoLayoutClient";
 
 type FiltroAlunoAba = "todas" | "disponiveis" | "aguardando" | "concluidas";
 
 export default function AvaliacoesAlunoPage() {
+  const identity = useAlunoIdentity();
+  const alunoId = identity?.alunoId || "alu-001";
+
   const [aba, setAba] = useState<FiltroAlunoAba>("todas");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,24 +47,23 @@ export default function AvaliacoesAlunoPage() {
   const carregarDados = useCallback(async (isMounted = true) => {
     try {
       setError(null);
-      // Aluno demonstrativo padrão
-      const aluno = (await alunoRepository.obterPorId("alu-001")) || null;
+      const aluno = (await alunoRepository.obterPorId(alunoId)) || null;
       if (!isMounted) return;
       setAlunoAtual(aluno);
 
       // Dashboard com dados da jornada calculados
-      const dash = await getAlunoDashboardData();
+      const dash = await getAlunoDashboardData(alunoId);
       if (!isMounted) return;
       setProgressoJornada(dash.progressoJornada);
 
       // Turmas do aluno
-      const turmasAluno = await turmaRepository.listarPorAluno("alu-001");
+      const turmasAluno = await turmaRepository.listarPorAluno(alunoId);
       const turmaIds = turmasAluno.map((t) => t.id);
 
       // Avaliações do aluno (publicadas ou agendadas)
-      const avals = await avaliacaoRepository.listarParaAluno("alu-001", turmaIds);
+      const avals = await avaliacaoRepository.listarParaAluno(alunoId, turmaIds);
       // Tentativas do aluno
-      const tents = await tentativaAvaliacaoRepository.listar({ alunoId: "alu-001" });
+      const tents = await tentativaAvaliacaoRepository.listar({ alunoId });
 
       if (!isMounted) return;
       setAvaliacoes(avals);
@@ -75,7 +78,7 @@ export default function AvaliacoesAlunoPage() {
         setLoading(false);
       }
     }
-  }, []);
+  }, [alunoId]);
 
   useEffect(() => {
     let isMounted = true;

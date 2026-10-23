@@ -22,10 +22,14 @@ import {
 } from "@/components/common/SelfPresentationBadges";
 import { NivelBadge } from "@/components/common/NivelBadge";
 import { SelfPresentationFormModal } from "@/components/aluno/SelfPresentationFormModal";
+import { useAlunoIdentity } from "@/app/aluno/AlunoLayoutClient";
 
 const DEMO_ALUNO_ID = "alu-001";
 
 export default function AlunoSelfPresentationPage() {
+  const identity = useAlunoIdentity();
+  const alunoId = identity?.alunoId || DEMO_ALUNO_ID;
+
   const [presentations, setPresentations] = useState<SelfPresentation[]>([]);
   const [aluno, setAluno] = useState<Aluno | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,8 +42,8 @@ export default function AlunoSelfPresentationPage() {
     try {
       setError(null);
       const [list, alu] = await Promise.all([
-        selfPresentationRepository.listarParaAluno(DEMO_ALUNO_ID),
-        alunoRepository.obterPorId(DEMO_ALUNO_ID),
+        selfPresentationRepository.listarParaAluno(alunoId),
+        alunoRepository.obterPorId(alunoId),
       ]);
       if (!isMounted) return;
       setPresentations(list);
@@ -54,7 +58,7 @@ export default function AlunoSelfPresentationPage() {
         setLoading(false);
       }
     }
-  }, []);
+  }, [alunoId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -160,7 +164,7 @@ export default function AlunoSelfPresentationPage() {
             <strong>Ambiente Demonstrativo:</strong> O isolamento de dados de Self Presentation nesta etapa é local e demonstrativo para o discente <strong>{aluno?.nomeCompleto || "Mariana Oliveira"}</strong>, sem substituir autenticação no servidor.
           </span>
         </div>
-        <span className="text-[10px] font-mono text-slate-400 shrink-0">ID: {DEMO_ALUNO_ID}</span>
+        <span className="text-[10px] font-mono text-slate-400 shrink-0">ID: {alunoId}</span>
       </div>
 
       {/* Hero Guidance Section (Roteiro dos 6 Passos) */}
@@ -478,7 +482,7 @@ export default function AlunoSelfPresentationPage() {
       {modalOpen && (
         <SelfPresentationFormModal
           isOpen={modalOpen}
-          alunoId={DEMO_ALUNO_ID}
+          alunoId={alunoId}
           alunoNome={aluno?.nomeCompleto || "Mariana Oliveira"}
           presentation={selectedSp}
           tipo={tipoModal}

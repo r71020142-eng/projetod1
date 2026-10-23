@@ -25,10 +25,14 @@ import {
   StatusEntregaBadge,
 } from "@/components/common/MaterialBadges";
 import { EntregaAtividadeModal } from "@/components/aluno/EntregaAtividadeModal";
+import { useAlunoIdentity } from "@/app/aluno/AlunoLayoutClient";
 
 const DEMO_ALUNO_ID = "alu-001";
 
 export default function AlunoAtividadesPage() {
+  const identity = useAlunoIdentity();
+  const alunoId = identity?.alunoId || DEMO_ALUNO_ID;
+
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [entregaMap, setEntregaMap] = useState<Map<string, Entrega>>(new Map());
   const [praticaHoje, setPraticaHoje] = useState<ConteudoDiario | null>(null);
@@ -46,13 +50,13 @@ export default function AlunoAtividadesPage() {
     setLoading(true);
     setError(null);
     try {
-      const turmas = await turmaRepository.listarPorAluno(DEMO_ALUNO_ID);
+      const turmas = await turmaRepository.listarPorAluno(alunoId);
       const turmaIds = turmas.map((t: Turma) => t.id);
 
       const [todasAtividades, todasEntregas, diario] = await Promise.all([
-        atividadeRepository.listarParaAluno(DEMO_ALUNO_ID, turmaIds),
-        entregaRepository.listar({ alunoId: DEMO_ALUNO_ID }),
-        conteudoDiarioRepository.obterPraticaDeHoje(DEMO_ALUNO_ID, turmaIds),
+        atividadeRepository.listarParaAluno(alunoId, turmaIds),
+        entregaRepository.listar({ alunoId }),
+        conteudoDiarioRepository.obterPraticaDeHoje(alunoId, turmaIds),
       ]);
 
       if (!mounted) return;
@@ -73,7 +77,7 @@ export default function AlunoAtividadesPage() {
         setLoading(false);
       }
     }
-  }, []);
+  }, [alunoId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -302,7 +306,7 @@ export default function AlunoAtividadesPage() {
       <EntregaAtividadeModal
         isOpen={modalEntregaOpen}
         atividade={atividadeSelecionada}
-        alunoId={DEMO_ALUNO_ID}
+        alunoId={alunoId}
         onClose={() => {
           setModalEntregaOpen(false);
           setAtividadeSelecionada(null);

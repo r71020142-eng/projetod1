@@ -19,11 +19,13 @@ import {
   MessageSquare,
   Lock,
 } from "lucide-react";
+import { useAlunoIdentity } from "@/app/aluno/AlunoLayoutClient";
 
 export default function AlunoEspacoDetalhePage() {
+  const identity = useAlunoIdentity();
+  const alunoId = identity?.alunoId || "alu-001";
   const params = useParams();
   const id = params?.id as string;
-  const alunoId = "alu-001"; // Aluno demonstrativo fixo
 
   const [aluno, setAluno] = useState<Aluno | null>(null);
   const [turmaIds, setTurmaIds] = useState<string[]>([]);

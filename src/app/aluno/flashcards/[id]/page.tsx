@@ -15,6 +15,7 @@ import {
   progressoCartaoRepository,
   sessaoEstudoRepository,
 } from "@/data/api";
+import { useAlunoIdentity } from "@/app/aluno/AlunoLayoutClient";
 import { BadgeEstadoAprendizagem } from "@/components/common/FlashcardBadges";
 import {
   ArrowLeft,
@@ -29,6 +30,9 @@ import {
 } from "lucide-react";
 
 export default function AlunoBaralhoDetalhePage() {
+  const identity = useAlunoIdentity();
+  const alunoId = identity?.alunoId || "alu-001";
+
   const params = useParams();
   const baralhoId = params.id as string;
 
@@ -51,8 +55,8 @@ export default function AlunoBaralhoDetalhePage() {
       const [baralhoRes, cartoesRes, sessoesRes, filaRes] = await Promise.all([
         baralhoRepository.getBaralhoById(baralhoId),
         cartaoRepository.getCartoesPorBaralho(baralhoId, true), // apenas ativos
-        sessaoEstudoRepository.obterSessoesPorAluno("alu-001", baralhoId),
-        progressoCartaoRepository.obterFilaEstudoBaralho("alu-001", baralhoId),
+        sessaoEstudoRepository.obterSessoesPorAluno(alunoId, baralhoId),
+        progressoCartaoRepository.obterFilaEstudoBaralho(alunoId, baralhoId),
       ]);
 
       if (!isMounted) return;
@@ -75,7 +79,7 @@ export default function AlunoBaralhoDetalhePage() {
         setLoading(false);
       }
     }
-  }, [baralhoId]);
+  }, [baralhoId, alunoId]);
 
   useEffect(() => {
     let isMounted = true;

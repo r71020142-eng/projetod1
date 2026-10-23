@@ -17,10 +17,14 @@ import { materialRepository } from "@/data/materialRepository";
 import { atividadeRepository } from "@/data/atividadeRepository";
 import { turmaRepository } from "@/data/turmaRepository";
 import { TipoMaterialBadge } from "@/components/common/MaterialBadges";
+import { useAlunoIdentity } from "@/app/aluno/AlunoLayoutClient";
 
 const DEMO_ALUNO_ID = "alu-001";
 
 export default function AlunoMateriaisPage() {
+  const identity = useAlunoIdentity();
+  const alunoId = identity?.alunoId || DEMO_ALUNO_ID;
+
   const [materiais, setMateriais] = useState<Material[]>([]);
   const [atividadesCount, setAtividadesCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -33,12 +37,12 @@ export default function AlunoMateriaisPage() {
   const carregarDados = useCallback(async (isMounted = true) => {
     try {
       setError(null);
-      const turmas = await turmaRepository.listarPorAluno(DEMO_ALUNO_ID);
+      const turmas = await turmaRepository.listarPorAluno(alunoId);
       const turmaIds = turmas.map((t: Turma) => t.id);
 
       const [mats, atvs] = await Promise.all([
-        materialRepository.listarParaAluno(DEMO_ALUNO_ID, turmaIds),
-        atividadeRepository.listarParaAluno(DEMO_ALUNO_ID, turmaIds),
+        materialRepository.listarParaAluno(alunoId, turmaIds),
+        atividadeRepository.listarParaAluno(alunoId, turmaIds),
       ]);
 
       if (!isMounted) return;
@@ -54,7 +58,7 @@ export default function AlunoMateriaisPage() {
         setLoading(false);
       }
     }
-  }, []);
+  }, [alunoId]);
 
   useEffect(() => {
     let isMounted = true;

@@ -13,6 +13,7 @@ import {
   historicoRevisaoRepository,
   progressoCartaoRepository,
 } from "@/data/api";
+import { useAlunoIdentity } from "@/app/aluno/AlunoLayoutClient";
 import {
   Layers,
   Flame,
@@ -24,6 +25,9 @@ import {
 } from "lucide-react";
 
 export default function AlunoFlashcardsPage() {
+  const identity = useAlunoIdentity();
+  const alunoId = identity?.alunoId || "alu-001";
+
   const [baralhos, setBaralhos] = useState<Baralho[]>([]);
   const [metricas, setMetricas] = useState<FlashcardsMetricasAluno | null>(null);
   const [filasMap, setFilasMap] = useState<
@@ -39,16 +43,15 @@ export default function AlunoFlashcardsPage() {
   const carregarDados = useCallback(async (isMounted = true) => {
     try {
       setError(null);
-      // Discente demonstrativo: Mariana Oliveira (alu-001)
-      const turmasAluno = await turmaRepository.listarPorAluno("alu-001");
+      const turmasAluno = await turmaRepository.listarPorAluno(alunoId);
       const turmasIds = turmasAluno.map((t) => t.id);
 
-      const baralhosPermitidos = await baralhoRepository.getBaralhosAluno("alu-001", turmasIds);
+      const baralhosPermitidos = await baralhoRepository.getBaralhosAluno(alunoId, turmasIds);
       if (!isMounted) return;
       setBaralhos(baralhosPermitidos);
 
       const metricasRes = await historicoRevisaoRepository.obterMetricasAluno(
-        "alu-001",
+        alunoId,
         baralhosPermitidos
       );
       if (!isMounted) return;
@@ -63,7 +66,7 @@ export default function AlunoFlashcardsPage() {
       await Promise.all(
         baralhosPermitidos.map(async (b) => {
           const f = await progressoCartaoRepository.obterFilaEstudoBaralho(
-            "alu-001",
+            alunoId,
             b.id,
             b.limiteDiarioNovos
           );
@@ -87,7 +90,7 @@ export default function AlunoFlashcardsPage() {
         setLoading(false);
       }
     }
-  }, []);
+  }, [alunoId]);
 
   useEffect(() => {
     let isMounted = true;

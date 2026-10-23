@@ -35,10 +35,14 @@ import {
   StatusEntregaBadge,
 } from "@/components/common/MaterialBadges";
 import { EntregaAtividadeModal } from "@/components/aluno/EntregaAtividadeModal";
+import { useAlunoIdentity } from "@/app/aluno/AlunoLayoutClient";
 
 const DEMO_ALUNO_ID = "alu-001";
 
 export default function AlunoMaterialDetalhesPage() {
+  const identity = useAlunoIdentity();
+  const alunoId = identity?.alunoId || DEMO_ALUNO_ID;
+
   const params = useParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
 
@@ -56,11 +60,11 @@ export default function AlunoMaterialDetalhesPage() {
     if (!id) return;
     try {
       setError(null);
-      const turmas = await turmaRepository.listarPorAluno(DEMO_ALUNO_ID);
+      const turmas = await turmaRepository.listarPorAluno(alunoId);
       const turmaIds = turmas.map((t) => t.id);
 
       // Check if it is a Material
-      const mat = await materialRepository.obterPorIdParaAluno(id, DEMO_ALUNO_ID, turmaIds);
+      const mat = await materialRepository.obterPorIdParaAluno(id, alunoId, turmaIds);
       if (!isMounted) return;
 
       if (mat) {
@@ -69,20 +73,20 @@ export default function AlunoMaterialDetalhesPage() {
         setEntrega(null);
       } else {
         // Check if it is an Atividade
-        const atv = await atividadeRepository.obterPorIdParaAluno(id, DEMO_ALUNO_ID, turmaIds);
+        const atv = await atividadeRepository.obterPorIdParaAluno(id, alunoId, turmaIds);
         if (!isMounted) return;
 
         if (atv) {
           setAtividade(atv);
           setMaterial(null);
-          const ent = await entregaRepository.obterPorAtividadeEAluno(atv.id, DEMO_ALUNO_ID);
+          const ent = await entregaRepository.obterPorAtividadeEAluno(atv.id, alunoId);
           if (!isMounted) return;
           setEntrega(ent);
 
           if (atv.materialRelacionadoId) {
             const relMat = await materialRepository.obterPorIdParaAluno(
               atv.materialRelacionadoId,
-              DEMO_ALUNO_ID,
+              alunoId,
               turmaIds
             );
             if (!isMounted) return;
@@ -100,7 +104,7 @@ export default function AlunoMaterialDetalhesPage() {
         setLoading(false);
       }
     }
-  }, [id]);
+  }, [id, alunoId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -646,7 +650,7 @@ export default function AlunoMaterialDetalhesPage() {
       <EntregaAtividadeModal
         isOpen={modalEntregaOpen}
         atividade={atividade}
-        alunoId={DEMO_ALUNO_ID}
+        alunoId={alunoId}
         onClose={() => setModalEntregaOpen(false)}
         onSuccess={() => carregarItem()}
       />

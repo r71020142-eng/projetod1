@@ -24,10 +24,14 @@ import {
 } from "@/components/common/SelfPresentationBadges";
 import { NivelBadge } from "@/components/common/NivelBadge";
 import { SelfPresentationFormModal } from "@/components/aluno/SelfPresentationFormModal";
+import { useAlunoIdentity } from "@/app/aluno/AlunoLayoutClient";
 
 const DEMO_ALUNO_ID = "alu-001";
 
 export default function AlunoSelfPresentationDetailPage() {
+  const identity = useAlunoIdentity();
+  const alunoId = identity?.alunoId || DEMO_ALUNO_ID;
+
   const params = useParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
 
@@ -41,7 +45,7 @@ export default function AlunoSelfPresentationDetailPage() {
     try {
       setError(null);
       // Consulta protegida com sanitização estrita de observacoesInternas
-      const found = await selfPresentationRepository.obterParaAluno(id, DEMO_ALUNO_ID);
+      const found = await selfPresentationRepository.obterParaAluno(id, alunoId);
       if (!isMounted) return;
       setSp(found);
     } catch (err) {
@@ -54,7 +58,7 @@ export default function AlunoSelfPresentationDetailPage() {
         setLoading(false);
       }
     }
-  }, [id]);
+  }, [id, alunoId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -546,8 +550,8 @@ export default function AlunoSelfPresentationDetailPage() {
       {modalEditOpen && (
         <SelfPresentationFormModal
           isOpen={modalEditOpen}
-          alunoId={DEMO_ALUNO_ID}
-          alunoNome="Mariana Oliveira"
+          alunoId={alunoId}
+          alunoNome={identity?.nomeCompleto || "Mariana Oliveira"}
           presentation={sp}
           tipo={sp.tipo}
           onClose={() => setModalEditOpen(false)}

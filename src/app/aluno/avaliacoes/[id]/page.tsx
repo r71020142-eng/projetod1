@@ -39,11 +39,13 @@ import {
   FileText,
   Play,
 } from "lucide-react";
+import { useAlunoIdentity } from "@/app/aluno/AlunoLayoutClient";
 
 export default function AlunoAvaliacaoDetalhePage() {
+  const identity = useAlunoIdentity();
+  const alunoId = identity?.alunoId || "alu-001";
   const params = useParams();
   const id = params?.id as string;
-  const alunoId = "alu-001"; // Aluno demonstrativo fixo
 
   const [avaliacao, setAvaliacao] = useState<Avaliacao | null>(null);
   const [modulo, setModulo] = useState<Modulo | null>(null);

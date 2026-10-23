@@ -15,6 +15,7 @@ import {
   progressoCartaoRepository,
   sessaoEstudoRepository,
 } from "@/data/api";
+import { useAlunoIdentity } from "@/app/aluno/AlunoLayoutClient";
 import { FlashcardStudyCard } from "@/components/aluno/FlashcardStudyCard";
 import { SessaoEstudoConcluidaCard } from "@/components/aluno/SessaoEstudoConcluidaCard";
 import {
@@ -27,6 +28,9 @@ import {
 } from "lucide-react";
 
 export default function EstudarFlashcardsPage() {
+  const identity = useAlunoIdentity();
+  const alunoId = identity?.alunoId || "alu-001";
+
   const params = useParams();
   const baralhoId = params.id as string;
 
@@ -64,7 +68,7 @@ export default function EstudarFlashcardsPage() {
     try {
       const [baralhoRes, filaRes] = await Promise.all([
         baralhoRepository.getBaralhoById(baralhoId),
-        progressoCartaoRepository.obterFilaEstudoBaralho("alu-001", baralhoId),
+        progressoCartaoRepository.obterFilaEstudoBaralho(alunoId, baralhoId),
       ]);
 
       if (!mounted) return;
@@ -96,7 +100,7 @@ export default function EstudarFlashcardsPage() {
         setLoading(false);
       }
     }
-  }, [baralhoId]);
+  }, [baralhoId, alunoId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -123,7 +127,7 @@ export default function EstudarFlashcardsPage() {
       if (timerRef.current) clearInterval(timerRef.current);
 
       const dadosSessao: Omit<SessaoEstudoResumo, "id"> = {
-        alunoId: "alu-001",
+        alunoId,
         baralhoId,
         iniciadaEm: dataInicioRef.current,
         concluidaEm: new Date().toISOString(),
@@ -139,7 +143,7 @@ export default function EstudarFlashcardsPage() {
       const salva = await sessaoEstudoRepository.salvarSessaoEstudo(dadosSessao);
       setSessaoConcluida(salva);
     },
-    [baralhoId]
+    [baralhoId, alunoId]
   );
 
   const [cartoesErreados, setCartoesErreados] = useState<
@@ -154,7 +158,7 @@ export default function EstudarFlashcardsPage() {
 
     // 1. Processa resposta e salva nos repositórios locais
     const res = await progressoCartaoRepository.registrarRespostaEstudo(
-      "alu-001",
+      alunoId,
       cartaoAtual.id,
       baralhoId,
       resposta
@@ -312,8 +316,8 @@ export default function EstudarFlashcardsPage() {
   const progressoAtual =
     progressosMap[cartaoAtual?.id] ||
     ({
-      id: `cpa-alu-001-${cartaoAtual?.id}`,
-      alunoId: "alu-001",
+      id: `cpa-${alunoId}-${cartaoAtual?.id}`,
+      alunoId,
       cartaoId: cartaoAtual?.id,
       baralhoId: baralho.id,
       estado: "novo",

@@ -13,10 +13,14 @@ import { ProgressoJornadaAluno, Aluno, AlunoDashboardData } from "@/types";
 import { alunoRepository, getAlunoDashboardData } from "@/data/api";
 import { ProgressoJornadaCard } from "@/components/aluno/ProgressoJornadaCard";
 import { MinhaSemanaCard } from "@/components/aluno/dashboard/MinhaSemanaCard";
+import { useAlunoIdentity } from "@/app/aluno/AlunoLayoutClient";
 
 const DEMO_ALUNO_ID = "alu-001";
 
 export default function AlunoJornadaPage() {
+  const identity = useAlunoIdentity();
+  const alunoId = identity?.alunoId || DEMO_ALUNO_ID;
+
   const [progressoJornada, setProgressoJornada] = useState<ProgressoJornadaAluno | undefined>();
   const [aluno, setAluno] = useState<Aluno | null>(null);
   const [dashData, setDashData] = useState<AlunoDashboardData | null>(null);
@@ -28,8 +32,8 @@ export default function AlunoJornadaPage() {
     setError(null);
     try {
       const [alunoData, dashData] = await Promise.all([
-        alunoRepository.obterPorId(DEMO_ALUNO_ID),
-        getAlunoDashboardData(),
+        alunoRepository.obterPorId(alunoId),
+        getAlunoDashboardData(alunoId),
       ]);
       if (!mounted) return;
       setAluno(alunoData || null);
@@ -45,7 +49,7 @@ export default function AlunoJornadaPage() {
         setLoading(false);
       }
     }
-  }, []);
+  }, [alunoId]);
 
   useEffect(() => {
     let isMounted = true;

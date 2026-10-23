@@ -27,9 +27,11 @@ import {
   ExternalLink,
   AlertCircle,
 } from "lucide-react";
+import { useAlunoIdentity } from "@/app/aluno/AlunoLayoutClient";
 
 export default function AlunoComunidadePage() {
-  const alunoId = "alu-001"; // Aluno demonstrativo fixo
+  const identity = useAlunoIdentity();
+  const alunoId = identity?.alunoId || "alu-001";
   const [aluno, setAluno] = useState<Aluno | null>(null);
   const [turmaIds, setTurmaIds] = useState<string[]>([]);
   const [espacos, setEspacos] = useState<EspacoComunidade[]>([]);
