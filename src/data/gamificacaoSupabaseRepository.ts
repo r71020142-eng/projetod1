@@ -15,9 +15,8 @@ import {
   StatusModeloConquista,
   StatusConquistaConcedida,
 } from "@/types";
-import { IGamificacaoRepository } from "./contracts/repositoryContracts";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
-import { gamificacaoLocalStorageRepository } from "./gamificacaoLocalStorageRepository";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   TABELA_PONTOS_PADRAO,
   ContextoAvaliacaoConquistas,
@@ -109,14 +108,15 @@ interface NotificacaoDbRow {
   created_at: string;
 }
 
-function getSupabase() {
+function getSupabase(clientOverride?: SupabaseClient): SupabaseClient {
+  if (clientOverride) return clientOverride;
   const client = createBrowserSupabaseClient();
   if (!client) {
     throw new Error(
       "[Supabase Gamificação] Cliente Supabase não pôde ser inicializado. Verifique NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY."
     );
   }
-  return client;
+  return client as unknown as SupabaseClient;
 }
 
 function mapRowToModelo(row: ModeloDbRow): ModeloConquista {
@@ -185,52 +185,44 @@ function mapRowToPlaca(row: PlacaDbRow): SolicitacaoPlacaFisica {
   };
 }
 
-export const gamificacaoSupabaseRepository: IGamificacaoRepository = {
+export const gamificacaoSupabaseRepository = {
   // ==========================================
   // MODELOS DE CONQUISTAS
   // ==========================================
 
-  async listarModelos(status?: string): Promise<ModeloConquista[]> {
-    try {
-      const supabase = getSupabase();
-      let query = supabase.from("modelos_conquistas").select("*");
+  async listarModelos(status?: string, clientOverride?: SupabaseClient): Promise<ModeloConquista[]> {
+    const supabase = getSupabase(clientOverride);
+    let query = supabase.from("modelos_conquistas").select("*");
 
-      if (status && status !== "todos") {
-        query = query.in("status", [status, status === "ativa" ? "ativo" : status]);
-      }
-
-      const { data, error } = await query
-        .order("ordem", { ascending: true })
-        .order("created_at", { ascending: false });
-
-      if (error || !data) {
-        console.warn("[Supabase Gamificação] Erro ao listar modelos, fallback local:", error?.message);
-        return gamificacaoLocalStorageRepository.listarModelos(status);
-      }
-
-      return (data as ModeloDbRow[]).map(mapRowToModelo);
-    } catch {
-      return gamificacaoLocalStorageRepository.listarModelos(status);
+    if (status && status !== "todos") {
+      query = query.in("status", [status, status === "ativa" ? "ativo" : status]);
     }
+
+    const { data, error } = await query
+      .order("ordem", { ascending: true })
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new Error(`[Supabase Gamificação] Falha ao listar modelos de conquistas: ${error.message}`);
+    }
+
+    return ((data || []) as ModeloDbRow[]).map(mapRowToModelo);
   },
 
-  async obterModeloPorId(id: string): Promise<ModeloConquista | null> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("modelos_conquistas")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
+  async obterModeloPorId(id: string, clientOverride?: SupabaseClient): Promise<ModeloConquista | null> {
+    const supabase = getSupabase(clientOverride);
+    const { data, error } = await supabase
+      .from("modelos_conquistas")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
 
-      if (error || !data) {
-        return gamificacaoLocalStorageRepository.obterModeloPorId(id);
-      }
-
-      return mapRowToModelo(data as ModeloDbRow);
-    } catch {
-      return gamificacaoLocalStorageRepository.obterModeloPorId(id);
+    if (error) {
+      throw new Error(`[Supabase Gamificação] Falha ao obter modelo de conquista ${id}: ${error.message}`);
     }
+    if (!data) return null;
+
+    return mapRowToModelo(data as ModeloDbRow);
   },
 
   async salvarModelo(
@@ -241,14 +233,15 @@ export const gamificacaoSupabaseRepository: IGamificacaoRepository = {
       tipoCriterio: TipoCriterioConquista;
       tipoPremio: TipoPremioConquista;
       icone: string;
-    }
+    },
+    clientOverride?: SupabaseClient
   ): Promise<OperationResult<ModeloConquista>> {
     if (!dados.nome || dados.nome.trim().length < 3) {
       return { success: false, error: "O título da conquista deve conter pelo menos 3 caracteres." };
     }
 
     try {
-      const supabase = getSupabase();
+      const supabase = getSupabase(clientOverride);
       const modeloId = dados.id || `mod-conq-${Date.now()}`;
       const payload = {
         id: modeloId,
@@ -294,55 +287,49 @@ export const gamificacaoSupabaseRepository: IGamificacaoRepository = {
   // CONQUISTAS CONCEDIDAS
   // ==========================================
 
-  async listarConquistasAluno(alunoId: string): Promise<ConquistaConcedida[]> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("conquistas_concedidas")
-        .select("*")
-        .eq("aluno_id", alunoId)
-        .order("concedida_em", { ascending: false });
+  async listarConquistasAluno(alunoId: string, clientOverride?: SupabaseClient): Promise<ConquistaConcedida[]> {
+    const supabase = getSupabase(clientOverride);
+    const { data, error } = await supabase
+      .from("conquistas_concedidas")
+      .select("*")
+      .eq("aluno_id", alunoId)
+      .order("concedida_em", { ascending: false });
 
-      if (error || !data) {
-        console.warn("[Supabase Gamificação] Erro ao listar conquistas do aluno, fallback local:", error?.message);
-        return gamificacaoLocalStorageRepository.listarConquistasAluno(alunoId);
-      }
-
-      return (data as ConcedidaDbRow[]).map(mapRowToConcedida);
-    } catch {
-      return gamificacaoLocalStorageRepository.listarConquistasAluno(alunoId);
+    if (error) {
+      throw new Error(`[Supabase Gamificação] Falha ao listar conquistas do aluno ${alunoId}: ${error.message}`);
     }
+
+    return ((data || []) as ConcedidaDbRow[]).map(mapRowToConcedida);
   },
 
-  async listarTodasConcedidas(): Promise<ConquistaConcedida[]> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("conquistas_concedidas")
-        .select("*")
-        .order("concedida_em", { ascending: false });
+  async listarTodasConcedidas(clientOverride?: SupabaseClient): Promise<ConquistaConcedida[]> {
+    const supabase = getSupabase(clientOverride);
+    const { data, error } = await supabase
+      .from("conquistas_concedidas")
+      .select("*")
+      .order("concedida_em", { ascending: false });
 
-      if (error || !data) {
-        return gamificacaoLocalStorageRepository.listarTodasConcedidas();
-      }
-
-      return (data as ConcedidaDbRow[]).map(mapRowToConcedida);
-    } catch {
-      return gamificacaoLocalStorageRepository.listarTodasConcedidas();
+    if (error) {
+      throw new Error(`[Supabase Gamificação] Falha ao listar todas as conquistas concedidas: ${error.message}`);
     }
+
+    return ((data || []) as ConcedidaDbRow[]).map(mapRowToConcedida);
   },
 
-  async concederConquistaManual(dados: {
-    alunoId: string;
-    alunoNome: string;
-    modeloId: string;
-    professorId?: string;
-    professorNome?: string;
-    justificativaDocente?: string;
-  }): Promise<OperationResult<ConquistaConcedida>> {
+  async concederConquistaManual(
+    dados: {
+      alunoId: string;
+      alunoNome: string;
+      modeloId: string;
+      professorId?: string;
+      professorNome?: string;
+      justificativaDocente?: string;
+    },
+    clientOverride?: SupabaseClient
+  ): Promise<OperationResult<ConquistaConcedida>> {
     try {
-      const supabase = getSupabase();
-      const modelo = await this.obterModeloPorId(dados.modeloId);
+      const supabase = getSupabase(clientOverride);
+      const modelo = await this.obterModeloPorId(dados.modeloId, clientOverride);
       if (!modelo) {
         return { success: false, error: "Modelo de conquista não encontrado." };
       }
@@ -382,24 +369,30 @@ export const gamificacaoSupabaseRepository: IGamificacaoRepository = {
 
       // Atribui pontos
       if (modelo.pontosRecompensa && modelo.pontosRecompensa > 0) {
-        await this.registrarEventoPontos({
-          alunoId: dados.alunoId,
-          alunoNome: dados.alunoNome,
-          tipoAcao: "conquista_especial",
-          pontos: modelo.pontosRecompensa,
-          referenciaId: concedidaId,
-          descricao: `Conquista "${modelo.nome}" concedida pelo professor`,
-        }).catch(() => null);
+        await this.registrarEventoPontos(
+          {
+            alunoId: dados.alunoId,
+            alunoNome: dados.alunoNome,
+            tipoAcao: "conquista_especial",
+            pontos: modelo.pontosRecompensa,
+            referenciaId: concedidaId,
+            descricao: `Conquista "${modelo.nome}" concedida`,
+          },
+          clientOverride
+        ).catch(() => null);
       }
 
       // Notificação
-      await this.criarNotificacao({
-        usuarioId: dados.alunoId,
-        tipo: "conquista_desbloqueada",
-        titulo: "Nova conquista concedida pelo professor!",
-        mensagem: `Você recebeu o reconhecimento "${modelo.nome}" (+${modelo.pontosRecompensa || 0} pontos).`,
-        linkDestino: `/aluno/conquistas/${modelo.id}`,
-      }).catch(() => null);
+      await this.criarNotificacao(
+        {
+          usuarioId: dados.alunoId,
+          tipo: "conquista_desbloqueada",
+          titulo: "Nova conquista concedida!",
+          mensagem: `Você recebeu o reconhecimento "${modelo.nome}" (+${modelo.pontosRecompensa || 0} pontos).`,
+          linkDestino: `/aluno/conquistas/${modelo.id}`,
+        },
+        clientOverride
+      ).catch(() => null);
 
       return { success: true, data: mapRowToConcedida(data as ConcedidaDbRow) };
     } catch (err: unknown) {
@@ -412,52 +405,55 @@ export const gamificacaoSupabaseRepository: IGamificacaoRepository = {
 
   async verificarEConcederAutomaticas(
     contexto: ContextoAvaliacaoConquistas,
-    alunoNome: string
+    alunoNome: string,
+    clientOverride?: SupabaseClient
   ): Promise<ConquistaConcedida[]> {
-    try {
-      const [modelos, jaConcedidas] = await Promise.all([
-        this.listarModelos("ativa"),
-        this.listarConquistasAluno(contexto.alunoId),
-      ]);
+    const [modelos, jaConcedidas] = await Promise.all([
+      this.listarModelos("ativa", clientOverride),
+      this.listarConquistasAluno(contexto.alunoId, clientOverride),
+    ]);
 
-      const jaConquistadosIds = new Set(jaConcedidas.map((c) => c.modeloId));
-      const recemDesbloqueadas: ConquistaConcedida[] = [];
+    const jaConquistadosIds = new Set(jaConcedidas.map((c) => c.modeloId));
+    const recemDesbloqueadas: ConquistaConcedida[] = [];
 
-      for (const mod of modelos) {
-        if (jaConquistadosIds.has(mod.id)) continue;
+    for (const mod of modelos) {
+      if (jaConquistadosIds.has(mod.id)) continue;
 
-        const avaliacao = atendeCriterioConquista(mod, contexto);
-        if (avaliacao.elegivel) {
-          const res = await this.concederConquistaManual({
+      const avaliacao = atendeCriterioConquista(mod, contexto);
+      if (avaliacao.elegivel) {
+        const res = await this.concederConquistaManual(
+          {
             alunoId: contexto.alunoId,
             alunoNome,
             modeloId: mod.id,
             justificativaDocente: "Concedida automaticamente pelo sistema pedagógico.",
-          });
-          if (res.success && res.data) {
-            recemDesbloqueadas.push(res.data);
-          }
+          },
+          clientOverride
+        );
+        if (res.success && res.data) {
+          recemDesbloqueadas.push(res.data);
         }
       }
-
-      return recemDesbloqueadas;
-    } catch {
-      return gamificacaoLocalStorageRepository.verificarEConcederAutomaticas(contexto, alunoNome);
     }
+
+    return recemDesbloqueadas;
   },
 
   // ==========================================
   // PONTOS E RECOMPENSAS
   // ==========================================
 
-  async registrarEventoPontos(dados: {
-    alunoId: string;
-    alunoNome: string;
-    tipoAcao: TipoAcaoPontos;
-    pontos?: number;
-    descricao?: string;
-    referenciaId?: string;
-  }): Promise<EventoPontos> {
+  async registrarEventoPontos(
+    dados: {
+      alunoId: string;
+      alunoNome: string;
+      tipoAcao: TipoAcaoPontos;
+      pontos?: number;
+      descricao?: string;
+      referenciaId?: string;
+    },
+    clientOverride?: SupabaseClient
+  ): Promise<EventoPontos> {
     const evId = `pts-${Date.now()}`;
     const regraPadrao = TABELA_PONTOS_PADRAO[dados.tipoAcao];
     const pts = dados.pontos ?? regraPadrao?.pontos ?? 10;
@@ -472,126 +468,114 @@ export const gamificacaoSupabaseRepository: IGamificacaoRepository = {
       descricao: desc,
     };
 
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("eventos_pontos")
-        .insert(payload)
-        .select()
-        .single();
+    const supabase = getSupabase(clientOverride);
+    const { data, error } = await supabase
+      .from("eventos_pontos")
+      .insert(payload)
+      .select()
+      .single();
 
-      if (error) {
-        throw new Error(`Erro ao registrar evento de pontos no Supabase: ${error.message}`);
-      }
-
-      const r = data as EventoPontosDbRow;
-      return {
-        id: r.id,
-        alunoId: r.aluno_id,
-        alunoNome: r.aluno_nome || undefined,
-        tipoAcao: r.tipo_acao as TipoAcaoPontos,
-        pontos: r.pontos,
-        origemId: r.origem_id || undefined,
-        descricao: r.descricao,
-        dataHora: r.created_at,
-        criadoEm: r.created_at,
-      };
-    } catch (err) {
-      if (typeof window !== "undefined") {
-        return gamificacaoLocalStorageRepository.registrarEventoPontos(dados);
-      }
-      throw err;
+    if (error) {
+      throw new Error(`[Supabase Gamificação] Erro ao registrar evento de pontos: ${error.message}`);
     }
+
+    const r = data as EventoPontosDbRow;
+    return {
+      id: r.id,
+      alunoId: r.aluno_id,
+      alunoNome: r.aluno_nome || undefined,
+      tipoAcao: r.tipo_acao as TipoAcaoPontos,
+      pontos: r.pontos,
+      origemId: r.origem_id || undefined,
+      descricao: r.descricao,
+      dataHora: r.created_at,
+      criadoEm: r.created_at,
+    };
   },
 
-  async obterPontosAluno(alunoId: string): Promise<{
+  async obterPontosAluno(
+    alunoId: string,
+    clientOverride?: SupabaseClient
+  ): Promise<{
     pontosTotais: number;
     historicoEventos: EventoPontos[];
   }> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("eventos_pontos")
-        .select("*")
-        .eq("aluno_id", alunoId)
-        .order("created_at", { ascending: false });
+    const supabase = getSupabase(clientOverride);
+    const { data, error } = await supabase
+      .from("eventos_pontos")
+      .select("*")
+      .eq("aluno_id", alunoId)
+      .order("created_at", { ascending: false });
 
-      if (error || !data) {
-        return gamificacaoLocalStorageRepository.obterPontosAluno(alunoId);
-      }
-
-      const historicoEventos: EventoPontos[] = (data as EventoPontosDbRow[]).map((r) => ({
-        id: r.id,
-        alunoId: r.aluno_id,
-        alunoNome: r.aluno_nome || undefined,
-        tipoAcao: r.tipo_acao as TipoAcaoPontos,
-        pontos: r.pontos,
-        origemId: r.origem_id || undefined,
-        descricao: r.descricao,
-        dataHora: r.created_at,
-        criadoEm: r.created_at,
-      }));
-
-      const pontosTotais = historicoEventos.reduce((acc, h) => acc + (h.pontos || 0), 0);
-      return { pontosTotais, historicoEventos };
-    } catch {
-      return gamificacaoLocalStorageRepository.obterPontosAluno(alunoId);
+    if (error) {
+      throw new Error(`[Supabase Gamificação] Falha ao obter pontos do aluno ${alunoId}: ${error.message}`);
     }
+
+    const historicoEventos: EventoPontos[] = ((data || []) as EventoPontosDbRow[]).map((r) => ({
+      id: r.id,
+      alunoId: r.aluno_id,
+      alunoNome: r.aluno_nome || undefined,
+      tipoAcao: r.tipo_acao as TipoAcaoPontos,
+      pontos: r.pontos,
+      origemId: r.origem_id || undefined,
+      descricao: r.descricao,
+      dataHora: r.created_at,
+      criadoEm: r.created_at,
+    }));
+
+    const pontosTotais = historicoEventos.reduce((acc, h) => acc + (h.pontos || 0), 0);
+    return { pontosTotais, historicoEventos };
   },
 
   // ==========================================
   // PLACAS FÍSICAS DE RECONHECIMENTO
   // ==========================================
 
-  async listarSolicitacoesPlacas(alunoId?: string): Promise<SolicitacaoPlacaFisica[]> {
-    try {
-      const supabase = getSupabase();
-      let query = supabase.from("solicitacoes_placas").select("*");
+  async listarSolicitacoesPlacas(alunoId?: string, clientOverride?: SupabaseClient): Promise<SolicitacaoPlacaFisica[]> {
+    const supabase = getSupabase(clientOverride);
+    let query = supabase.from("solicitacoes_placas").select("*");
 
-      if (alunoId) {
-        query = query.eq("aluno_id", alunoId);
-      }
-
-      const { data, error } = await query.order("solicitada_em", { ascending: false });
-
-      if (error || !data) {
-        return gamificacaoLocalStorageRepository.listarSolicitacoesPlacas(alunoId);
-      }
-
-      return (data as PlacaDbRow[]).map(mapRowToPlaca);
-    } catch {
-      return gamificacaoLocalStorageRepository.listarSolicitacoesPlacas(alunoId);
+    if (alunoId) {
+      query = query.eq("aluno_id", alunoId);
     }
+
+    const { data, error } = await query.order("solicitada_em", { ascending: false });
+
+    if (error) {
+      throw new Error(`[Supabase Gamificação] Falha ao listar solicitações de placas: ${error.message}`);
+    }
+
+    return ((data || []) as PlacaDbRow[]).map(mapRowToPlaca);
   },
 
-  async obterSolicitacaoPlacaPorId(id: string): Promise<SolicitacaoPlacaFisica | null> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("solicitacoes_placas")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
+  async obterSolicitacaoPlacaPorId(id: string, clientOverride?: SupabaseClient): Promise<SolicitacaoPlacaFisica | null> {
+    const supabase = getSupabase(clientOverride);
+    const { data, error } = await supabase
+      .from("solicitacoes_placas")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
 
-      if (error || !data) {
-        return gamificacaoLocalStorageRepository.obterSolicitacaoPlacaPorId(id);
-      }
-
-      return mapRowToPlaca(data as PlacaDbRow);
-    } catch {
-      return gamificacaoLocalStorageRepository.obterSolicitacaoPlacaPorId(id);
+    if (error) {
+      throw new Error(`[Supabase Gamificação] Falha ao obter solicitação de placa ${id}: ${error.message}`);
     }
+    if (!data) return null;
+
+    return mapRowToPlaca(data as PlacaDbRow);
   },
 
-  async registrarInteressePlacaFisica(dados: {
-    alunoId: string;
-    alunoNome: string;
-    conquistaId: string;
-    conquistaNome: string;
-    nivelMarco?: string;
-  }): Promise<OperationResult<SolicitacaoPlacaFisica>> {
+  async registrarInteressePlacaFisica(
+    dados: {
+      alunoId: string;
+      alunoNome: string;
+      conquistaId: string;
+      conquistaNome: string;
+      nivelMarco?: string;
+    },
+    clientOverride?: SupabaseClient
+  ): Promise<OperationResult<SolicitacaoPlacaFisica>> {
     try {
-      const supabase = getSupabase();
+      const supabase = getSupabase(clientOverride);
 
       // Verifica se o aluno possui a conquista
       const { data: conquistas, error: conqErr } = await supabase
@@ -599,9 +583,12 @@ export const gamificacaoSupabaseRepository: IGamificacaoRepository = {
         .select("*")
         .eq("aluno_id", dados.alunoId);
 
-      const possui = !conqErr && conquistas?.some(
-        (c: ConcedidaDbRow) => c.modelo_id === dados.conquistaId || c.modelo_nome === dados.conquistaNome
-      );
+      const possui =
+        !conqErr &&
+        conquistas &&
+        conquistas.some(
+          (c: ConcedidaDbRow) => c.modelo_id === dados.conquistaId || c.modelo_nome === dados.conquistaNome
+        );
 
       if (!possui) {
         return {
@@ -675,13 +662,17 @@ export const gamificacaoSupabaseRepository: IGamificacaoRepository = {
       }
 
       // Notificação
-      await this.criarNotificacao({
-        usuarioId: dados.alunoId,
-        tipo: "placa_status",
-        titulo: "Interesse na Placa de Reconhecimento registrado!",
-        mensagem: "Recebemos sua manifestação de interesse. Nossa equipe pedagógica entrará em contato para confirmar detalhes e disponibilidade logística.",
-        linkDestino: "/aluno/conquistas",
-      }).catch(() => null);
+      await this.criarNotificacao(
+        {
+          usuarioId: dados.alunoId,
+          tipo: "placa_status",
+          titulo: "Interesse na Placa de Reconhecimento registrado!",
+          mensagem:
+            "Recebemos sua manifestação de interesse. Nossa equipe pedagógica entrará em contato para confirmar detalhes e disponibilidade logística.",
+          linkDestino: "/aluno/conquistas",
+        },
+        clientOverride
+      ).catch(() => null);
 
       return { success: true, data: mapRowToPlaca(data as PlacaDbRow) };
     } catch (err: unknown) {
@@ -698,11 +689,12 @@ export const gamificacaoSupabaseRepository: IGamificacaoRepository = {
     responsavelNome: string,
     observacao?: string,
     codigoRastreio?: string,
-    observacoesInternas?: string
+    observacoesInternas?: string,
+    clientOverride?: SupabaseClient
   ): Promise<OperationResult<SolicitacaoPlacaFisica>> {
     try {
-      const supabase = getSupabase();
-      const placaAtual = await this.obterSolicitacaoPlacaPorId(solicitacaoId);
+      const supabase = getSupabase(clientOverride);
+      const placaAtual = await this.obterSolicitacaoPlacaPorId(solicitacaoId, clientOverride);
       if (!placaAtual) {
         return { success: false, error: "Solicitação de placa não encontrada." };
       }
@@ -747,13 +739,16 @@ export const gamificacaoSupabaseRepository: IGamificacaoRepository = {
       }
 
       // Notificação ao aluno
-      await this.criarNotificacao({
-        usuarioId: placaAtual.alunoId,
-        tipo: "placa_status",
-        titulo: `Atualização da sua Placa: ${novoStatus}`,
-        mensagem: observacao || `Sua placa de reconhecimento agora está com o status: ${novoStatus}.`,
-        linkDestino: "/aluno/conquistas",
-      }).catch(() => null);
+      await this.criarNotificacao(
+        {
+          usuarioId: placaAtual.alunoId,
+          tipo: "placa_status",
+          titulo: `Atualização da sua Placa: ${novoStatus}`,
+          mensagem: observacao || `Sua placa de reconhecimento agora está com o status: ${novoStatus}.`,
+          linkDestino: "/aluno/conquistas",
+        },
+        clientOverride
+      ).catch(() => null);
 
       return { success: true, data: mapRowToPlaca(data as PlacaDbRow) };
     } catch (err: unknown) {
@@ -768,114 +763,115 @@ export const gamificacaoSupabaseRepository: IGamificacaoRepository = {
   // NOTIFICAÇÕES INTERNAS
   // ==========================================
 
-  async criarNotificacao(dados: {
-    usuarioId: string;
-    tipo: TipoNotificacaoInterna;
-    titulo: string;
-    mensagem: string;
-    linkDestino?: string;
-  }): Promise<NotificacaoInterna> {
+  async criarNotificacao(
+    dados: {
+      usuarioId: string;
+      tipo: TipoNotificacaoInterna;
+      titulo: string;
+      mensagem: string;
+      linkDestino?: string;
+    },
+    clientOverride?: SupabaseClient
+  ): Promise<NotificacaoInterna> {
     const notifId = `notif-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
-    try {
-      const supabase = getSupabase();
-      const payload = {
-        id: notifId,
-        usuario_id: dados.usuarioId,
-        titulo: dados.titulo,
-        mensagem: dados.mensagem,
-        tipo: dados.tipo,
-        link: dados.linkDestino || null,
-        lida: false,
-        metadata: {},
-      };
+    const supabase = getSupabase(clientOverride);
+    const payload = {
+      id: notifId,
+      usuario_id: dados.usuarioId,
+      titulo: dados.titulo,
+      mensagem: dados.mensagem,
+      tipo: dados.tipo,
+      link: dados.linkDestino || null,
+      lida: false,
+      metadata: {},
+    };
 
-      const { data, error } = await supabase
-        .from("notificacoes_sistema")
-        .insert(payload)
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from("notificacoes_sistema")
+      .insert(payload)
+      .select()
+      .single();
 
-      if (!error && data) {
-        const r = data as NotificacaoDbRow;
-        return {
-          id: r.id,
-          usuarioId: r.usuario_id,
-          tipo: r.tipo as TipoNotificacaoInterna,
-          titulo: r.titulo,
-          mensagem: r.mensagem,
-          linkDestino: r.link || undefined,
-          lida: r.lida,
-          criadoEm: r.created_at,
-        };
-      }
-    } catch {
-      // Fallback gracioso para notificacoes em memoria/localStorage
+    if (error) {
+      throw new Error(`[Supabase Gamificação] Erro ao criar notificação: ${error.message}`);
     }
 
-    return gamificacaoLocalStorageRepository.criarNotificacao(dados);
+    const r = data as NotificacaoDbRow;
+    return {
+      id: r.id,
+      usuarioId: r.usuario_id,
+      tipo: r.tipo as TipoNotificacaoInterna,
+      titulo: r.titulo,
+      mensagem: r.mensagem,
+      linkDestino: r.link || undefined,
+      lida: r.lida,
+      criadoEm: r.created_at,
+    };
   },
 
-  async listarNotificacoes(usuarioId: string): Promise<NotificacaoInterna[]> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("notificacoes_sistema")
-        .select("*")
-        .eq("usuario_id", usuarioId)
-        .order("created_at", { ascending: false });
+  async listarNotificacoes(usuarioId: string, clientOverride?: SupabaseClient): Promise<NotificacaoInterna[]> {
+    const supabase = getSupabase(clientOverride);
+    const { data, error } = await supabase
+      .from("notificacoes_sistema")
+      .select("*")
+      .eq("usuario_id", usuarioId)
+      .order("created_at", { ascending: false });
 
-      if (error || !data) {
-        return gamificacaoLocalStorageRepository.listarNotificacoes(usuarioId);
-      }
-
-      return (data as NotificacaoDbRow[]).map((r) => ({
-        id: r.id,
-        usuarioId: r.usuario_id,
-        tipo: r.tipo as TipoNotificacaoInterna,
-        titulo: r.titulo,
-        mensagem: r.mensagem,
-        linkDestino: r.link || undefined,
-        lida: r.lida,
-        criadoEm: r.created_at,
-      }));
-    } catch {
-      return gamificacaoLocalStorageRepository.listarNotificacoes(usuarioId);
+    if (error) {
+      throw new Error(`[Supabase Gamificação] Falha ao listar notificações do usuário ${usuarioId}: ${error.message}`);
     }
+
+    return ((data || []) as NotificacaoDbRow[]).map((r) => ({
+      id: r.id,
+      usuarioId: r.usuario_id,
+      tipo: r.tipo as TipoNotificacaoInterna,
+      titulo: r.titulo,
+      mensagem: r.mensagem,
+      linkDestino: r.link || undefined,
+      lida: r.lida,
+      criadoEm: r.created_at,
+    }));
   },
 
-  async marcarNotificacaoComoLida(id: string): Promise<OperationResult<boolean>> {
+  async marcarNotificacaoComoLida(id: string, clientOverride?: SupabaseClient): Promise<OperationResult<boolean>> {
     try {
-      const supabase = getSupabase();
+      const supabase = getSupabase(clientOverride);
       const { error } = await supabase
         .from("notificacoes_sistema")
         .update({ lida: true })
         .eq("id", id);
 
       if (error) {
-        return gamificacaoLocalStorageRepository.marcarNotificacaoComoLida(id);
+        return { success: false, error: `Erro ao marcar notificação como lida: ${error.message}` };
       }
 
       return { success: true, data: true };
-    } catch {
-      return gamificacaoLocalStorageRepository.marcarNotificacaoComoLida(id);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao marcar notificação como lida: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 
-  async marcarTodasComoLidas(usuarioId: string): Promise<OperationResult<boolean>> {
+  async marcarTodasComoLidas(usuarioId: string, clientOverride?: SupabaseClient): Promise<OperationResult<boolean>> {
     try {
-      const supabase = getSupabase();
+      const supabase = getSupabase(clientOverride);
       const { error } = await supabase
         .from("notificacoes_sistema")
         .update({ lida: true })
         .eq("usuario_id", usuarioId);
 
       if (error) {
-        return gamificacaoLocalStorageRepository.marcarTodasComoLidas(usuarioId);
+        return { success: false, error: `Erro ao marcar todas notificações como lidas: ${error.message}` };
       }
 
       return { success: true, data: true };
-    } catch {
-      return gamificacaoLocalStorageRepository.marcarTodasComoLidas(usuarioId);
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: `Falha de conexão com o Supabase ao marcar todas notificações como lidas: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
   },
 
@@ -883,28 +879,27 @@ export const gamificacaoSupabaseRepository: IGamificacaoRepository = {
   // MÉTRICAS ADMINISTRATIVAS
   // ==========================================
 
-  async obterMetricasAdmin(): Promise<MetricasGamificacaoAdmin> {
-    try {
-      const [modelos, concedidas, placas] = await Promise.all([
-        this.listarModelos(),
-        this.listarTodasConcedidas(),
-        this.listarSolicitacoesPlacas(),
-      ]);
+  async obterMetricasAdmin(clientOverride?: SupabaseClient): Promise<MetricasGamificacaoAdmin> {
+    const supabase = getSupabase(clientOverride);
+    const [modelos, concedidas, placas, pontosRes] = await Promise.all([
+      this.listarModelos(undefined, clientOverride),
+      this.listarTodasConcedidas(clientOverride),
+      this.listarSolicitacoesPlacas(undefined, clientOverride),
+      supabase.from("eventos_pontos").select("pontos"),
+    ]);
 
-      const totalModelosAtivos = modelos.filter((m) => m.status === "ativo" || m.status === "ativa").length;
-      const totalConquistasDesbloqueadas = concedidas.length;
-      const placasEmProducao = placas.filter((p) => p.status === "em_producao").length;
-      const placasEntregues = placas.filter((p) => p.status === "entregue").length;
+    const totalModelosAtivos = modelos.filter((m) => m.status === "ativo" || m.status === "ativa").length;
+    const totalConquistasDesbloqueadas = concedidas.length;
+    const placasEmProducao = placas.filter((p) => p.status === "em_producao").length;
+    const placasEntregues = placas.filter((p) => p.status === "entregue").length;
+    const totalPontosDistribuidos = (pontosRes.data || []).reduce((acc: number, row: { pontos?: number }) => acc + (row.pontos || 0), 0);
 
-      return {
-        totalModelosAtivos,
-        totalConquistasDesbloqueadas,
-        placasEmProducao,
-        placasEntregues,
-        totalPontosDistribuidos: 0,
-      };
-    } catch {
-      return gamificacaoLocalStorageRepository.obterMetricasAdmin();
-    }
+    return {
+      totalModelosAtivos,
+      totalConquistasDesbloqueadas,
+      placasEmProducao,
+      placasEntregues,
+      totalPontosDistribuidos,
+    };
   },
 };

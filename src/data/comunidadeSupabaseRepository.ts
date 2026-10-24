@@ -15,9 +15,8 @@ import {
   StatusPublicacaoComunidade,
   StatusEspacoComunidade,
 } from "@/types";
-import { IComunidadeRepository } from "./contracts/repositoryContracts";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
-import { comunidadeLocalStorageRepository } from "./comunidadeLocalStorageRepository";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   alunoTemAcessoAoEspaco,
   alunoPodePublicarNoEspaco,
@@ -144,14 +143,15 @@ interface InteresseDbRow {
   created_at: string;
 }
 
-function getSupabase() {
+function getSupabase(clientOverride?: SupabaseClient): SupabaseClient {
+  if (clientOverride) return clientOverride;
   const client = createBrowserSupabaseClient();
   if (!client) {
     throw new Error(
       "[Supabase Comunidade] Cliente Supabase não pôde ser inicializado. Verifique NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY."
     );
   }
-  return client;
+  return client as unknown as SupabaseClient;
 }
 
 function mapRowToEspaco(row: EspacoDbRow): EspacoComunidade {
@@ -196,7 +196,7 @@ function mapRowToPublicacao(row: PublicacaoDbRow): PublicacaoComunidade {
     linkExterno: row.link_externo || undefined,
     fixada: Boolean(row.fixada),
     comentariosPermitidos: row.comentarios_permitidos ?? true,
-    status: (row.status === "publicado" ? "publicada" : row.status) as StatusPublicacaoComunidade,
+    status: (row.status === "publicado" ? "publicada" : row.status === "oculto_moderacao" || row.status === "oculto" ? "oculta" : row.status) as StatusPublicacaoComunidade,
     reacoes: row.reacoes || {},
     reacoesUsuarios: Array.isArray(row.reacoes_usuarios) ? row.reacoes_usuarios : [],
     reacoesCount: row.total_curtidas || 0,
@@ -227,7 +227,7 @@ function mapRowToComentario(row: ComentarioDbRow): ComentarioPublicacao {
   };
 }
 
-export const comunidadeSupabaseRepository: IComunidadeRepository = {
+export const comunidadeSupabaseRepository = {
   // ==========================================
   // ESPAÇOS DA COMUNIDADE
   // ==========================================
@@ -235,67 +235,63 @@ export const comunidadeSupabaseRepository: IComunidadeRepository = {
   async listarEspacos(
     paraAdmin = false,
     aluno?: Aluno,
-    turmasMatriculado: string[] = []
+    turmasMatriculado: string[] = [],
+    clientOverride?: SupabaseClient
   ): Promise<EspacoComunidade[]> {
-    try {
-      const supabase = getSupabase();
-      let query = supabase.from("espacos_comunidade").select("*");
+    const supabase = getSupabase(clientOverride);
+    let query = supabase.from("espacos_comunidade").select("*");
 
-      if (!paraAdmin) {
-        query = query.neq("status", "rascunho");
-      }
-
-      const { data, error } = await query.order("ordem", { ascending: true }).order("created_at", { ascending: false });
-
-      if (error || !data) {
-        console.warn("[Supabase Comunidade] Erro ao listar espaços, fallback local:", error?.message);
-        return comunidadeLocalStorageRepository.listarEspacos(paraAdmin, aluno, turmasMatriculado);
-      }
-
-      const espacos = (data as EspacoDbRow[]).map(mapRowToEspaco);
-
-      if (paraAdmin) {
-        return espacos;
-      }
-
-      if (!aluno) {
-        return espacos.filter((e) => e.tipo === "geral" && e.status === "ativo");
-      }
-
-      return espacos.filter((e) => alunoTemAcessoAoEspaco(e, aluno, turmasMatriculado));
-    } catch {
-      return comunidadeLocalStorageRepository.listarEspacos(paraAdmin, aluno, turmasMatriculado);
+    if (!paraAdmin) {
+      query = query.neq("status", "rascunho");
     }
+
+    const { data, error } = await query
+      .order("ordem", { ascending: true })
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new Error(`[Supabase Comunidade] Falha ao listar espaços: ${error.message}`);
+    }
+
+    const espacos = ((data || []) as EspacoDbRow[]).map(mapRowToEspaco);
+
+    if (paraAdmin) {
+      return espacos;
+    }
+
+    if (!aluno) {
+      return espacos.filter((e) => e.tipo === "geral" && e.status === "ativo");
+    }
+
+    return espacos.filter((e) => alunoTemAcessoAoEspaco(e, aluno, turmasMatriculado));
   },
 
-  async obterEspacoPorId(id: string): Promise<EspacoComunidade | null> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("espacos_comunidade")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
+  async obterEspacoPorId(id: string, clientOverride?: SupabaseClient): Promise<EspacoComunidade | null> {
+    const supabase = getSupabase(clientOverride);
+    const { data, error } = await supabase
+      .from("espacos_comunidade")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
 
-      if (error || !data) {
-        return comunidadeLocalStorageRepository.obterEspacoPorId(id);
-      }
-
-      return mapRowToEspaco(data as EspacoDbRow);
-    } catch {
-      return comunidadeLocalStorageRepository.obterEspacoPorId(id);
+    if (error) {
+      throw new Error(`[Supabase Comunidade] Falha ao obter espaço ${id}: ${error.message}`);
     }
+    if (!data) return null;
+
+    return mapRowToEspaco(data as EspacoDbRow);
   },
 
   async salvarEspaco(
-    dados: Partial<EspacoComunidade> & { nome: string; descricao: string }
+    dados: Partial<EspacoComunidade> & { nome: string; descricao: string },
+    clientOverride?: SupabaseClient
   ): Promise<OperationResult<EspacoComunidade>> {
     if (!dados.nome || dados.nome.trim().length < 3) {
       return { success: false, error: "O nome do espaço deve ter pelo menos 3 caracteres." };
     }
 
     try {
-      const supabase = getSupabase();
+      const supabase = getSupabase(clientOverride);
       const espacoId = dados.id || `esp-${Date.now()}`;
 
       const payload = {
@@ -345,58 +341,58 @@ export const comunidadeSupabaseRepository: IComunidadeRepository = {
   // PUBLICAÇÕES DA COMUNIDADE
   // ==========================================
 
-  async listarPublicacoes(espacoId?: string, paraAluno = false): Promise<PublicacaoComunidade[]> {
-    try {
-      const supabase = getSupabase();
-      let query = supabase.from("publicacoes_comunidade").select("*");
+  async listarPublicacoes(
+    espacoId?: string,
+    paraAluno = false,
+    clientOverride?: SupabaseClient
+  ): Promise<PublicacaoComunidade[]> {
+    const supabase = getSupabase(clientOverride);
+    let query = supabase.from("publicacoes_comunidade").select("*");
 
-      if (espacoId) {
-        query = query.eq("espaco_id", espacoId);
-      }
-
-      if (paraAluno) {
-        query = query.in("status", ["publicado", "publicada"]);
-      }
-
-      const { data, error } = await query
-        .order("fixada", { ascending: false })
-        .order("created_at", { ascending: false });
-
-      if (error || !data) {
-        console.warn("[Supabase Comunidade] Erro ao listar publicações, fallback local:", error?.message);
-        return comunidadeLocalStorageRepository.listarPublicacoes(espacoId, paraAluno);
-      }
-
-      let result = (data as PublicacaoDbRow[]).map(mapRowToPublicacao);
-
-      if (paraAluno) {
-        result = result.map(sanitizarPublicacaoParaAluno);
-      }
-
-      return result;
-    } catch {
-      return comunidadeLocalStorageRepository.listarPublicacoes(espacoId, paraAluno);
+    if (espacoId) {
+      query = query.eq("espaco_id", espacoId);
     }
+
+    if (paraAluno) {
+      query = query.in("status", ["publicado", "publicada"]);
+    }
+
+    const { data, error } = await query
+      .order("fixada", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new Error(`[Supabase Comunidade] Falha ao listar publicações: ${error.message}`);
+    }
+
+    let result = ((data || []) as PublicacaoDbRow[]).map(mapRowToPublicacao);
+
+    if (paraAluno) {
+      result = result.map(sanitizarPublicacaoParaAluno);
+    }
+
+    return result;
   },
 
-  async obterPublicacaoPorId(id: string, paraAluno = false): Promise<PublicacaoComunidade | null> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("publicacoes_comunidade")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
+  async obterPublicacaoPorId(
+    id: string,
+    paraAluno = false,
+    clientOverride?: SupabaseClient
+  ): Promise<PublicacaoComunidade | null> {
+    const supabase = getSupabase(clientOverride);
+    const { data, error } = await supabase
+      .from("publicacoes_comunidade")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
 
-      if (error || !data) {
-        return comunidadeLocalStorageRepository.obterPublicacaoPorId(id, paraAluno);
-      }
-
-      const pub = mapRowToPublicacao(data as PublicacaoDbRow);
-      return paraAluno ? sanitizarPublicacaoParaAluno(pub) : pub;
-    } catch {
-      return comunidadeLocalStorageRepository.obterPublicacaoPorId(id, paraAluno);
+    if (error) {
+      throw new Error(`[Supabase Comunidade] Falha ao obter publicação ${id}: ${error.message}`);
     }
+    if (!data) return null;
+
+    const pub = mapRowToPublicacao(data as PublicacaoDbRow);
+    return paraAluno ? sanitizarPublicacaoParaAluno(pub) : pub;
   },
 
   async criarPublicacao(
@@ -414,7 +410,8 @@ export const comunidadeSupabaseRepository: IComunidadeRepository = {
       oportunidadeId?: string;
     },
     alunoValidador?: Aluno,
-    turmasMatriculado: string[] = []
+    turmasMatriculado: string[] = [],
+    clientOverride?: SupabaseClient
   ): Promise<OperationResult<PublicacaoComunidade>> {
     const conteudoTexto = (dados.conteudo || "").trim();
     if (!conteudoTexto || conteudoTexto.length < 5) {
@@ -429,9 +426,9 @@ export const comunidadeSupabaseRepository: IComunidadeRepository = {
     }
 
     try {
-      const supabase = getSupabase();
+      const supabase = getSupabase(clientOverride);
       const papel = dados.autorPapel || "aluno";
-      const espaco = await this.obterEspacoPorId(dados.espacoId);
+      const espaco = await this.obterEspacoPorId(dados.espacoId, clientOverride);
 
       if (alunoValidador && espaco && papel === "aluno") {
         if (!alunoPodePublicarNoEspaco(espaco, alunoValidador, turmasMatriculado)) {
@@ -491,11 +488,12 @@ export const comunidadeSupabaseRepository: IComunidadeRepository = {
   async alternarReacaoPublicacao(
     publicacaoId: string,
     tipo: string,
-    usuarioId: string
+    usuarioId: string,
+    clientOverride?: SupabaseClient
   ): Promise<OperationResult<PublicacaoComunidade>> {
     try {
-      const supabase = getSupabase();
-      const pubAtual = await this.obterPublicacaoPorId(publicacaoId, false);
+      const supabase = getSupabase(clientOverride);
+      const pubAtual = await this.obterPublicacaoPorId(publicacaoId, false, clientOverride);
       if (!pubAtual) {
         return { success: false, error: "Publicação não encontrada." };
       }
@@ -549,35 +547,34 @@ export const comunidadeSupabaseRepository: IComunidadeRepository = {
   // COMENTÁRIOS DE PUBLICAÇÕES
   // ==========================================
 
-  async listarComentarios(publicacaoId: string, paraAluno = false): Promise<ComentarioPublicacao[]> {
-    try {
-      const supabase = getSupabase();
-      let query = supabase
-        .from("comentarios_comunidade")
-        .select("*")
-        .eq("publicacao_id", publicacaoId);
+  async listarComentarios(
+    publicacaoId: string,
+    paraAluno = false,
+    clientOverride?: SupabaseClient
+  ): Promise<ComentarioPublicacao[]> {
+    const supabase = getSupabase(clientOverride);
+    let query = supabase
+      .from("comentarios_comunidade")
+      .select("*")
+      .eq("publicacao_id", publicacaoId);
 
-      if (paraAluno) {
-        query = query.in("status", ["publicado", "publicada"]);
-      }
-
-      const { data, error } = await query.order("created_at", { ascending: true });
-
-      if (error || !data) {
-        console.warn("[Supabase Comunidade] Erro ao listar comentários, fallback local:", error?.message);
-        return comunidadeLocalStorageRepository.listarComentarios(publicacaoId, paraAluno);
-      }
-
-      let result = (data as ComentarioDbRow[]).map(mapRowToComentario);
-
-      if (paraAluno) {
-        result = result.map(sanitizarComentarioParaAluno);
-      }
-
-      return result;
-    } catch {
-      return comunidadeLocalStorageRepository.listarComentarios(publicacaoId, paraAluno);
+    if (paraAluno) {
+      query = query.in("status", ["publicado", "publicada"]);
     }
+
+    const { data, error } = await query.order("created_at", { ascending: true });
+
+    if (error) {
+      throw new Error(`[Supabase Comunidade] Falha ao listar comentários: ${error.message}`);
+    }
+
+    let result = ((data || []) as ComentarioDbRow[]).map(mapRowToComentario);
+
+    if (paraAluno) {
+      result = result.map(sanitizarComentarioParaAluno);
+    }
+
+    return result;
   },
 
   async criarComentario(
@@ -590,7 +587,8 @@ export const comunidadeSupabaseRepository: IComunidadeRepository = {
       conteudo: string;
     },
     alunoValidador?: Aluno,
-    turmasMatriculado: string[] = []
+    turmasMatriculado: string[] = [],
+    clientOverride?: SupabaseClient
   ): Promise<OperationResult<ComentarioPublicacao>> {
     const textoComentario = (dados.conteudo || "").trim();
     if (!textoComentario || textoComentario.length < 2) {
@@ -598,13 +596,13 @@ export const comunidadeSupabaseRepository: IComunidadeRepository = {
     }
 
     try {
-      const supabase = getSupabase();
-      const pub = await this.obterPublicacaoPorId(dados.publicacaoId, false);
+      const supabase = getSupabase(clientOverride);
+      const pub = await this.obterPublicacaoPorId(dados.publicacaoId, false, clientOverride);
       if (!pub) {
         return { success: false, error: "Publicação não encontrada." };
       }
 
-      const espaco = await this.obterEspacoPorId(pub.espacoId);
+      const espaco = await this.obterEspacoPorId(pub.espacoId, clientOverride);
       if (alunoValidador && espaco && dados.autorPapel === "aluno") {
         if (!alunoPodeComentarNoEspaco(espaco, alunoValidador, turmasMatriculado)) {
           return {
@@ -643,7 +641,6 @@ export const comunidadeSupabaseRepository: IComunidadeRepository = {
         };
       }
 
-      // Incrementa total_comentarios na publicação de forma defensiva
       try {
         await supabase
           .from("publicacoes_comunidade")
@@ -666,17 +663,20 @@ export const comunidadeSupabaseRepository: IComunidadeRepository = {
   // MODERAÇÃO E DENÚNCIAS
   // ==========================================
 
-  async denunciarConteudo(dados: {
-    alvoTipo: "publicacao" | "comentario";
-    alvoId: string;
-    publicacaoId: string;
-    denuncianteId: string;
-    denuncianteNome: string;
-    motivo: MotivoDenuncia;
-    descricao?: string;
-  }): Promise<OperationResult<DenunciaConteudo>> {
+  async denunciarConteudo(
+    dados: {
+      alvoTipo: "publicacao" | "comentario";
+      alvoId: string;
+      publicacaoId: string;
+      denuncianteId: string;
+      denuncianteNome: string;
+      motivo: MotivoDenuncia;
+      descricao?: string;
+    },
+    clientOverride?: SupabaseClient
+  ): Promise<OperationResult<DenunciaConteudo>> {
     try {
-      const supabase = getSupabase();
+      const supabase = getSupabase(clientOverride);
       const denId = `den-${Date.now()}`;
       const payload = {
         id: denId,
@@ -730,33 +730,31 @@ export const comunidadeSupabaseRepository: IComunidadeRepository = {
     }
   },
 
-  async listarDenuncias(): Promise<DenunciaConteudo[]> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("denuncias_comunidade")
-        .select("*")
-        .order("created_at", { ascending: false });
+  async listarDenuncias(clientOverride?: SupabaseClient): Promise<DenunciaConteudo[]> {
+    const supabase = getSupabase(clientOverride);
+    const { data, error } = await supabase
+      .from("denuncias_comunidade")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-      if (error || !data) {
-        return comunidadeLocalStorageRepository.listarDenuncias();
-      }
-
-      return (data as DenunciaDbRow[]).map((r) => ({
-        id: r.id,
-        tipoConteudo: r.tipo_conteudo as "publicacao" | "comentario",
-        conteudoId: r.conteudo_id,
-        publicacaoId: r.publicacao_id || r.conteudo_id,
-        motivo: r.motivo as MotivoDenuncia,
-        descricao: r.descricao || undefined,
-        denuncianteId: r.denunciante_id,
-        denuncianteNome: r.denunciante_nome,
-        status: r.status as DenunciaConteudo["status"],
-        criadoEm: r.created_at,
-      }));
-    } catch {
-      return comunidadeLocalStorageRepository.listarDenuncias();
+    if (error) {
+      throw new Error(`[Supabase Comunidade] Falha ao listar denúncias: ${error.message}`);
     }
+
+    return ((data || []) as DenunciaDbRow[]).map((r) => ({
+      id: r.id,
+      tipoConteudo: r.tipo_conteudo as "publicacao" | "comentario",
+      alvoTipo: r.tipo_conteudo as "publicacao" | "comentario",
+      conteudoId: r.conteudo_id,
+      alvoId: r.conteudo_id,
+      publicacaoId: r.publicacao_id || r.conteudo_id,
+      motivo: r.motivo as MotivoDenuncia,
+      descricao: r.descricao || undefined,
+      denuncianteId: r.denunciante_id,
+      denuncianteNome: r.denunciante_nome,
+      status: r.status as DenunciaConteudo["status"],
+      criadoEm: r.created_at,
+    }));
   },
 
   async moderarPublicacao(
@@ -764,10 +762,11 @@ export const comunidadeSupabaseRepository: IComunidadeRepository = {
     acao: AcaoModeracao,
     motivo: string,
     moderadorId: string,
-    moderadorNome: string
+    moderadorNome: string,
+    clientOverride?: SupabaseClient
   ): Promise<OperationResult<PublicacaoComunidade>> {
     try {
-      const supabase = getSupabase();
+      const supabase = getSupabase(clientOverride);
       const updates: Record<string, unknown> = {
         moderado_por_id: moderadorId,
         observacoes_internas: `[${acao.toUpperCase()}] por ${moderadorNome}: ${motivo}`,
@@ -808,10 +807,11 @@ export const comunidadeSupabaseRepository: IComunidadeRepository = {
     acao: AcaoModeracao,
     motivo: string,
     moderadorId: string,
-    moderadorNome: string
+    moderadorNome: string,
+    clientOverride?: SupabaseClient
   ): Promise<OperationResult<ComentarioPublicacao>> {
     try {
-      const supabase = getSupabase();
+      const supabase = getSupabase(clientOverride);
       const updates: Record<string, unknown> = {
         metadata: {
           acao,
@@ -853,82 +853,78 @@ export const comunidadeSupabaseRepository: IComunidadeRepository = {
   // OPORTUNIDADES E INTERCÂMBIOS
   // ==========================================
 
-  async listarOportunidades(): Promise<OportunidadeIntercambio[]> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("oportunidades_comunidade")
-        .select("*")
-        .order("created_at", { ascending: false });
+  async listarOportunidades(clientOverride?: SupabaseClient): Promise<OportunidadeIntercambio[]> {
+    const supabase = getSupabase(clientOverride);
+    const { data, error } = await supabase
+      .from("oportunidades_comunidade")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-      if (error || !data) {
-        return comunidadeLocalStorageRepository.listarOportunidades();
-      }
-
-      return (data as OportunidadeDbRow[]).map((r) => ({
-        id: r.id,
-        titulo: r.titulo,
-        descricao: r.descricao,
-        categoria: (r.categoria || "intercambio") as OportunidadeIntercambio["categoria"],
-        paisDestino: r.pais || undefined,
-        instituicaoParceira: r.instituicao || undefined,
-        linkExterno: r.link_externo || undefined,
-        nivelRecomendado: r.nivel_minimo || undefined,
-        periodo: "Sob Demanda",
-        status: (r.status || "ativa") as OportunidadeIntercambio["status"],
-        candidatosCount: r.total_interessados || 0,
-        criadoEm: r.created_at,
-        atualizadoEm: r.updated_at,
-      }));
-    } catch {
-      return comunidadeLocalStorageRepository.listarOportunidades();
+    if (error) {
+      throw new Error(`[Supabase Comunidade] Falha ao listar oportunidades: ${error.message}`);
     }
+
+    return ((data || []) as OportunidadeDbRow[]).map((r) => ({
+      id: r.id,
+      titulo: r.titulo,
+      descricao: r.descricao,
+      categoria: (r.categoria || "intercambio") as OportunidadeIntercambio["categoria"],
+      paisDestino: r.pais || undefined,
+      instituicaoParceira: r.instituicao || undefined,
+      linkExterno: r.link_externo || undefined,
+      nivelRecomendado: r.nivel_minimo || undefined,
+      periodo: "Sob Demanda",
+      status: (r.status || "ativa") as OportunidadeIntercambio["status"],
+      candidatosCount: r.total_interessados || 0,
+      criadoEm: r.created_at,
+      atualizadoEm: r.updated_at,
+    }));
   },
 
-  async obterOportunidadePorId(id: string): Promise<OportunidadeIntercambio | null> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("oportunidades_comunidade")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
+  async obterOportunidadePorId(id: string, clientOverride?: SupabaseClient): Promise<OportunidadeIntercambio | null> {
+    const supabase = getSupabase(clientOverride);
+    const { data, error } = await supabase
+      .from("oportunidades_comunidade")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
 
-      if (error || !data) {
-        return comunidadeLocalStorageRepository.obterOportunidadePorId(id);
-      }
-
-      const r = data as OportunidadeDbRow;
-      return {
-        id: r.id,
-        titulo: r.titulo,
-        descricao: r.descricao,
-        categoria: (r.categoria || "intercambio") as OportunidadeIntercambio["categoria"],
-        paisDestino: r.pais || undefined,
-        instituicaoParceira: r.instituicao || undefined,
-        linkExterno: r.link_externo || undefined,
-        nivelRecomendado: r.nivel_minimo || undefined,
-        periodo: "Sob Demanda",
-        status: (r.status || "ativa") as OportunidadeIntercambio["status"],
-        candidatosCount: r.total_interessados || 0,
-        criadoEm: r.created_at,
-        atualizadoEm: r.updated_at,
-      };
-    } catch {
-      return comunidadeLocalStorageRepository.obterOportunidadePorId(id);
+    if (error) {
+      throw new Error(`[Supabase Comunidade] Falha ao obter oportunidade ${id}: ${error.message}`);
     }
+    if (!data) return null;
+
+    const r = data as OportunidadeDbRow;
+    return {
+      id: r.id,
+      titulo: r.titulo,
+      descricao: r.descricao,
+      categoria: (r.categoria || "intercambio") as OportunidadeIntercambio["categoria"],
+      paisDestino: r.pais || undefined,
+      instituicaoParceira: r.instituicao || undefined,
+      linkExterno: r.link_externo || undefined,
+      nivelRecomendado: r.nivel_minimo || undefined,
+      periodo: "Sob Demanda",
+      status: (r.status || "ativa") as OportunidadeIntercambio["status"],
+      candidatosCount: r.total_interessados || 0,
+      criadoEm: r.created_at,
+      atualizadoEm: r.updated_at,
+    };
   },
 
-  async registrarInteresseOportunidade(dados: {
-    oportunidadeId: string;
-    alunoId: string;
-    alunoNome: string;
-    alunoEmail: string;
-    alunoNivelAtual?: string;
-    observacoesAluno?: string;
-  }): Promise<OperationResult<InteresseOportunidade>> {
+  async registrarInteresseOportunidade(
+    dados: {
+      oportunidadeId: string;
+      alunoId: string;
+      alunoNome: string;
+      alunoEmail: string;
+      alunoNivelAtual?: string;
+      observacoesAluno?: string;
+    },
+    clientOverride?: SupabaseClient
+  ): Promise<OperationResult<InteresseOportunidade>> {
     try {
-      const supabase = getSupabase();
+      const supabase = getSupabase(clientOverride);
       const intId = `int-${Date.now()}`;
       const payload = {
         id: intId,
@@ -953,6 +949,19 @@ export const comunidadeSupabaseRepository: IComunidadeRepository = {
         };
       }
 
+      // Incrementa total_interessados de forma defensiva
+      try {
+        const op = await this.obterOportunidadePorId(dados.oportunidadeId, clientOverride);
+        if (op) {
+          await supabase
+            .from("oportunidades_comunidade")
+            .update({ total_interessados: (op.candidatosCount || 0) + 1 })
+            .eq("id", dados.oportunidadeId);
+        }
+      } catch {
+        // Tolerante
+      }
+
       const row = data as InteresseDbRow;
       return {
         success: true,
@@ -975,63 +984,58 @@ export const comunidadeSupabaseRepository: IComunidadeRepository = {
     }
   },
 
-  async listarInteressesPorOportunidade(oportunidadeId: string): Promise<InteresseOportunidade[]> {
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("interesses_oportunidades")
-        .select("*")
-        .eq("oportunidade_id", oportunidadeId)
-        .order("created_at", { ascending: false });
+  async listarInteressesPorOportunidade(
+    oportunidadeId: string,
+    clientOverride?: SupabaseClient
+  ): Promise<InteresseOportunidade[]> {
+    const supabase = getSupabase(clientOverride);
+    const { data, error } = await supabase
+      .from("interesses_oportunidades")
+      .select("*")
+      .eq("oportunidade_id", oportunidadeId)
+      .order("created_at", { ascending: false });
 
-      if (error || !data) {
-        return comunidadeLocalStorageRepository.listarInteressesPorOportunidade(oportunidadeId);
-      }
-
-      return (data as InteresseDbRow[]).map((row) => ({
-        id: row.id,
-        oportunidadeId: row.oportunidade_id,
-        alunoId: row.aluno_id,
-        alunoNome: row.aluno_nome,
-        alunoEmail: row.email,
-        alunoNivelAtual: row.nivel_atual || undefined,
-        mensagem: row.mensagem || undefined,
-        dataRegistro: row.created_at,
-      }));
-    } catch {
-      return comunidadeLocalStorageRepository.listarInteressesPorOportunidade(oportunidadeId);
+    if (error) {
+      throw new Error(`[Supabase Comunidade] Falha ao listar interesses da oportunidade ${oportunidadeId}: ${error.message}`);
     }
+
+    return ((data || []) as InteresseDbRow[]).map((row) => ({
+      id: row.id,
+      oportunidadeId: row.oportunidade_id,
+      alunoId: row.aluno_id,
+      alunoNome: row.aluno_nome,
+      alunoEmail: row.email,
+      alunoNivelAtual: row.nivel_atual || undefined,
+      mensagem: row.mensagem || undefined,
+      dataRegistro: row.created_at,
+    }));
   },
 
   // ==========================================
   // MÉTRICAS ADMINISTRATIVAS
   // ==========================================
 
-  async obterMetricasAdmin(): Promise<MetricasComunidadeAdmin> {
-    try {
-      const [espacos, pubs, denuncias, oportunidades] = await Promise.all([
-        this.listarEspacos(true),
-        this.listarPublicacoes(undefined, false),
-        this.listarDenuncias(),
-        this.listarOportunidades(),
-      ]);
+  async obterMetricasAdmin(clientOverride?: SupabaseClient): Promise<MetricasComunidadeAdmin> {
+    const [espacos, pubs, denuncias, oportunidades] = await Promise.all([
+      this.listarEspacos(true, undefined, [], clientOverride),
+      this.listarPublicacoes(undefined, false, clientOverride),
+      this.listarDenuncias(clientOverride),
+      this.listarOportunidades(clientOverride),
+    ]);
 
-      const totalPublicacoes = pubs.length;
-      const totalComentarios = pubs.reduce((acc, p) => acc + (p.comentariosCount || 0), 0);
-      const denunciasPendentes = denuncias.filter((d) => d.status === "pendente").length;
+    const totalPublicacoes = pubs.length;
+    const totalComentarios = pubs.reduce((acc, p) => acc + (p.comentariosCount || 0), 0);
+    const denunciasPendentes = denuncias.filter((d) => d.status === "pendente").length;
 
-      return {
-        totalEspacosAtivos: espacos.filter((e) => e.status === "ativo").length,
-        totalPublicacoes,
-        totalComentarios,
-        totalReacoes: pubs.reduce((acc, p) => acc + (p.reacoesCount || 0), 0),
-        publicacoesFixadas: pubs.filter((p) => p.fixada).length,
-        denunciasPendentes,
-        oportunidadesAbertas: oportunidades.filter((o) => o.status === "aberta" || o.status === "ativa").length,
-        interessesPendentes: 0,
-      };
-    } catch {
-      return comunidadeLocalStorageRepository.obterMetricasAdmin();
-    }
+    return {
+      totalEspacosAtivos: espacos.filter((e) => e.status === "ativo").length,
+      totalPublicacoes,
+      totalComentarios,
+      totalReacoes: pubs.reduce((acc, p) => acc + (p.reacoesCount || 0), 0),
+      publicacoesFixadas: pubs.filter((p) => p.fixada).length,
+      denunciasPendentes,
+      oportunidadesAbertas: oportunidades.filter((o) => o.status === "aberta" || o.status === "ativa").length,
+      interessesPendentes: 0,
+    };
   },
 };

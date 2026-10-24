@@ -190,6 +190,38 @@ export function getAcademicSelfPresentationDataSource(): DataSource {
   }
 }
 
+/**
+ * Retorna a fonte de dados configurada para a Comunidade (Espaços, Publicações, Comentários, Oportunidades).
+ */
+export function getCommunityDataSource(): DataSource {
+  if (typeof window === "undefined") {
+    const env = getServerEnv();
+    return env.communityDataSource;
+  }
+  try {
+    const clientEnv = getClientEnv();
+    return clientEnv.communityDataSource || "local";
+  } catch {
+    return "local";
+  }
+}
+
+/**
+ * Retorna a fonte de dados configurada para Gamificação (Conquistas, Placas, Pontos, Notificações).
+ */
+export function getGamificationDataSource(): DataSource {
+  if (typeof window === "undefined") {
+    const env = getServerEnv();
+    return env.gamificationDataSource;
+  }
+  try {
+    const clientEnv = getClientEnv();
+    return clientEnv.gamificationDataSource || "local";
+  } catch {
+    return "local";
+  }
+}
+
 export class UnimplementedSupabaseRepositoryError extends Error {
   constructor(nomeRepositorio: string, etapaPlanejada: string) {
     super(
@@ -371,20 +403,20 @@ export function getTentativaAvaliacaoRepository(): ITentativaAvaliacaoRepository
  * Retorna o repositório da Comunidade ativo para o ambiente.
  */
 export function getComunidadeRepository(): IComunidadeRepository {
-  if (isLocalDataSource()) {
-    return comunidadeLocalStorageRepository;
+  if (getCommunityDataSource() === "supabase") {
+    return comunidadeSupabaseRepository;
   }
-  return comunidadeSupabaseRepository;
+  return comunidadeLocalStorageRepository;
 }
 
 /**
  * Retorna o repositório de Gamificação ativo para o ambiente.
  */
 export function getGamificacaoRepository(): IGamificacaoRepository {
-  if (isLocalDataSource()) {
-    return gamificacaoLocalStorageRepository;
+  if (getGamificationDataSource() === "supabase") {
+    return gamificacaoSupabaseRepository;
   }
-  return gamificacaoSupabaseRepository;
+  return gamificacaoLocalStorageRepository;
 }
 
 export {

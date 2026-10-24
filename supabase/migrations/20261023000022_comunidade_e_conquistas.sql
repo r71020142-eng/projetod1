@@ -204,7 +204,8 @@ CREATE TABLE IF NOT EXISTS public.solicitacoes_placas (
   historico_status JSONB NOT NULL DEFAULT '[]'::JSONB,
   metadata JSONB NOT NULL DEFAULT '{}'::JSONB,
   solicitada_em TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-  atualizada_em TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+  atualizada_em TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
 -- 10. EVENTOS DE PONTOS
@@ -322,6 +323,14 @@ CREATE POLICY "pub_update_auth" ON public.publicacoes_comunidade FOR UPDATE TO a
     OR autor_id = public.get_current_aluno_id()::text
   );
 
+DROP POLICY IF EXISTS "pub_delete_auth" ON public.publicacoes_comunidade;
+CREATE POLICY "pub_delete_auth" ON public.publicacoes_comunidade FOR DELETE TO authenticated
+  USING (
+    public.is_admin()
+    OR autor_id = auth.uid()::text
+    OR autor_id = public.get_current_aluno_id()::text
+  );
+
 -- POLÍTICAS RLS: COMENTÁRIOS
 DROP POLICY IF EXISTS "comentarios_select_publicados" ON public.comentarios_comunidade;
 CREATE POLICY "comentarios_select_publicados" ON public.comentarios_comunidade FOR SELECT TO authenticated
@@ -347,6 +356,14 @@ CREATE POLICY "comentarios_update_auth" ON public.comentarios_comunidade FOR UPD
   USING (
     public.is_admin()
     OR public.get_current_professor_id() IS NOT NULL
+    OR autor_id = auth.uid()::text
+    OR autor_id = public.get_current_aluno_id()::text
+  );
+
+DROP POLICY IF EXISTS "comentarios_delete_auth" ON public.comentarios_comunidade;
+CREATE POLICY "comentarios_delete_auth" ON public.comentarios_comunidade FOR DELETE TO authenticated
+  USING (
+    public.is_admin()
     OR autor_id = auth.uid()::text
     OR autor_id = public.get_current_aluno_id()::text
   );
@@ -394,3 +411,60 @@ CREATE POLICY "notificacoes_select_own" ON public.notificacoes_sistema FOR SELEC
 DROP POLICY IF EXISTS "notificacoes_update_own" ON public.notificacoes_sistema;
 CREATE POLICY "notificacoes_update_own" ON public.notificacoes_sistema FOR UPDATE TO authenticated
   USING (usuario_id = auth.uid()::text OR usuario_id = public.get_current_aluno_id()::text OR public.is_admin());
+
+DROP POLICY IF EXISTS "notificacoes_insert_auth" ON public.notificacoes_sistema;
+CREATE POLICY "notificacoes_insert_auth" ON public.notificacoes_sistema FOR INSERT TO authenticated
+  WITH CHECK (usuario_id = auth.uid()::text OR usuario_id = public.get_current_aluno_id()::text OR public.is_admin() OR public.get_current_professor_id() IS NOT NULL);
+
+-- POLÍTICAS RLS: DENÚNCIAS
+DROP POLICY IF EXISTS "denuncias_select_team_or_own" ON public.denuncias_comunidade;
+CREATE POLICY "denuncias_select_team_or_own" ON public.denuncias_comunidade FOR SELECT TO authenticated
+  USING (denunciante_id = auth.uid()::text OR denunciante_id = public.get_current_aluno_id()::text OR public.is_admin() OR public.get_current_professor_id() IS NOT NULL);
+
+DROP POLICY IF EXISTS "denuncias_insert_auth" ON public.denuncias_comunidade;
+CREATE POLICY "denuncias_insert_auth" ON public.denuncias_comunidade FOR INSERT TO authenticated
+  WITH CHECK (denunciante_id = auth.uid()::text OR denunciante_id = public.get_current_aluno_id()::text OR public.is_admin());
+
+DROP POLICY IF EXISTS "denuncias_manage_team" ON public.denuncias_comunidade;
+CREATE POLICY "denuncias_manage_team" ON public.denuncias_comunidade FOR ALL TO authenticated
+  USING (public.is_admin() OR public.get_current_professor_id() IS NOT NULL);
+
+-- POLÍTICAS RLS: OPORTUNIDADES
+DROP POLICY IF EXISTS "oportunidades_select_all" ON public.oportunidades_comunidade;
+CREATE POLICY "oportunidades_select_all" ON public.oportunidades_comunidade FOR SELECT TO authenticated
+  USING (status = 'ativa' OR public.is_admin() OR public.get_current_professor_id() IS NOT NULL);
+
+DROP POLICY IF EXISTS "oportunidades_manage_team" ON public.oportunidades_comunidade;
+CREATE POLICY "oportunidades_manage_team" ON public.oportunidades_comunidade FOR ALL TO authenticated
+  USING (public.is_admin() OR public.get_current_professor_id() IS NOT NULL);
+
+-- POLÍTICAS RLS: INTERESSES EM OPORTUNIDADES
+DROP POLICY IF EXISTS "interesses_select_own_or_team" ON public.interesses_oportunidades;
+CREATE POLICY "interesses_select_own_or_team" ON public.interesses_oportunidades FOR SELECT TO authenticated
+  USING (aluno_id = public.get_current_aluno_id() OR public.is_admin() OR public.get_current_professor_id() IS NOT NULL);
+
+DROP POLICY IF EXISTS "interesses_insert_own" ON public.interesses_oportunidades;
+CREATE POLICY "interesses_insert_own" ON public.interesses_oportunidades FOR INSERT TO authenticated
+  WITH CHECK (aluno_id = public.get_current_aluno_id() OR public.is_admin());
+
+DROP POLICY IF EXISTS "interesses_delete_own_or_team" ON public.interesses_oportunidades;
+CREATE POLICY "interesses_delete_own_or_team" ON public.interesses_oportunidades FOR DELETE TO authenticated
+  USING (aluno_id = public.get_current_aluno_id() OR public.is_admin() OR public.get_current_professor_id() IS NOT NULL);
+
+-- POLÍTICAS RLS: INSERT DE EVENTOS DE PONTOS
+DROP POLICY IF EXISTS "pontos_insert_team_or_own" ON public.eventos_pontos;
+CREATE POLICY "pontos_insert_team_or_own" ON public.eventos_pontos FOR INSERT TO authenticated
+  WITH CHECK (aluno_id = public.get_current_aluno_id() OR public.is_admin() OR public.get_current_professor_id() IS NOT NULL);
+
+-- ATRIBUIÇÃO EXPLÍCITA DE PRIVILÉGIOS (GRANTS)
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.espacos_comunidade TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.publicacoes_comunidade TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.comentarios_comunidade TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.denuncias_comunidade TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.oportunidades_comunidade TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.interesses_oportunidades TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.modelos_conquistas TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.conquistas_concedidas TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.solicitacoes_placas TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.eventos_pontos TO authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.notificacoes_sistema TO authenticated, service_role;

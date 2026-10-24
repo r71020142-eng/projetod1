@@ -29,6 +29,8 @@ export interface ClientEnv {
   academicEvaluationsDataSource: DataSource;
   academicFlashcardsDataSource: DataSource;
   academicSelfPresentationDataSource: DataSource;
+  communityDataSource: DataSource;
+  gamificationDataSource: DataSource;
 }
 
 export interface ServerEnv extends ClientEnv {
@@ -42,6 +44,8 @@ export interface ServerEnv extends ClientEnv {
   academicEvaluationsDataSource: DataSource;
   academicFlashcardsDataSource: DataSource;
   academicSelfPresentationDataSource: DataSource;
+  communityDataSource: DataSource;
+  gamificationDataSource: DataSource;
   isAuthTestWithLocalData: boolean;
   supabaseSecretKey: string;
 }
@@ -316,6 +320,72 @@ export function getServerEnv(): ServerEnv {
   }
   const academicSelfPresentationDataSource: DataSource = rawAcademicSelfPresentation;
 
+  const serverCommunity = process.env.COMMUNITY_DATA_SOURCE;
+  const clientCommunity = process.env.NEXT_PUBLIC_COMMUNITY_DATA_SOURCE;
+
+  if (
+    serverCommunity &&
+    clientCommunity &&
+    serverCommunity !== clientCommunity
+  ) {
+    throw new Error(
+      `[Configuração MTD] Divergência crítica detectada entre COMMUNITY_DATA_SOURCE ("${serverCommunity}") e NEXT_PUBLIC_COMMUNITY_DATA_SOURCE ("${clientCommunity}"). Ambas as variáveis devem ser estritamente idênticas ('supabase' ou 'local') para garantir consistência entre o servidor e o navegador.`
+    );
+  }
+
+  if (serverCommunity === "supabase" && clientCommunity !== "supabase") {
+    throw new Error(
+      `[Configuração MTD] COMMUNITY_DATA_SOURCE está configurada como 'supabase', mas NEXT_PUBLIC_COMMUNITY_DATA_SOURCE não é 'supabase' (atual: "${clientCommunity || "indefinida"}"). Configure ambas com o mesmo valor.`
+    );
+  }
+
+  if (clientCommunity === "supabase" && serverCommunity !== "supabase") {
+    throw new Error(
+      `[Configuração MTD] NEXT_PUBLIC_COMMUNITY_DATA_SOURCE está configurada como 'supabase', mas COMMUNITY_DATA_SOURCE não é 'supabase' (atual: "${serverCommunity || "indefinida"}"). Configure ambas com o mesmo valor.`
+    );
+  }
+
+  const rawCommunity = serverCommunity || clientCommunity || dataSource;
+  if (rawCommunity !== "local" && rawCommunity !== "supabase") {
+    throw new Error(
+      `[Configuração MTD] COMMUNITY_DATA_SOURCE inválido: "${rawCommunity}". Esperado: "local" ou "supabase".`
+    );
+  }
+  const communityDataSource: DataSource = rawCommunity;
+
+  const serverGamification = process.env.GAMIFICATION_DATA_SOURCE;
+  const clientGamification = process.env.NEXT_PUBLIC_GAMIFICATION_DATA_SOURCE;
+
+  if (
+    serverGamification &&
+    clientGamification &&
+    serverGamification !== clientGamification
+  ) {
+    throw new Error(
+      `[Configuração MTD] Divergência crítica detectada entre GAMIFICATION_DATA_SOURCE ("${serverGamification}") e NEXT_PUBLIC_GAMIFICATION_DATA_SOURCE ("${clientGamification}"). Ambas as variáveis devem ser estritamente idênticas ('supabase' ou 'local') para garantir consistência entre o servidor e o navegador.`
+    );
+  }
+
+  if (serverGamification === "supabase" && clientGamification !== "supabase") {
+    throw new Error(
+      `[Configuração MTD] GAMIFICATION_DATA_SOURCE está configurada como 'supabase', mas NEXT_PUBLIC_GAMIFICATION_DATA_SOURCE não é 'supabase' (atual: "${clientGamification || "indefinida"}"). Configure ambas com o mesmo valor.`
+    );
+  }
+
+  if (clientGamification === "supabase" && serverGamification !== "supabase") {
+    throw new Error(
+      `[Configuração MTD] NEXT_PUBLIC_GAMIFICATION_DATA_SOURCE está configurada como 'supabase', mas GAMIFICATION_DATA_SOURCE não é 'supabase' (atual: "${serverGamification || "indefinida"}"). Configure ambas com o mesmo valor.`
+    );
+  }
+
+  const rawGamification = serverGamification || clientGamification || dataSource;
+  if (rawGamification !== "local" && rawGamification !== "supabase") {
+    throw new Error(
+      `[Configuração MTD] GAMIFICATION_DATA_SOURCE inválido: "${rawGamification}". Esperado: "local" ou "supabase".`
+    );
+  }
+  const gamificationDataSource: DataSource = rawGamification;
+
   const isVercelProduction = process.env.VERCEL_ENV === "production";
   const isAuthTestWithLocalData =
     authMode === "supabase" && dataSource === "local";
@@ -370,6 +440,8 @@ export function getServerEnv(): ServerEnv {
     academicEvaluationsDataSource,
     academicFlashcardsDataSource,
     academicSelfPresentationDataSource,
+    communityDataSource,
+    gamificationDataSource,
     isAuthTestWithLocalData,
     supabaseUrl,
     supabasePublishableKey,
@@ -405,6 +477,10 @@ export function getClientEnv(): ClientEnv {
     (process.env.NEXT_PUBLIC_ACADEMIC_FLASHCARDS_DATA_SOURCE as DataSource) || defaultClientDataSource;
   const academicSelfPresentationDataSource: DataSource =
     (process.env.NEXT_PUBLIC_ACADEMIC_SELF_PRESENTATION_DATA_SOURCE as DataSource) || defaultClientDataSource;
+  const communityDataSource: DataSource =
+    (process.env.NEXT_PUBLIC_COMMUNITY_DATA_SOURCE as DataSource) || defaultClientDataSource;
+  const gamificationDataSource: DataSource =
+    (process.env.NEXT_PUBLIC_GAMIFICATION_DATA_SOURCE as DataSource) || defaultClientDataSource;
 
   return {
     supabaseUrl,
@@ -419,5 +495,7 @@ export function getClientEnv(): ClientEnv {
     academicEvaluationsDataSource,
     academicFlashcardsDataSource,
     academicSelfPresentationDataSource,
+    communityDataSource,
+    gamificationDataSource,
   };
 }
