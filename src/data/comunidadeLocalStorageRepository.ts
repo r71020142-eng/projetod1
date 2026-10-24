@@ -307,6 +307,40 @@ export const comunidadeLocalStorageRepository = {
     return { success: true, data: pub };
   },
 
+  async alternarCurtidaComentario(
+    comentarioId: string,
+    usuarioId: string = "alu-001"
+  ): Promise<OperationResult<{ totalCurtidas: number; curtiu: boolean }>> {
+    const coms = loadFromStorage<ComentarioPublicacao>(STORAGE_COMENTARIOS, SEED_COMENTARIOS_COMUNIDADE);
+    const idx = coms.findIndex((c) => c.id === comentarioId);
+    if (idx === -1) {
+      return { success: false, error: "Comentário não encontrado." };
+    }
+    const com = coms[idx];
+    const curtidasUsuarios = (com as unknown as { curtidasUsuarios?: string[] }).curtidasUsuarios || [];
+    const jaCurtiu = curtidasUsuarios.includes(usuarioId);
+
+    let novoTotal = (com as unknown as { totalCurtidas?: number }).totalCurtidas || 0;
+    let curtiuFinal = false;
+
+    if (jaCurtiu) {
+      const uIdx = curtidasUsuarios.indexOf(usuarioId);
+      if (uIdx !== -1) curtidasUsuarios.splice(uIdx, 1);
+      novoTotal = Math.max(0, novoTotal - 1);
+      curtiuFinal = false;
+    } else {
+      curtidasUsuarios.push(usuarioId);
+      novoTotal += 1;
+      curtiuFinal = true;
+    }
+
+    (com as unknown as { curtidasUsuarios?: string[] }).curtidasUsuarios = curtidasUsuarios;
+    (com as unknown as { totalCurtidas?: number }).totalCurtidas = novoTotal;
+    saveToStorage(STORAGE_COMENTARIOS, coms);
+
+    return { success: true, data: { totalCurtidas: novoTotal, curtiu: curtiuFinal } };
+  },
+
   // ==========================================
   // COMENTÁRIOS
   // ==========================================

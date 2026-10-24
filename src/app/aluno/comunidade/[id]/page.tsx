@@ -35,9 +35,11 @@ export default function AlunoEspacoDetalhePage() {
   const [error, setError] = useState<string | null>(null);
   const [modalNovaPublicacao, setModalNovaPublicacao] = useState(false);
 
-  const carregar = useCallback(async (mounted = true) => {
+  const carregar = useCallback(async (isInitial = false, mounted = true) => {
     if (!id) return;
-    setLoading(true);
+    if (isInitial) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const [alu, turmas, esp] = await Promise.all([
@@ -63,7 +65,7 @@ export default function AlunoEspacoDetalhePage() {
         setError((err as Error)?.message || "Não foi possível carregar os detalhes do canal.");
       }
     } finally {
-      if (mounted) {
+      if (mounted && isInitial) {
         setLoading(false);
       }
     }
@@ -71,7 +73,7 @@ export default function AlunoEspacoDetalhePage() {
 
   useEffect(() => {
     let isMounted = true;
-    if (id) carregar(isMounted);
+    if (id) carregar(true, isMounted);
     return () => {
       isMounted = false;
     };
@@ -226,7 +228,7 @@ export default function AlunoEspacoDetalhePage() {
                 usuarioAtualPapel="aluno"
                 permitirComentarios={espaco.permitirComentarios}
                 isAdmin={false}
-                onAtualizar={carregar}
+                onAtualizar={() => carregar(false)}
               />
             ))}
           </div>

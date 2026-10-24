@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ComentarioPublicacao } from "@/types";
 import { comunidadeRepository } from "@/data/api";
-import { Send, AlertTriangle, ShieldAlert } from "lucide-react";
+import { Send, AlertTriangle, ShieldAlert, ThumbsUp } from "lucide-react";
 import { DenunciaModal } from "./DenunciaModal";
 import { ModeracaoModal } from "./ModeracaoModal";
 import { AutorAvatar } from "./AutorAvatar";
@@ -16,6 +16,7 @@ interface ComentarioSectionProps {
   autorAtualPapel: "aluno" | "professor" | "admin";
   permitirComentarios: boolean;
   isAdmin?: boolean;
+  onComentarioCriado?: () => void;
 }
 
 export function ComentarioSection({
@@ -26,12 +27,16 @@ export function ComentarioSection({
   autorAtualPapel,
   permitirComentarios,
   isAdmin = false,
+  onComentarioCriado,
 }: ComentarioSectionProps) {
   const [comentarios, setComentarios] = useState<ComentarioPublicacao[]>([]);
   const [novoTexto, setNovoTexto] = useState("");
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
+
+  const [curtidasMap, setCurtidasMap] = useState<Record<string, number>>({});
+  const [usuarioCurtiuMap, setUsuarioCurtiuMap] = useState<Record<string, boolean>>({});
 
   // Modais de denúncia e moderação
   const [denunciaAlvo, setDenunciaAlvo] = useState<ComentarioPublicacao | null>(null);
@@ -41,16 +46,47 @@ export function ComentarioSection({
     try {
       const lista = await comunidadeRepository.listarComentarios(publicacaoId, !isAdmin);
       setComentarios(lista);
+
+      const cMap: Record<string, number> = {};
+      const uMap: Record<string, boolean> = {};
+      for (const c of lista) {
+        cMap[c.id] =
+          (c as unknown as { totalCurtidas?: number }).totalCurtidas ??
+          c.reacoes?.curtidas ??
+          0;
+        const curtidoPor =
+          (c as unknown as { curtidoPorUsuarios?: string[] }).curtidoPorUsuarios || [];
+        uMap[c.id] = curtidoPor.includes(autorAtualId);
+      }
+      setCurtidasMap(cMap);
+      setUsuarioCurtiuMap(uMap);
     } catch (err) {
       console.error("Erro ao carregar comentários:", err);
     } finally {
       setLoading(false);
     }
-  }, [publicacaoId, isAdmin]);
+  }, [publicacaoId, isAdmin, autorAtualId]);
 
   useEffect(() => {
     carregar();
   }, [carregar]);
+
+  async function handleCurtirComentario(comentarioId: string) {
+    const jaCurtiu = !!usuarioCurtiuMap[comentarioId];
+    const totalAtual = curtidasMap[comentarioId] || 0;
+    const novoTotal = jaCurtiu ? Math.max(0, totalAtual - 1) : totalAtual + 1;
+
+    setUsuarioCurtiuMap((prev) => ({ ...prev, [comentarioId]: !jaCurtiu }));
+    setCurtidasMap((prev) => ({ ...prev, [comentarioId]: novoTotal }));
+
+    try {
+      await comunidadeRepository.alternarCurtidaComentario(comentarioId, autorAtualId);
+    } catch (err) {
+      console.error("Erro ao curtir comentário:", err);
+      setUsuarioCurtiuMap((prev) => ({ ...prev, [comentarioId]: jaCurtiu }));
+      setCurtidasMap((prev) => ({ ...prev, [comentarioId]: totalAtual }));
+    }
+  }
 
   async function handleEnviar(e: React.FormEvent) {
     e.preventDefault();
@@ -72,6 +108,15 @@ export function ComentarioSection({
         setErro(res.error || "Erro ao postar comentário.");
       } else {
         setNovoTexto("");
+        if (res.data) {
+          setComentarios((prev) => [...prev, res.data!]);
+          setCurtidasMap((prev) => ({ ...prev, [res.data!.id]: 0 }));
+          setUsuarioCurtiuMap((prev) => ({ ...prev, [res.data!.id]: false }));
+        }
+        if (onComentarioCriado) {
+          onComentarioCriado();
+        }
+        // Atualiza a lista em background sem fechar o accordion
         carregar();
       }
     } catch {
@@ -171,6 +216,31 @@ export function ComentarioSection({
               </div>
 
               <p className="leading-relaxed pl-7 text-slate-700">{c.conteudo}</p>
+
+              {/* Barra de Ações do Comentário */}
+              <div className="pt-1.5 pl-7 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleCurtirComentario(c.id)}
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition ${
+                    usuarioCurtiuMap[c.id]
+                      ? "bg-blue-50 text-blue-700 font-semibold"
+                      : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                  }`}
+                  title="Curtir comentário"
+                >
+                  <ThumbsUp
+                    className={`w-3 h-3 ${
+                      usuarioCurtiuMap[c.id] ? "fill-blue-600 text-blue-600" : "text-slate-400"
+                    }`}
+                  />
+                  <span>
+                    {curtidasMap[c.id] && curtidasMap[c.id] > 0
+                      ? `${curtidasMap[c.id]} ${curtidasMap[c.id] === 1 ? "curtida" : "curtidas"}`
+                      : "Curtir"}
+                  </span>
+                </button>
+              </div>
             </div>
           ))}
         </div>

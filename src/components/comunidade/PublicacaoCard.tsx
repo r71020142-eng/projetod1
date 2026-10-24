@@ -42,36 +42,68 @@ export function PublicacaoCard({
   const [expandirComentarios, setExpandirComentarios] = useState(false);
   const [denunciaAberta, setDenunciaAberta] = useState(false);
   const [moderacaoAberta, setModeracaoAberta] = useState(false);
+
   const [reacoesLocais, setReacoesLocais] = useState(publicacao.reacoes || {});
   const [reacaoUsuarioLocal, setReacaoUsuarioLocal] = useState<string | undefined>(
-    publicacao.reacoesPorUsuario?.[usuarioAtualId]
+    publicacao.reacoesPorUsuario?.[usuarioAtualId] ||
+      (publicacao.reacoesUsuarios?.includes(usuarioAtualId) ? "curtidas" : undefined)
   );
+  const [comentariosCountLocal, setComentariosCountLocal] = useState(
+    publicacao.comentariosCount || 0
+  );
+
+  // Sincroniza estado quando as props da publicação forem atualizadas
+  React.useEffect(() => {
+    setReacoesLocais(publicacao.reacoes || {});
+    setReacaoUsuarioLocal(
+      publicacao.reacoesPorUsuario?.[usuarioAtualId] ||
+        (publicacao.reacoesUsuarios?.includes(usuarioAtualId) ? "curtidas" : undefined)
+    );
+    setComentariosCountLocal(publicacao.comentariosCount || 0);
+  }, [publicacao, usuarioAtualId]);
 
   async function handleReacao(tipo: "curtidas" | "apoio" | "parabens") {
     const anterior = reacaoUsuarioLocal;
+    const reacoesAnteriores = { ...reacoesLocais };
     const novasReacoes = { ...reacoesLocais };
     let novaReacaoUsuario: string | undefined = tipo;
 
     if (anterior === tipo) {
-      // Toggle off
+      // Toggle off (remove a reação)
       novasReacoes[tipo] = Math.max(0, (novasReacoes[tipo] || 0) - 1);
       novaReacaoUsuario = undefined;
     } else {
-      // Substitui reação anterior
+      // Substitui reação anterior se houver
       if (anterior && (anterior === "curtidas" || anterior === "apoio" || anterior === "parabens")) {
         novasReacoes[anterior] = Math.max(0, (novasReacoes[anterior] || 0) - 1);
       }
       novasReacoes[tipo] = (novasReacoes[tipo] || 0) + 1;
     }
 
+    // Atualização otimista imediata na interface (0 flicker, sem recarregar a tela)
     setReacoesLocais(novasReacoes);
     setReacaoUsuarioLocal(novaReacaoUsuario);
 
     try {
-      await comunidadeRepository.alternarReacaoPublicacao(publicacao.id, tipo, usuarioAtualId);
-      if (onAtualizar) onAtualizar();
+      const res = await comunidadeRepository.alternarReacaoPublicacao(
+        publicacao.id,
+        tipo,
+        usuarioAtualId
+      );
+      if (res.success && res.data) {
+        if (res.data.reacoes) {
+          setReacoesLocais(res.data.reacoes);
+        }
+        if (res.data.reacoesPorUsuario) {
+          setReacaoUsuarioLocal(res.data.reacoesPorUsuario[usuarioAtualId]);
+        }
+      }
+      // NUNCA acionar onAtualizar() aqui para evitar recarregamento/flicker da lista inteira
     } catch (err) {
       console.error("Erro ao registrar reação:", err);
+      // Reverte em caso de falha de conexão
+      setReacoesLocais(reacoesAnteriores);
+      setReacaoUsuarioLocal(anterior);
     }
   }
 
@@ -292,8 +324,8 @@ export function PublicacaoCard({
         >
           <MessageCircle className="w-3.5 h-3.5" />
           <span>
-            {publicacao.comentariosCount || 0}{" "}
-            {(publicacao.comentariosCount || 0) === 1
+            {comentariosCountLocal}{" "}
+            {comentariosCountLocal === 1
               ? "comentário"
               : "comentários"}
           </span>
@@ -310,6 +342,7 @@ export function PublicacaoCard({
           autorAtualPapel={usuarioAtualPapel}
           permitirComentarios={permitirComentarios}
           isAdmin={isAdmin}
+          onComentarioCriado={() => setComentariosCountLocal((prev) => prev + 1)}
         />
       )}
 

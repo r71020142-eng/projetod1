@@ -46,8 +46,10 @@ export default function AlunoComunidadePage() {
   const [busca, setBusca] = useState("");
   const [modalNovaPublicacao, setModalNovaPublicacao] = useState(false);
 
-  const carregarDados = useCallback(async (mounted = true) => {
-    setLoading(true);
+  const carregarDados = useCallback(async (isInitial = false, mounted = true) => {
+    if (isInitial) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const [alu, turmas] = await Promise.all([
@@ -77,7 +79,7 @@ export default function AlunoComunidadePage() {
         setError((err as Error)?.message || "Não foi possível carregar a comunidade.");
       }
     } finally {
-      if (mounted) {
+      if (mounted && isInitial) {
         setLoading(false);
       }
     }
@@ -85,10 +87,10 @@ export default function AlunoComunidadePage() {
 
   useEffect(() => {
     let isMounted = true;
-    carregarDados(isMounted);
+    carregarDados(true, isMounted);
 
     const handleStorage = () => {
-      if (isMounted) carregarDados(isMounted);
+      if (isMounted) carregarDados(false, isMounted);
     };
     window.addEventListener("mtd_storage_updated", handleStorage);
 
@@ -141,7 +143,7 @@ export default function AlunoComunidadePage() {
       aluno,
       turmaIds
     );
-    carregarDados();
+    carregarDados(false);
   }
 
   return (
@@ -279,7 +281,7 @@ export default function AlunoComunidadePage() {
                   usuarioAtualAvatar={(aluno?.avatarUrl || identity?.avatarUrl) || undefined}
                   usuarioAtualPapel="aluno"
                   isAdmin={false}
-                  onAtualizar={carregarDados}
+                  onAtualizar={() => carregarDados(false)}
                 />
               ))}
             </div>

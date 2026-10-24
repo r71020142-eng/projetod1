@@ -64,8 +64,10 @@ export default function AdminComunidadePage() {
   const [salvandoEspaco, setSalvandoEspaco] = useState(false);
   const [erroEspaco, setErroEspaco] = useState("");
 
-  const carregarDados = useCallback(async () => {
-    setLoading(true);
+  const carregarDados = useCallback(async (isInitial = false) => {
+    if (isInitial) {
+      setLoading(true);
+    }
     try {
       const [espList, pubList, denList, opList, turmList] = await Promise.all([
         comunidadeRepository.listarEspacos(true),
@@ -83,12 +85,14 @@ export default function AdminComunidadePage() {
     } catch (err) {
       console.error("Erro ao carregar dados da comunidade:", err);
     } finally {
-      setLoading(false);
+      if (isInitial) {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    carregarDados();
+    carregarDados(true);
   }, [carregarDados]);
 
   // Filtragem de publicações
@@ -388,7 +392,7 @@ export default function AdminComunidadePage() {
                   usuarioAtualAvatar={adminAvatar}
                   usuarioAtualPapel="admin"
                   isAdmin={true}
-                  onAtualizar={carregarDados}
+                  onAtualizar={() => carregarDados(false)}
                 />
               ))}
             </div>

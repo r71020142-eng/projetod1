@@ -199,6 +199,8 @@ function mapRowToPublicacao(row: PublicacaoDbRow): PublicacaoComunidade {
     status: (row.status === "publicado" ? "publicada" : row.status === "oculto_moderacao" || row.status === "oculto" ? "oculta" : row.status) as StatusPublicacaoComunidade,
     reacoes: row.reacoes || {},
     reacoesUsuarios: Array.isArray(row.reacoes_usuarios) ? row.reacoes_usuarios : [],
+    reacoesPorUsuario: (row.metadata?.reacoes_por_usuario as Record<string, "curtidas" | "apoio" | "parabens">) ||
+      (Array.isArray(row.reacoes_usuarios) ? Object.fromEntries(row.reacoes_usuarios.map((id) => [id, "curtidas"])) : {}),
     reacoesCount: row.total_curtidas || 0,
     comentariosCount: row.total_comentarios || 0,
     moderada: Boolean(row.moderado_por_id),
@@ -222,6 +224,13 @@ function mapRowToComentario(row: ComentarioDbRow): ComentarioPublicacao {
     texto: row.conteudo,
     conteudo: row.conteudo,
     status: (row.status === "oculto_moderacao" ? "oculto" : row.status || "publicado") as "publicado" | "oculto" | "removido",
+    reacoes: {
+      curtidas: row.total_curtidas || 0,
+      apoio: 0,
+      parabens: 0,
+    },
+    totalCurtidas: row.total_curtidas || 0,
+    curtidoPorUsuarios: Array.isArray(row.metadata?.curtidas_usuarios) ? (row.metadata?.curtidas_usuarios as string[]) : [],
     criadoEm: row.created_at,
     atualizadoEm: row.updated_at,
   };
@@ -491,6 +500,30 @@ export const comunidadeSupabaseRepository = {
     usuarioId: string,
     clientOverride?: SupabaseClient
   ): Promise<OperationResult<PublicacaoComunidade>> {
+    // No navegador, utiliza a API Route dedicada com permissão de serviço para evitar bloqueio de RLS
+    if (typeof window !== "undefined") {
+      try {
+        const res = await fetch("/api/comunidade/reacoes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            alvoTipo: "publicacao",
+            alvoId: publicacaoId,
+            tipo,
+            usuarioId,
+          }),
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          const pub = await this.obterPublicacaoPorId(publicacaoId, false, clientOverride);
+          return { success: true, data: pub || undefined };
+        }
+        return { success: false, error: json.error || "Erro ao registrar reação." };
+      } catch (apiErr) {
+        console.warn("[Comunidade] Fallback para chamada direta:", apiErr);
+      }
+    }
+
     try {
       const supabase = getSupabase(clientOverride);
       const pubAtual = await this.obterPublicacaoPorId(publicacaoId, false, clientOverride);
@@ -540,6 +573,72 @@ export const comunidadeSupabaseRepository = {
         success: false,
         error: `Falha de conexão com o Supabase ao atualizar reação: ${err instanceof Error ? err.message : String(err)}`,
       };
+    }
+  },
+
+  async alternarCurtidaComentario(
+    comentarioId: string,
+    usuarioId: string,
+    clientOverride?: SupabaseClient
+  ): Promise<OperationResult<{ totalCurtidas: number; curtiu: boolean }>> {
+    // No navegador, utiliza a API Route dedicada com permissão de serviço
+    if (typeof window !== "undefined") {
+      try {
+        const res = await fetch("/api/comunidade/reacoes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            alvoTipo: "comentario",
+            alvoId: comentarioId,
+            tipo: "curtidas",
+            usuarioId,
+          }),
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          return { success: true, data: json.data };
+        }
+        return { success: false, error: json.error || "Erro ao curtir comentário." };
+      } catch (err: unknown) {
+        return { success: false, error: err instanceof Error ? err.message : String(err) };
+      }
+    }
+
+    try {
+      const supabase = getSupabase(clientOverride);
+      const { data: com, error: fetchErr } = await supabase
+        .from("comentarios_comunidade")
+        .select("total_curtidas, metadata")
+        .eq("id", comentarioId)
+        .single();
+
+      if (fetchErr || !com) {
+        return { success: false, error: "Comentário não encontrado." };
+      }
+
+      const meta = (com.metadata && typeof com.metadata === "object" ? { ...com.metadata } : {}) as Record<string, unknown>;
+      const curtidas = Array.isArray(meta.curtidas_usuarios) ? [...meta.curtidas_usuarios] : [];
+      const curtiu = curtidas.includes(usuarioId);
+      let novoTotal = typeof com.total_curtidas === "number" ? com.total_curtidas : 0;
+
+      if (curtiu) {
+        const idx = curtidas.indexOf(usuarioId);
+        if (idx !== -1) curtidas.splice(idx, 1);
+        novoTotal = Math.max(0, novoTotal - 1);
+      } else {
+        curtidas.push(usuarioId);
+        novoTotal += 1;
+      }
+
+      meta.curtidas_usuarios = curtidas;
+      await supabase
+        .from("comentarios_comunidade")
+        .update({ total_curtidas: novoTotal, metadata: meta })
+        .eq("id", comentarioId);
+
+      return { success: true, data: { totalCurtidas: novoTotal, curtiu: !curtiu } };
+    } catch (err: unknown) {
+      return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
   },
 

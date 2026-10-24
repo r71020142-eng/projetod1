@@ -484,6 +484,10 @@ export interface IComunidadeRepository {
     tipo: string,
     usuarioId: string
   ): Promise<OperationResult<PublicacaoComunidade>>;
+  alternarCurtidaComentario(
+    comentarioId: string,
+    usuarioId: string
+  ): Promise<OperationResult<{ totalCurtidas: number; curtiu: boolean }>>;
   listarComentarios(publicacaoId: string, paraAluno?: boolean): Promise<ComentarioPublicacao[]>;
   criarComentario(
     dados: {

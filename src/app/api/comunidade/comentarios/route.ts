@@ -43,16 +43,47 @@ export async function POST(req: NextRequest) {
     }
 
     const comId = `com-${Date.now()}`;
-    const papelFinal = autorPapel === "administrador" ? "admin" : autorPapel || "aluno";
+    let papelFinal = autorPapel === "administrador" ? "admin" : autorPapel || "aluno";
+    let nomeFinal = autorNome ? String(autorNome).trim() : "";
+    let avatarFinal = autorAvatar || null;
+
+    // Se houver autorId, tenta recuperar dados reais do perfil/aluno no banco para garantir fidelidade
+    if (autorId) {
+      const { data: perfil } = await supabase
+        .from("perfis")
+        .select("nome_completo, avatar_url, role")
+        .eq("id", autorId)
+        .maybeSingle();
+
+      if (perfil) {
+        if (!nomeFinal) nomeFinal = perfil.nome_completo || "";
+        if (!avatarFinal) avatarFinal = perfil.avatar_url || null;
+        if (perfil.role) papelFinal = perfil.role;
+      } else {
+        const { data: alunoRow } = await supabase
+          .from("alunos")
+          .select("nome_completo, avatar_url")
+          .eq("id", autorId)
+          .maybeSingle();
+        if (alunoRow) {
+          if (!nomeFinal) nomeFinal = alunoRow.nome_completo || "";
+          if (!avatarFinal) avatarFinal = alunoRow.avatar_url || null;
+        }
+      }
+    }
+
+    if (!nomeFinal) {
+      nomeFinal = autorPapel === "admin" ? "Coordenação MTD" : "Aluno MTD";
+    }
 
     const payload = {
       id: comId,
       publicacao_id: publicacaoId,
       espaco_id: pub.espaco_id,
-      autor_id: autorId || "660640d2-99fc-46e7-8e12-9ef0d67b60ee",
-      autor_nome: autorNome || "Ray Pires",
+      autor_id: autorId || "usuario-comunidade",
+      autor_nome: nomeFinal,
       autor_papel: papelFinal,
-      autor_avatar: autorAvatar || null,
+      autor_avatar: avatarFinal,
       conteudo: textoComentario,
       status: "publicado",
       total_curtidas: 0,

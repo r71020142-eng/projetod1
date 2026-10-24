@@ -1223,6 +1223,8 @@ export interface ComentarioPublicacao {
   editado?: boolean;
   editadoEm?: string;
   reacoes?: ReacoesPublicacao;
+  totalCurtidas?: number;
+  curtidoPorUsuarios?: string[];
   registroModeracao?: RegistroModeracaoConteudo;
   criadoEm: string;
   atualizadoEm?: string;

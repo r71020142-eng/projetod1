@@ -79,6 +79,13 @@ export const comunidadeRepository: IComunidadeRepository = {
     return getComunidadeRepository().alternarReacaoPublicacao(publicacaoId, tipo, usuarioId);
   },
 
+  alternarCurtidaComentario(
+    comentarioId: string,
+    usuarioId: string
+  ): Promise<OperationResult<{ totalCurtidas: number; curtiu: boolean }>> {
+    return getComunidadeRepository().alternarCurtidaComentario(comentarioId, usuarioId);
+  },
+
   listarComentarios(publicacaoId: string, paraAluno = false): Promise<ComentarioPublicacao[]> {
     return getComunidadeRepository().listarComentarios(publicacaoId, paraAluno);
   },
