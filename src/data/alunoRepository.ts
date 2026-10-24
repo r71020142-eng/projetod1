@@ -22,13 +22,13 @@ export const alunoRepository: IAlunoRepository = {
     return getAlunoRepository().obterPorId(id);
   },
 
-  criar(dados: Omit<Aluno, "id" | "dataCadastro">): Promise<OperationResult<Aluno>> {
+  criar(dados: Omit<Aluno, "id" | "dataCadastro"> & { senha?: string }): Promise<OperationResult<Aluno>> {
     return getAlunoRepository().criar(dados);
   },
 
   atualizar(
     id: string,
-    dados: Partial<Omit<Aluno, "id" | "dataCadastro">>
+    dados: Partial<Omit<Aluno, "id" | "dataCadastro">> & { senha?: string }
   ): Promise<OperationResult<Aluno>> {
     return getAlunoRepository().atualizar(id, dados);
   },

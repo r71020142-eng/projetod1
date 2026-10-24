@@ -26,7 +26,7 @@ import {
 
 export default function AlunoFlashcardsPage() {
   const identity = useAlunoIdentity();
-  const alunoId = identity?.alunoId || "alu-001";
+  const alunoId = identity?.isRealAuth ? (identity.alunoId || "") : (identity?.alunoId || "alu-001");
 
   const [baralhos, setBaralhos] = useState<Baralho[]>([]);
   const [metricas, setMetricas] = useState<FlashcardsMetricasAluno | null>(null);

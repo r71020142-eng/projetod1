@@ -19,7 +19,7 @@ const DEMO_ALUNO_ID = "alu-001";
 
 export default function AlunoJornadaPage() {
   const identity = useAlunoIdentity();
-  const alunoId = identity?.alunoId || DEMO_ALUNO_ID;
+  const alunoId = identity?.isRealAuth ? (identity.alunoId || "") : (identity?.alunoId || DEMO_ALUNO_ID);
 
   const [progressoJornada, setProgressoJornada] = useState<ProgressoJornadaAluno | undefined>();
   const [aluno, setAluno] = useState<Aluno | null>(null);

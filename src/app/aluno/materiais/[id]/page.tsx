@@ -43,7 +43,7 @@ const DEMO_ALUNO_ID = "alu-001";
 
 export default function AlunoMaterialDetalhesPage() {
   const identity = useAlunoIdentity();
-  const alunoId = identity?.alunoId || DEMO_ALUNO_ID;
+  const alunoId = identity?.isRealAuth ? (identity.alunoId || "") : (identity?.alunoId || DEMO_ALUNO_ID);
 
   const params = useParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;

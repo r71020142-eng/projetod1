@@ -119,7 +119,7 @@ export const alunoLocalStorageRepository: IAlunoRepository = {
   },
 
   async criar(
-    dados: Omit<Aluno, "id" | "dataCadastro">
+    dados: Omit<Aluno, "id" | "dataCadastro"> & { senha?: string }
   ): Promise<OperationResult<Aluno>> {
     const list = loadFromStorage();
 
@@ -165,7 +165,7 @@ export const alunoLocalStorageRepository: IAlunoRepository = {
 
   async atualizar(
     id: string,
-    dados: Partial<Omit<Aluno, "id" | "dataCadastro">>
+    dados: Partial<Omit<Aluno, "id" | "dataCadastro">> & { senha?: string }
   ): Promise<OperationResult<Aluno>> {
     const list = loadFromStorage();
     const index = list.findIndex((a) => a.id === id);

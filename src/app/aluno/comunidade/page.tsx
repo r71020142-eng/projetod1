@@ -31,7 +31,7 @@ import { useAlunoIdentity } from "@/app/aluno/AlunoLayoutClient";
 
 export default function AlunoComunidadePage() {
   const identity = useAlunoIdentity();
-  const alunoId = identity?.alunoId || "alu-001";
+  const alunoId = identity?.isRealAuth ? (identity.alunoId || "") : (identity?.alunoId || "alu-001");
   const [aluno, setAluno] = useState<Aluno | null>(null);
   const [turmaIds, setTurmaIds] = useState<string[]>([]);
   const [espacos, setEspacos] = useState<EspacoComunidade[]>([]);

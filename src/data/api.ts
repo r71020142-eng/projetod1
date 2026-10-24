@@ -37,16 +37,9 @@ import { gamificacaoRepository } from "./gamificacaoRepository";
 export async function getAlunoDashboardData(alunoId?: string): Promise<AlunoDashboardData> {
   await new Promise((resolve) => setTimeout(resolve, 10));
 
-  const isUuid = (id?: string) =>
-    !!id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-
   let targetAlunoId = alunoId;
-  if (!targetAlunoId || !isUuid(targetAlunoId)) {
-    const primeiroAluno = await alunoRepository
-      .listar()
-      .then((lista) => lista[0])
-      .catch(() => null);
-    targetAlunoId = primeiroAluno?.id || "alu-001";
+  if (!targetAlunoId) {
+    targetAlunoId = "alu-001";
   }
 
   const data: AlunoDashboardData = {

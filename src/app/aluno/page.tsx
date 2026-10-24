@@ -14,7 +14,7 @@ import { getServerIdentity } from "@/lib/auth/session";
 
 export default async function AlunoDashboardPage() {
   const identity = await getServerIdentity("aluno");
-  const targetAlunoId = identity?.alunoId || "alu-001";
+  const targetAlunoId = identity?.isRealAuth ? (identity.alunoId || "") : (identity?.alunoId || "alu-001");
 
   const [data, conquistasAluno] = await Promise.all([
     getAlunoDashboardData(targetAlunoId),

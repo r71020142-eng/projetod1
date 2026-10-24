@@ -31,7 +31,7 @@ const DEMO_ALUNO_ID = "alu-001";
 
 export default function AlunoAtividadesPage() {
   const identity = useAlunoIdentity();
-  const alunoId = identity?.alunoId || DEMO_ALUNO_ID;
+  const alunoId = identity?.isRealAuth ? (identity.alunoId || "") : (identity?.alunoId || DEMO_ALUNO_ID);
 
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [entregaMap, setEntregaMap] = useState<Map<string, Entrega>>(new Map());

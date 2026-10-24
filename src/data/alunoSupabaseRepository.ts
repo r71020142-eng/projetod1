@@ -121,7 +121,7 @@ export const alunoSupabaseRepository: IAlunoRepository = {
   },
 
   async criar(
-    dados: Omit<Aluno, "id" | "dataCadastro">
+    dados: Omit<Aluno, "id" | "dataCadastro"> & { senha?: string }
   ): Promise<OperationResult<Aluno>> {
     const validation = validateAlunoInput(dados, undefined, []);
     if (!validation.isValid) {
@@ -130,6 +130,29 @@ export const alunoSupabaseRepository: IAlunoRepository = {
         error: "Verifique os campos informados antes de prosseguir.",
         fieldErrors: validation.errors as Record<string, string>,
       };
+    }
+
+    // Se executado no cliente, aciona a API administrativa segura que cria usuário Auth + Aluno
+    if (typeof window !== "undefined") {
+      try {
+        const res = await fetch("/api/admin/alunos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(dados),
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          notifyMutation();
+          return { success: true, data: json.data };
+        }
+        return {
+          success: false,
+          error: json.error || "Erro ao cadastrar novo aluno no servidor.",
+          fieldErrors: json.fieldErrors,
+        };
+      } catch (apiErr: unknown) {
+        console.warn("[alunoSupabaseRepository] Fallback para inserção direta no banco:", apiErr);
+      }
     }
 
     const supabase = getSupabase();
@@ -197,8 +220,31 @@ export const alunoSupabaseRepository: IAlunoRepository = {
 
   async atualizar(
     id: string,
-    dados: Partial<Omit<Aluno, "id" | "dataCadastro">>
+    dados: Partial<Omit<Aluno, "id" | "dataCadastro">> & { senha?: string }
   ): Promise<OperationResult<Aluno>> {
+    // Se executado no cliente, aciona a API administrativa segura que sincroniza Auth + Aluno
+    if (typeof window !== "undefined") {
+      try {
+        const res = await fetch("/api/admin/alunos", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, ...dados }),
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          notifyMutation();
+          return { success: true, data: json.data };
+        }
+        return {
+          success: false,
+          error: json.error || "Erro ao atualizar dados do aluno no servidor.",
+          fieldErrors: json.fieldErrors,
+        };
+      } catch (apiErr: unknown) {
+        console.warn("[alunoSupabaseRepository] Fallback para atualização direta no banco:", apiErr);
+      }
+    }
+
     const supabase = getSupabase();
 
     const payload: {

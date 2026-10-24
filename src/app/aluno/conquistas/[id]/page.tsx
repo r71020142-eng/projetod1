@@ -19,7 +19,7 @@ import { useAlunoIdentity } from "@/app/aluno/AlunoLayoutClient";
 
 export default function AlunoConquistaDetalhePage() {
   const identity = useAlunoIdentity();
-  const alunoId = identity?.alunoId || "alu-001";
+  const alunoId = identity?.isRealAuth ? (identity.alunoId || "") : (identity?.alunoId || "alu-001");
   const params = useParams();
   const id = params?.id as string;
 

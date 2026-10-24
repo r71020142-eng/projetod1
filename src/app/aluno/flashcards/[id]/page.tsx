@@ -31,7 +31,7 @@ import {
 
 export default function AlunoBaralhoDetalhePage() {
   const identity = useAlunoIdentity();
-  const alunoId = identity?.alunoId || "alu-001";
+  const alunoId = identity?.isRealAuth ? (identity.alunoId || "") : (identity?.alunoId || "alu-001");
 
   const params = useParams();
   const baralhoId = params.id as string;

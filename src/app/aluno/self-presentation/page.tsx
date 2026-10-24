@@ -28,7 +28,7 @@ const DEMO_ALUNO_ID = "alu-001";
 
 export default function AlunoSelfPresentationPage() {
   const identity = useAlunoIdentity();
-  const alunoId = identity?.alunoId || DEMO_ALUNO_ID;
+  const alunoId = identity?.isRealAuth ? (identity.alunoId || "") : (identity?.alunoId || DEMO_ALUNO_ID);
 
   const [presentations, setPresentations] = useState<SelfPresentation[]>([]);
   const [aluno, setAluno] = useState<Aluno | null>(null);

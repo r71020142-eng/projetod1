@@ -71,10 +71,10 @@ import {
 export interface IAlunoRepository {
   listar(filters?: AlunoFilters): Promise<Aluno[]>;
   obterPorId(id: string): Promise<Aluno | null>;
-  criar(dados: Omit<Aluno, "id" | "dataCadastro">): Promise<OperationResult<Aluno>>;
+  criar(dados: Omit<Aluno, "id" | "dataCadastro"> & { senha?: string }): Promise<OperationResult<Aluno>>;
   atualizar(
     id: string,
-    dados: Partial<Omit<Aluno, "id" | "dataCadastro">>
+    dados: Partial<Omit<Aluno, "id" | "dataCadastro">> & { senha?: string }
   ): Promise<OperationResult<Aluno>>;
   inativar(id: string): Promise<OperationResult<Aluno>>;
   reativar(id: string): Promise<OperationResult<Aluno>>;

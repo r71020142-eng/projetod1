@@ -34,7 +34,7 @@ type FiltroAlunoAba = "todas" | "disponiveis" | "aguardando" | "concluidas";
 
 export default function AvaliacoesAlunoPage() {
   const identity = useAlunoIdentity();
-  const alunoId = identity?.alunoId || "alu-001";
+  const alunoId = identity?.isRealAuth ? (identity.alunoId || "") : (identity?.alunoId || "alu-001");
 
   const [aba, setAba] = useState<FiltroAlunoAba>("todas");
   const [loading, setLoading] = useState(true);
