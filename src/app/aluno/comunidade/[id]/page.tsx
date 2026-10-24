@@ -91,7 +91,7 @@ export default function AlunoEspacoDetalhePage() {
         espacoId: dados.espacoId,
         autorId: aluno.id,
         autorNome: aluno.nomeCompleto,
-        autorAvatar: "/mariana-avatar.png",
+        autorAvatar: (aluno.avatarUrl || identity?.avatarUrl) || undefined,
         autorPapel: "aluno",
         tipo: dados.tipo,
         titulo: dados.titulo,
@@ -221,7 +221,8 @@ export default function AlunoEspacoDetalhePage() {
                 key={pub.id}
                 publicacao={pub}
                 usuarioAtualId={alunoId}
-                usuarioAtualNome={aluno?.nomeCompleto || "Mariana Oliveira"}
+                usuarioAtualNome={aluno?.nomeCompleto || identity?.nomeCompleto || "Aluno MTD"}
+                usuarioAtualAvatar={(aluno?.avatarUrl || identity?.avatarUrl) || undefined}
                 usuarioAtualPapel="aluno"
                 permitirComentarios={espaco.permitirComentarios}
                 isAdmin={false}

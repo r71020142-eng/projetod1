@@ -2,6 +2,9 @@ import { Material, MaterialFilters, OperationResult } from "@/types";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { validateMaterialInput, normalizeText } from "./validators";
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (val?: string | null): val is string => !!val && UUID_REGEX.test(val);
+
 interface MaterialDbRow {
   id: string;
   titulo: string;
@@ -193,23 +196,43 @@ export const materialSupabaseRepository = {
 
     try {
       const supabase = getSupabase();
+
+      // Sanitiza autor_id para garantir conformidade estrita com o tipo UUID do Postgres
+      let autorIdSanitizado = isUuid(dados.autorId) ? dados.autorId : null;
+      if (!autorIdSanitizado) {
+        // Tenta recuperar o ID do primeiro professor do banco ou fallback para admin
+        const { data: profDb } = await supabase.from("professores").select("id").limit(1).maybeSingle();
+        if (profDb?.id && isUuid(profDb.id)) {
+          autorIdSanitizado = profDb.id;
+        } else {
+          // ID default seguro do administrador Ray Pires
+          autorIdSanitizado = "660640d2-99fc-46e7-8e12-9ef0d67b60ee";
+        }
+      }
+
+      // Sanitiza destino_id e modulo_id
+      const destinoIdSanitizado =
+        dados.destinoTipo !== "geral" && isUuid(dados.destinoId) ? dados.destinoId : null;
+      const moduloIdSanitizado =
+        isUuid(dados.moduloId) ? dados.moduloId : isUuid(dados.moduleId) ? dados.moduleId : null;
+
       const payload = {
         titulo: normalizeText(dados.titulo!),
         descricao: normalizeText(dados.descricao!),
         tipo: dados.tipo!,
         categoria: normalizeText(dados.categoria!),
         nivel_recomendado: dados.nivelRecomendado || "todos",
-        autor_id: dados.autorId!,
-        autor_nome: dados.autorNome ? normalizeText(dados.autorNome) : null,
+        autor_id: autorIdSanitizado,
+        autor_nome: dados.autorNome ? normalizeText(dados.autorNome) : "Coordenação MTD",
         data_publicacao: dados.dataPublicacao || new Date().toISOString().slice(0, 10),
         status: dados.status || "rascunho",
         destino_tipo: dados.destinoTipo || "geral",
-        destino_id: dados.destinoId || null,
+        destino_id: destinoIdSanitizado,
         link_externo: dados.linkExterno ? dados.linkExterno.trim() : null,
         conteudo_texto: dados.conteudoTexto ? dados.conteudoTexto.trim() : null,
         tags: dados.tags ? dados.tags.map(normalizeText) : [],
         observacoes_internas: dados.observacoesInternas ? normalizeText(dados.observacoesInternas) : null,
-        modulo_id: dados.moduloId || dados.moduleId || null,
+        modulo_id: moduloIdSanitizado,
         arquivo_url: dados.arquivoUrl ? dados.arquivoUrl.trim() : null,
         arquivo_nome: dados.arquivoNome ? normalizeText(dados.arquivoNome) : null,
       };
@@ -243,12 +266,20 @@ export const materialSupabaseRepository = {
       if (dados.nivelRecomendado !== undefined) payload.nivel_recomendado = dados.nivelRecomendado;
       if (dados.status !== undefined) payload.status = dados.status;
       if (dados.destinoTipo !== undefined) payload.destino_tipo = dados.destinoTipo;
-      if (dados.destinoId !== undefined) payload.destino_id = dados.destinoId || null;
+      if (dados.destinoId !== undefined) {
+        payload.destino_id =
+          dados.destinoTipo !== "geral" && isUuid(dados.destinoId) ? dados.destinoId : null;
+      }
       if (dados.linkExterno !== undefined) payload.link_externo = dados.linkExterno ? dados.linkExterno.trim() : null;
       if (dados.conteudoTexto !== undefined) payload.conteudo_texto = dados.conteudoTexto ? dados.conteudoTexto.trim() : null;
       if (dados.tags !== undefined) payload.tags = dados.tags.map(normalizeText);
       if (dados.observacoesInternas !== undefined) payload.observacoes_internas = dados.observacoesInternas ? normalizeText(dados.observacoesInternas) : null;
-      if (dados.moduloId !== undefined || dados.moduleId !== undefined) payload.modulo_id = dados.moduloId || dados.moduleId || null;
+      if (dados.moduloId !== undefined || dados.moduleId !== undefined) {
+        const mid = dados.moduloId || dados.moduleId;
+        payload.modulo_id = isUuid(mid) ? mid : null;
+      }
+      if (dados.arquivoUrl !== undefined) payload.arquivo_url = dados.arquivoUrl ? dados.arquivoUrl.trim() : null;
+      if (dados.arquivoNome !== undefined) payload.arquivo_nome = dados.arquivoNome ? normalizeText(dados.arquivoNome) : null;
 
       const { data, error } = await supabase.from("materiais").update(payload).eq("id", id).select().single();
       if (error) {

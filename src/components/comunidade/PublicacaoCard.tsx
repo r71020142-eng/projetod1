@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import Image from "next/image";
 import { PublicacaoComunidade } from "@/types";
 import { TipoPublicacaoBadge, StatusPublicacaoBadge } from "./EspacoBadges";
 import { ComentarioSection } from "./ComentarioSection";
 import { DenunciaModal } from "./DenunciaModal";
 import { ModeracaoModal } from "./ModeracaoModal";
+import { AutorAvatar } from "./AutorAvatar";
 import { comunidadeRepository } from "@/data/api";
 import {
   MessageCircle,
@@ -22,6 +22,7 @@ interface PublicacaoCardProps {
   publicacao: PublicacaoComunidade;
   usuarioAtualId: string;
   usuarioAtualNome: string;
+  usuarioAtualAvatar?: string;
   usuarioAtualPapel: "aluno" | "professor" | "admin";
   permitirComentarios?: boolean;
   isAdmin?: boolean;
@@ -32,6 +33,7 @@ export function PublicacaoCard({
   publicacao,
   usuarioAtualId,
   usuarioAtualNome,
+  usuarioAtualAvatar,
   usuarioAtualPapel,
   permitirComentarios = true,
   isAdmin = false,
@@ -111,21 +113,13 @@ export function PublicacaoCard({
       {/* Header do Card */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 relative">
-            <Image
-              src={
-                publicacao.autorAvatar ||
-                (publicacao.autorPapel === "professor"
-                  ? "/teacher-avatar-hd.png"
-                  : publicacao.autorPapel === "admin"
-                  ? "/teacher-avatar-hd.png"
-                  : "/mariana-avatar.png")
-              }
-              alt={publicacao.autorNome}
-              fill
-              className="object-cover"
-            />
-          </div>
+          <AutorAvatar
+            nome={publicacao.autorNome}
+            avatarUrl={publicacao.autorAvatar}
+            papel={publicacao.autorPapel}
+            size="md"
+            rounded="squircle"
+          />
 
           <div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -312,6 +306,7 @@ export function PublicacaoCard({
           publicacaoId={publicacao.id}
           autorAtualId={usuarioAtualId}
           autorAtualNome={usuarioAtualNome}
+          autorAtualAvatar={usuarioAtualAvatar}
           autorAtualPapel={usuarioAtualPapel}
           permitirComentarios={permitirComentarios}
           isAdmin={isAdmin}

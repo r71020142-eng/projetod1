@@ -19,6 +19,8 @@ import {
   RotateCcw,
   Info,
   Volume2,
+  Download,
+  FileText,
 } from "lucide-react";
 import {
   Material,
@@ -280,6 +282,39 @@ export default function AlunoMaterialDetalhesPage() {
               >
                 <span>Acessar Link Externo</span>
                 <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            </div>
+          )}
+
+          {/* Anexo no Supabase Storage */}
+          {material.arquivoUrl && (
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50/50 to-emerald-50 border border-emerald-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="h-11 w-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                  <FileText className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 text-emerald-950 font-bold text-sm">
+                    Arquivo Didático Anexo
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-200/70 text-emerald-800 uppercase tracking-wider">
+                      Disponível
+                    </span>
+                  </div>
+                  <p className="text-xs text-emerald-800 mt-0.5 font-medium">
+                    {material.arquivoNome || "Material completo para estudo e consulta"}
+                  </p>
+                </div>
+              </div>
+
+              <a
+                href={material.arquivoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-2xs transition-all shrink-0"
+              >
+                <span>Baixar / Visualizar Arquivo</span>
+                <Download className="h-3.5 w-3.5" />
               </a>
             </div>
           )}

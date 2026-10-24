@@ -28,8 +28,14 @@ import {
   ShieldCheck,
   Send,
 } from "lucide-react";
+import { useAdminIdentity } from "@/app/admin/AdminLayoutClient";
 
 export default function AdminComunidadePage() {
+  const identity = useAdminIdentity();
+  const adminId = identity?.id || "660640d2-99fc-46e7-8e12-9ef0d67b60ee";
+  const adminNome = identity?.nomeCompleto || "Ray Pires";
+  const adminAvatar = identity?.avatarUrl || undefined;
+
   const [abaAtiva, setAbaAtiva] = useState<"espacos" | "feed" | "moderacao" | "oportunidades">("espacos");
 
   const [espacos, setEspacos] = useState<EspacoComunidade[]>([]);
@@ -121,7 +127,9 @@ export default function AdminComunidadePage() {
         permitirPublicacaoAluno,
         permitirComentarios,
         status: "ativo",
-        responsavelNome: "Coordenação Pedagógica",
+        responsavelNome: adminNome,
+        criadoPorId: adminId,
+        criadoPorNome: adminNome,
       });
 
       if (res.success) {
@@ -149,9 +157,10 @@ export default function AdminComunidadePage() {
   }) {
     await comunidadeRepository.criarPublicacao({
       espacoId: dados.espacoId,
-      autorId: "adm-001",
-      autorNome: "Coordenação MTD",
+      autorId: adminId,
+      autorNome: adminNome,
       autorPapel: "admin",
+      autorAvatar: adminAvatar,
       tipo: dados.tipo,
       titulo: dados.titulo,
       conteudo: dados.conteudo,
@@ -174,8 +183,8 @@ export default function AdminComunidadePage() {
         den.publicacaoId,
         "ocultar",
         `Denúncia confirmada: ${den.motivo}`,
-        "adm-001",
-        "Coordenação MTD"
+        adminId,
+        adminNome
       );
     }
 
@@ -374,8 +383,9 @@ export default function AdminComunidadePage() {
                 <PublicacaoCard
                   key={pub.id}
                   publicacao={pub}
-                  usuarioAtualId="adm-001"
-                  usuarioAtualNome="Coordenação MTD"
+                  usuarioAtualId={adminId}
+                  usuarioAtualNome={adminNome}
+                  usuarioAtualAvatar={adminAvatar}
                   usuarioAtualPapel="admin"
                   isAdmin={true}
                   onAtualizar={carregarDados}

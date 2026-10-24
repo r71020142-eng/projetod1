@@ -15,8 +15,14 @@ import {
   Archive,
   CheckCircle,
 } from "lucide-react";
+import { useAdminIdentity } from "@/app/admin/AdminLayoutClient";
 
 export default function AdminEspacoDetalhePage() {
+  const identity = useAdminIdentity();
+  const adminId = identity?.id || "660640d2-99fc-46e7-8e12-9ef0d67b60ee";
+  const adminNome = identity?.nomeCompleto || "Ray Pires";
+  const adminAvatar = identity?.avatarUrl || undefined;
+
   const params = useParams();
   const id = params?.id as string;
 
@@ -55,9 +61,10 @@ export default function AdminEspacoDetalhePage() {
   }) {
     await comunidadeRepository.criarPublicacao({
       espacoId: dados.espacoId,
-      autorId: "adm-001",
-      autorNome: "Coordenação MTD",
+      autorId: adminId,
+      autorNome: adminNome,
       autorPapel: "admin",
+      autorAvatar: adminAvatar,
       tipo: dados.tipo,
       titulo: dados.titulo,
       conteudo: dados.conteudo,
@@ -179,8 +186,9 @@ export default function AdminEspacoDetalhePage() {
               <PublicacaoCard
                 key={pub.id}
                 publicacao={pub}
-                usuarioAtualId="adm-001"
-                usuarioAtualNome="Coordenação MTD"
+                usuarioAtualId={adminId}
+                usuarioAtualNome={adminNome}
+                usuarioAtualAvatar={adminAvatar}
                 usuarioAtualPapel="admin"
                 isAdmin={true}
                 onAtualizar={carregar}

@@ -8,6 +8,8 @@ import {
   ExternalLink,
   Edit,
   AlertTriangle,
+  Paperclip,
+  Download,
 } from "lucide-react";
 import {
   Material,
@@ -203,6 +205,30 @@ export default function AdminMaterialDetalhesPage() {
                   >
                     <span>Acessar</span>
                     <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </div>
+              )}
+
+              {material.arquivoUrl && (
+                <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                      <Paperclip className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-emerald-950 block">Arquivo Anexo (Armazenamento Supabase):</span>
+                      <p className="text-xs text-emerald-800 font-medium">{material.arquivoNome || "Baixar arquivo"}</p>
+                    </div>
+                  </div>
+                  <a
+                    href={material.arquivoUrl}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    download
+                    className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shrink-0"
+                  >
+                    <span>Baixar Arquivo</span>
+                    <Download className="h-3.5 w-3.5" />
                   </a>
                 </div>
               )}

@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import Image from "next/image";
 import { ComentarioPublicacao } from "@/types";
 import { comunidadeRepository } from "@/data/api";
 import { Send, AlertTriangle, ShieldAlert } from "lucide-react";
 import { DenunciaModal } from "./DenunciaModal";
 import { ModeracaoModal } from "./ModeracaoModal";
+import { AutorAvatar } from "./AutorAvatar";
 
 interface ComentarioSectionProps {
   publicacaoId: string;
@@ -131,14 +131,13 @@ export function ComentarioSection({
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full overflow-hidden bg-slate-200 shrink-0 relative">
-                    <Image
-                      src={c.autorAvatar || (c.autorPapel === "professor" ? "/teacher-avatar-hd.png" : "/mariana-avatar.png")}
-                      alt={c.autorNome}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
+                  <AutorAvatar
+                    nome={c.autorNome}
+                    avatarUrl={c.autorAvatar}
+                    papel={c.autorPapel}
+                    size="xs"
+                    rounded="full"
+                  />
                   <span className="font-semibold text-slate-900">{c.autorNome}</span>
                   <span className={`text-[10px] px-1.5 py-0.2 rounded font-medium ${
                     c.autorPapel === "professor" ? "bg-purple-100 text-purple-700" : "bg-slate-200 text-slate-600"

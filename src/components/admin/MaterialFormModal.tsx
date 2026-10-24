@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { X, BookOpen, AlertCircle, UploadCloud } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { X, BookOpen, AlertCircle, UploadCloud, CheckCircle2, Trash2, Loader2, Paperclip } from "lucide-react";
 import {
   Material,
   TipoMaterial,
@@ -10,10 +10,13 @@ import {
   DestinoTipo,
   Turma,
   Aluno,
+  Professor,
 } from "@/types";
 import { materialRepository } from "@/data/materialRepository";
 import { turmaRepository } from "@/data/turmaRepository";
 import { alunoRepository } from "@/data/alunoRepository";
+import { professorRepository } from "@/data/professorRepository";
+import { useAdminIdentity } from "@/app/admin/AdminLayoutClient";
 
 interface MaterialFormModalProps {
   isOpen: boolean;
@@ -38,6 +41,9 @@ export function MaterialFormModal({
   onClose,
   onSuccess,
 }: MaterialFormModalProps) {
+  const identity = useAdminIdentity();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [tipo, setTipo] = useState<TipoMaterial>("texto");
@@ -54,6 +60,17 @@ export function MaterialFormModal({
   const [tagsInput, setTagsInput] = useState("");
   const [observacoesInternas, setObservacoesInternas] = useState("");
 
+  // Arquivo no Supabase Storage
+  const [arquivoUrl, setArquivoUrl] = useState("");
+  const [arquivoNome, setArquivoNome] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Responsável / Professor
+  const [professores, setProfessores] = useState<Professor[]>([]);
+  const [autorId, setAutorId] = useState("");
+  const [autorNome, setAutorNome] = useState("");
+
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,6 +81,7 @@ export function MaterialFormModal({
     if (isOpen) {
       turmaRepository.listar().then(setTurmas);
       alunoRepository.listar().then(setAlunos);
+      professorRepository.listar().then(setProfessores);
 
       if (materialParaEditar) {
         setTitulo(materialParaEditar.titulo);
@@ -78,9 +96,13 @@ export function MaterialFormModal({
         setDestinoTipo(materialParaEditar.destinoTipo);
         setDestinoId(materialParaEditar.destinoId || "");
         setLinkExterno(materialParaEditar.linkExterno || "");
+        setArquivoUrl(materialParaEditar.arquivoUrl || "");
+        setArquivoNome(materialParaEditar.arquivoNome || "");
         setConteudoTexto(materialParaEditar.conteudoTexto || "");
         setTagsInput(materialParaEditar.tags ? materialParaEditar.tags.join(", ") : "");
         setObservacoesInternas(materialParaEditar.observacoesInternas || "");
+        setAutorId(materialParaEditar.autorId || "");
+        setAutorNome(materialParaEditar.autorNome || "");
       } else {
         setTitulo("");
         setDescricao("");
@@ -92,15 +114,68 @@ export function MaterialFormModal({
         setDestinoTipo("geral");
         setDestinoId("");
         setLinkExterno("");
+        setArquivoUrl("");
+        setArquivoNome("");
         setConteudoTexto("");
         setTagsInput("");
         setObservacoesInternas("");
+        setAutorId(identity?.id || "660640d2-99fc-46e7-8e12-9ef0d67b60ee");
+        setAutorNome(identity?.nomeCompleto || "Ray Pires (Coordenação MTD)");
       }
       setError(null);
+      setUploadError(null);
       setFieldErrors({});
       setIsSubmitting(false);
+      setIsUploading(false);
     }
-  }, [isOpen, materialParaEditar]);
+  }, [isOpen, materialParaEditar, identity]);
+
+  const handleFileUpload = async (file: File) => {
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/materiais/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Falha ao enviar arquivo.");
+      }
+
+      setArquivoUrl(data.url);
+      setArquivoNome(data.fileName);
+
+      // Auto-seleção amigável de tipo
+      const ext = data.fileName.split(".").pop()?.toLowerCase();
+      if (ext === "pdf") {
+        setTipo("pdf");
+      } else if (["mp3", "wav", "aac", "ogg", "m4a"].includes(ext || "")) {
+        setTipo("audio");
+      } else if (["mp4", "webm", "mov", "avi"].includes(ext || "")) {
+        setTipo("video");
+      } else if (["ppt", "pptx", "key"].includes(ext || "")) {
+        setTipo("documento");
+      }
+    } catch (err: unknown) {
+      console.error("Erro no upload do material:", err);
+      setUploadError(err instanceof Error ? err.message : "Erro ao carregar arquivo no storage.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -115,6 +190,9 @@ export function MaterialFormModal({
       .map((t) => t.trim())
       .filter((t) => t.length > 0);
 
+    const autorIdFinal = autorId || identity?.id || "660640d2-99fc-46e7-8e12-9ef0d67b60ee";
+    const autorNomeFinal = autorNome || identity?.nomeCompleto || "Ray Pires";
+
     const payload: Partial<Material> = {
       titulo,
       descricao,
@@ -126,11 +204,13 @@ export function MaterialFormModal({
       destinoTipo,
       destinoId: destinoTipo === "geral" ? undefined : destinoId,
       linkExterno: linkExterno.trim().length > 0 ? linkExterno.trim() : undefined,
+      arquivoUrl: arquivoUrl.trim().length > 0 ? arquivoUrl.trim() : undefined,
+      arquivoNome: arquivoNome.trim().length > 0 ? arquivoNome.trim() : undefined,
       conteudoTexto: conteudoTexto.trim().length > 0 ? conteudoTexto.trim() : undefined,
       tags,
       observacoesInternas: observacoesInternas.trim().length > 0 ? observacoesInternas.trim() : undefined,
-      autorId: "prof-001", // Demo teacher
-      autorNome: "Lucas Ferreira",
+      autorId: autorIdFinal,
+      autorNome: autorNomeFinal,
     };
 
     try {
@@ -485,16 +565,119 @@ export function MaterialFormModal({
             )}
           </div>
 
-          {/* Visual Upload Dropzone Notice */}
-          <div className="p-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center text-center space-y-1.5">
-            <UploadCloud className="h-6 w-6 text-slate-400" />
-            <p className="text-xs font-semibold text-slate-700">Anexo de Arquivos Locais</p>
-            <p className="text-[11px] text-purple-700 font-medium">
-              Envio de arquivo será habilitado após a configuração do armazenamento.
-            </p>
-            <p className="text-[10px] text-slate-400">
-              Nesta fase demonstrativa, utilize links HTTPS e conteúdos textuais.
-            </p>
+          {/* Autor / Responsável */}
+          <div>
+            <label htmlFor="material-autor" className="block text-xs font-semibold text-slate-700 mb-1">
+              Professor / Responsável pelo Material *
+            </label>
+            <select
+              id="material-autor"
+              value={autorId}
+              onChange={(e) => {
+                const selectedId = e.target.value;
+                setAutorId(selectedId);
+                if (selectedId === (identity?.id || "660640d2-99fc-46e7-8e12-9ef0d67b60ee")) {
+                  setAutorNome(identity?.nomeCompleto || "Ray Pires");
+                } else {
+                  const prof = professores.find((p) => p.id === selectedId);
+                  if (prof) setAutorNome(prof.nomeCompleto);
+                }
+              }}
+              className="w-full px-3 py-2 rounded-xl text-sm border border-slate-200 bg-white focus:border-purple-500 focus:outline-none"
+            >
+              <option value={identity?.id || "660640d2-99fc-46e7-8e12-9ef0d67b60ee"}>
+                {identity?.nomeCompleto || "Ray Pires"} (Administrador / Coordenação)
+              </option>
+              {professores.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nomeCompleto} ({p.email})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Anexo de Arquivo no Supabase Storage */}
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold text-slate-700">
+              Arquivo Anexo (PDF, Áudio, Vídeo, Apresentação ou Imagem)
+            </label>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              accept=".pdf,.mp3,.wav,.m4a,.ogg,.mp4,.mov,.webm,.ppt,.pptx,.doc,.docx,.txt,.png,.jpg,.jpeg"
+            />
+
+            {arquivoUrl ? (
+              <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/60 flex items-center justify-between">
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <div className="h-9 w-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-emerald-950 truncate">{arquivoNome || "Arquivo anexado"}</p>
+                    <a
+                      href={arquivoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-emerald-700 hover:underline flex items-center gap-1"
+                    >
+                      <Paperclip className="h-3 w-3" /> Ver arquivo no Supabase Storage
+                    </a>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setArquivoUrl("");
+                    setArquivoNome("");
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
+                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-white rounded-lg transition-colors"
+                  title="Remover anexo"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div
+                onClick={() => !isUploading && fileInputRef.current?.click()}
+                className={`p-5 rounded-xl border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center text-center space-y-2 ${
+                  isUploading
+                    ? "border-purple-300 bg-purple-50/40 cursor-wait"
+                    : "border-slate-200 hover:border-purple-400 hover:bg-purple-50/20 bg-slate-50/50"
+                }`}
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-7 w-7 text-purple-600 animate-spin" />
+                    <p className="text-xs font-bold text-purple-900">Enviando arquivo para o Supabase Storage...</p>
+                    <p className="text-[11px] text-purple-700">Por favor, aguarde o upload ser concluído.</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="h-10 w-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
+                      <UploadCloud className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-700">
+                        Clique para selecionar um arquivo do seu computador
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        PDF, Áudios (MP3/WAV), Vídeos (MP4), Apresentações ou Imagens até 50MB
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {uploadError && (
+              <p className="text-[11px] text-rose-600 font-medium flex items-center gap-1 mt-1">
+                <AlertCircle className="h-3 w-3" /> {uploadError}
+              </p>
+            )}
           </div>
 
           {/* Text Content */}

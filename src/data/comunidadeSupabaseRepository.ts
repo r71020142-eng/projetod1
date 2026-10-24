@@ -595,6 +595,30 @@ export const comunidadeSupabaseRepository = {
       return { success: false, error: "O comentário deve conter pelo menos 2 caracteres." };
     }
 
+    // Se estiver no navegador, utiliza a API Route dedicada com persistência garantida no Supabase
+    if (typeof window !== "undefined") {
+      try {
+        const res = await fetch("/api/comunidade/comentarios", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            publicacaoId: dados.publicacaoId,
+            autorId: dados.autorId,
+            autorNome: dados.autorNome,
+            autorAvatar: dados.autorAvatar,
+            autorPapel: dados.autorPapel,
+            conteudo: textoComentario,
+          }),
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          return { success: true, data: json.data };
+        }
+      } catch (apiErr) {
+        console.warn("[Comunidade] Fallback para inserção direta no cliente:", apiErr);
+      }
+    }
+
     try {
       const supabase = getSupabase(clientOverride);
       const pub = await this.obterPublicacaoPorId(dados.publicacaoId, false, clientOverride);
