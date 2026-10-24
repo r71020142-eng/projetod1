@@ -36,12 +36,68 @@ import { gamificacaoRepository } from "./gamificacaoRepository";
 
 export async function getAlunoDashboardData(alunoId?: string): Promise<AlunoDashboardData> {
   await new Promise((resolve) => setTimeout(resolve, 10));
-  const data: AlunoDashboardData = JSON.parse(JSON.stringify(MOCK_ALUNO_DATA));
-  const targetAlunoId = alunoId || "alu-001";
+
+  const isProductionOrSupabase =
+    process.env.APP_MODE === "production" ||
+    process.env.DATA_SOURCE === "supabase" ||
+    process.env.NEXT_PUBLIC_DATA_SOURCE === "supabase";
+
+  const isUuid = (id?: string) =>
+    !!id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+  let targetAlunoId = alunoId;
+  if (!targetAlunoId || !isUuid(targetAlunoId)) {
+    if (isProductionOrSupabase) {
+      const primeiroAluno = await alunoRepository
+        .listar()
+        .then((lista) => lista[0])
+        .catch(() => null);
+      targetAlunoId = primeiroAluno?.id || "alu-001";
+    } else {
+      targetAlunoId = "alu-001";
+    }
+  }
+
+  const data: AlunoDashboardData = isProductionOrSupabase
+    ? {
+        aluno: {
+          id: targetAlunoId,
+          name: "Aluno",
+          email: "",
+          avatarUrl: "/mariana-avatar.png",
+          level: "A1",
+          weeklyGoalCompletedHours: 0,
+          weeklyGoalTotalHours: 5,
+          completedActivitiesCount: 0,
+          pendingTasksCount: 0,
+          currentStreakDays: 0,
+        },
+        proximaAula: null,
+        atividadesPendentes: [],
+        evolucaoSemanal: [],
+        conquistasRecentes: [],
+        flashcardsResumo: {
+          totalParaRevisarHoje: 0,
+          revisadosHoje: 0,
+          sequenciaDias: 0,
+          proximaSessaoTexto: "Nenhuma revisão pendente para hoje.",
+        },
+      }
+    : JSON.parse(JSON.stringify(MOCK_ALUNO_DATA));
 
   try {
-    const turmasDoAluno = await turmaRepository.listarPorAluno(targetAlunoId);
+    const [turmasDoAluno, alunoDb] = await Promise.all([
+      turmaRepository.listarPorAluno(targetAlunoId).catch(() => []),
+      alunoRepository.obterPorId(targetAlunoId).catch(() => null),
+    ]);
     const turmaIds = turmasDoAluno.map((t) => t.id);
+
+    if (isProductionOrSupabase && alunoDb) {
+      data.aluno.id = alunoDb.id;
+      data.aluno.name = alunoDb.nomeCompleto.split(" ")[0];
+      data.aluno.email = alunoDb.email;
+      data.aluno.completedActivitiesCount = 0;
+    }
 
     const [proxima, praticaHoje, atividadesRepo, entregasAluno, totalConcluidas, spAtiva] =
       await Promise.all([
@@ -63,6 +119,8 @@ export async function getAlunoDashboardData(alunoId?: string): Promise<AlunoDash
 
     if (totalConcluidas > 0) {
       data.aluno.completedActivitiesCount = totalConcluidas;
+    } else if (isProductionOrSupabase) {
+      data.aluno.completedActivitiesCount = 0;
     }
 
     // Etapa 6: Métricas Reais de Flashcards (SRS)
@@ -72,7 +130,7 @@ export async function getAlunoDashboardData(alunoId?: string): Promise<AlunoDash
       data.flashcardsMetricas = metricasFlashcards;
       data.flashcardsResumo = {
         totalParaRevisarHoje: metricasFlashcards.revisoesHoje,
-        revisadosHoje: 4,
+        revisadosHoje: 0,
         sequenciaDias: metricasFlashcards.sequenciaDias,
         proximaSessaoTexto:
           metricasFlashcards.revisoesHoje > 0
@@ -106,6 +164,8 @@ export async function getAlunoDashboardData(alunoId?: string): Promise<AlunoDash
       });
 
       data.atividadesPendentes = mappedPendentes.slice(0, 5);
+    } else if (isProductionOrSupabase) {
+      data.atividadesPendentes = [];
     }
 
     if (proxima) {
@@ -140,6 +200,8 @@ export async function getAlunoDashboardData(alunoId?: string): Promise<AlunoDash
           ? "Link oficial da sala no Zoom verificado pela coordenação."
           : "Link da aula ainda não disponibilizado.",
       };
+    } else if (isProductionOrSupabase) {
+      data.proximaAula = null;
     }
 
     // Etapa 7: Jornada Real do Aluno e Progresso no Método Paulo
@@ -298,7 +360,56 @@ export async function getAlunoDashboardData(alunoId?: string): Promise<AlunoDash
 
 export async function getAdminDashboardData(): Promise<AdminDashboardData> {
   await new Promise((resolve) => setTimeout(resolve, 10));
-  const data: AdminDashboardData = JSON.parse(JSON.stringify(MOCK_ADMIN_DATA));
+
+  const isProductionOrSupabase =
+    process.env.APP_MODE === "production" ||
+    process.env.DATA_SOURCE === "supabase" ||
+    process.env.NEXT_PUBLIC_DATA_SOURCE === "supabase";
+
+  const data: AdminDashboardData = isProductionOrSupabase
+    ? {
+        mesReferencia: new Date()
+          .toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
+          .replace(/^\w/, (c) => c.toUpperCase()),
+        metricas: [
+          {
+            id: "m-1",
+            label: "Alunos ativos",
+            valor: "0",
+            comparativo: "em relação ao mês anterior",
+            variacao: "+0%",
+            tipo: "alunos",
+          },
+          {
+            id: "m-2",
+            label: "Professores",
+            valor: "0",
+            comparativo: "corpo docente regular",
+            variacao: "+0%",
+            tipo: "professores",
+          },
+          {
+            id: "m-3",
+            label: "Aulas agendadas",
+            valor: "0",
+            comparativo: "turmas e agendamentos",
+            variacao: "+0%",
+            tipo: "aulas",
+          },
+          {
+            id: "m-4",
+            label: "Frequência média",
+            valor: "Sem dados suficientes",
+            comparativo: "frequência auditada",
+            variacao: "+0%",
+            tipo: "conclusao",
+          },
+        ],
+        evolucaoAlunos: [],
+        proximasAulas: [],
+        alunosAtencao: [],
+      }
+    : JSON.parse(JSON.stringify(MOCK_ADMIN_DATA));
 
   try {
     const [
@@ -355,6 +466,18 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
       } else {
         metricConclusao.valor = "Sem dados suficientes";
       }
+    }
+
+    // Evolução de Alunos (baseada nos dados reais em produção)
+    if (isProductionOrSupabase) {
+      data.evolucaoAlunos = totalAlunosAtivos > 0
+        ? [
+            {
+              mes: new Date().toLocaleDateString("pt-BR", { month: "short", year: "numeric" }),
+              alunos: totalAlunosAtivos,
+            },
+          ]
+        : [];
     }
 
     // Etapa 4: Indicadores Pedagógicos
@@ -429,13 +552,13 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
     }
 
     // Proximas Aulas no Admin
-    if (proximasAulasRepo.length > 0) {
+    if (proximasAulasRepo && proximasAulasRepo.length > 0) {
       const turmaMap = new Map(todasTurmas.map((t) => [t.id, t]));
       const alunoMap = new Map(todosAlunos.map((a) => [a.id, a]));
 
       const mappedProximas: AdminProximaAula[] = proximasAulasRepo.map((aula, idx) => {
         const turma = turmaMap.get(aula.turmaId);
-        const primeiroAlunoId = turma?.alunoIds[0];
+        const primeiroAlunoId = turma?.alunoIds?.[0];
         const aluno = primeiroAlunoId ? alunoMap.get(primeiroAlunoId) : null;
 
         const dataObj = new Date(`${aula.data}T${aula.horario}`);
@@ -463,6 +586,8 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
       });
 
       data.proximasAulas = mappedProximas;
+    } else if (isProductionOrSupabase) {
+      data.proximasAulas = [];
     }
   } catch (err) {
     console.warn("Aviso ao sincronizar dados do painel admin:", err);

@@ -1,19 +1,44 @@
 import { createBrowserClient } from "@supabase/ssr";
+import { createClient as createSupabaseJsClient } from "@supabase/supabase-js";
 import { getClientEnv } from "@/lib/env";
 
 /**
- * Cliente Supabase para Client Components (navegador).
+ * Cliente Supabase para Client Components (navegador) e adaptadores unificados.
  *
- * Regras da Etapa 10.1 (Padrão Oficial Supabase):
- * - Utiliza estritamente a URL pública e a Publishable Key pública.
- * - NUNCA recebe ou manipula a SUPABASE_SECRET_KEY.
- * - Se as credenciais estiverem ausentes em modo demonstrativo, retorna cliente desativado
- *   sem quebrar a renderização dos componentes visuais.
+ * Regras de Segurança:
+ * - No navegador (typeof window !== "undefined"), utiliza estritamente a URL pública e a Publishable Key pública via @supabase/ssr.
+ * - NUNCA expõe a SUPABASE_SECRET_KEY no cliente.
+ * - No servidor (typeof window === "undefined"), se SUPABASE_SECRET_KEY estiver configurada,
+ *   permite que chamadas Server-Side (RSC, agregações de dashboard) acessem os dados reais do banco.
  */
 
 let browserClientInstance: ReturnType<typeof createBrowserClient> | null = null;
+let serverSecretClientInstance: ReturnType<typeof createSupabaseJsClient> | null = null;
 
 export function createClient() {
+  // Execução no servidor com chave administrativa para SSR / RSC
+  if (typeof window === "undefined") {
+    /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-require-imports */
+    if (typeof (globalThis as any).WebSocket === "undefined") {
+      try {
+        // Polyfill para Node 20 caso nativo não esteja habilitado
+        (globalThis as any).WebSocket = require("ws");
+      } catch {}
+    }
+    /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-require-imports */
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const secretKey = process.env.SUPABASE_SECRET_KEY;
+    if (supabaseUrl && secretKey) {
+      if (!serverSecretClientInstance) {
+        serverSecretClientInstance = createSupabaseJsClient(supabaseUrl, secretKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        });
+      }
+      return serverSecretClientInstance;
+    }
+  }
+
   const env = getClientEnv();
 
   if (!env.supabaseUrl || !env.supabasePublishableKey) {

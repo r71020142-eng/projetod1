@@ -49,12 +49,12 @@ export default async function AdminDashboardPage() {
   // Contexto para o motor de pendências da coordenação
   const contextoPendencias: ContextoPendenciasAdmin = {
     denunciasPendentesCount,
-    selfPresentationsAguardandoCount: data.selfPresentationsMetricas?.emAvaliacao || 1,
+    selfPresentationsAguardandoCount: data.selfPresentationsMetricas?.emAvaliacao || 0,
     aulasProximasSemZoom,
-    modulosAguardandoValidacaoCount: data.metricasAvaliacoes?.alunosAguardandoValidacao || 1,
-    avaliacoesAguardandoCorrecaoCount: data.metricasAvaliacoes?.tentativasAguardandoCorrecao || 1,
-    entregasAguardandoCorrecaoCount: data.indicadoresPedagogicos?.entregasAguardando || 2,
-    placasAguardandoAnaliseCount: placasPendentesCount || 1,
+    modulosAguardandoValidacaoCount: data.metricasAvaliacoes?.alunosAguardandoValidacao || 0,
+    avaliacoesAguardandoCorrecaoCount: data.metricasAvaliacoes?.tentativasAguardandoCorrecao || 0,
+    entregasAguardandoCorrecaoCount: data.indicadoresPedagogicos?.entregasAguardando || 0,
+    placasAguardandoAnaliseCount: placasPendentesCount || 0,
   };
 
   const pendenciasPrioritarias = calcularPendenciasAdmin(contextoPendencias);
@@ -63,7 +63,7 @@ export default async function AdminDashboardPage() {
     <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in duration-200">
       {/* 1. Primeira Seção: Cabeçalho Executivo */}
       <AdminDashboardHeader
-        userName={identity?.nomeCompleto || "Carla Mendes"}
+        userName={identity?.nomeCompleto || "Coordenação MTD"}
         totalPendencias={pendenciasPrioritarias.length}
         mesReferencia={data.mesReferencia}
       />
@@ -71,7 +71,7 @@ export default async function AdminDashboardPage() {
       {/* 2. Segunda Seção: 4 KPIs Operacionais Essenciais */}
       <AdminKpiGrid
         metricas={data.metricas}
-        totalTurmas={turmasAtivasCount || 4}
+        totalTurmas={turmasAtivasCount}
       />
 
       {/* 3. Terceira Seção: Fila de Ação (7 colunas) e Próximas Aulas (5 colunas) */}

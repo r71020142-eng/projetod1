@@ -12,6 +12,52 @@ interface AdminEvolucaoChartCardProps {
 export function AdminEvolucaoChartCard({ pontos }: AdminEvolucaoChartCardProps) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
+  if (!pontos || pontos.length < 2) {
+    const total = pontos?.[0]?.alunos ?? 0;
+    return (
+      <div className="flex flex-col justify-between h-full bg-white rounded-3xl border border-slate-200/80 p-5 sm:p-6 shadow-xs hover:border-slate-300 transition-all">
+        <div>
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#F0EEFF] text-[#5B4DFC]">
+                <TrendingUp className="w-3.5 h-3.5 text-[#5B4DFC]" />
+                Evolução e adesão
+              </span>
+              <span className="text-xs font-bold text-slate-900 hidden sm:inline">
+                Alunos matriculados
+              </span>
+            </div>
+
+            <span className="text-[11px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
+              Início do acompanhamento
+            </span>
+          </div>
+
+          <div className="h-36 flex flex-col items-center justify-center rounded-2xl bg-slate-50/70 border border-dashed border-slate-200 text-center p-4 my-2">
+            <span className="text-2xl font-black text-slate-900">{total}</span>
+            <p className="text-xs text-slate-600 font-semibold mt-1">
+              {total === 1 ? "1 aluno ativo cadastrado" : `${total} alunos ativos cadastrados`}
+            </p>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              A curva de crescimento será traçada automaticamente conforme os próximos meses de operação.
+            </p>
+          </div>
+        </div>
+
+        <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+          <span className="text-slate-500 text-[11px]">Base ativa auditada</span>
+          <Link
+            href="/admin/alunos"
+            className="inline-flex items-center gap-1 font-bold text-[#5B4DFC] hover:text-[#4a3ecc] transition-colors"
+          >
+            <span>Ver listagem de alunos</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   // Calcula valores proporcionais do SVG
   const maxAlunos = Math.max(...pontos.map((p) => p.alunos), 500);
   const minAlunos = Math.min(...pontos.map((p) => p.alunos), 100);

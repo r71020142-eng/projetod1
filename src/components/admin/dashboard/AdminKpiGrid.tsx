@@ -21,8 +21,8 @@ export function AdminKpiGrid({ metricas, totalTurmas }: AdminKpiGridProps) {
     {
       id: "alunos",
       label: "Alunos ativos",
-      valor: mAlunos?.valor ?? "428",
-      variacao: mAlunos?.variacao ?? "+12%",
+      valor: mAlunos?.valor ?? "0",
+      variacao: mAlunos?.variacao ?? "+0%",
       comparativo: "em relação ao mês anterior",
       icone: Users,
       corIcone: "text-[#5B4DFC] bg-[#F0EEFF] border-[#5B4DFC]/20",
@@ -31,8 +31,8 @@ export function AdminKpiGrid({ metricas, totalTurmas }: AdminKpiGridProps) {
     {
       id: "professores",
       label: "Professores ativos",
-      valor: mProfessores?.valor ?? "32",
-      variacao: mProfessores?.variacao ?? "+7%",
+      valor: mProfessores?.valor ?? "0",
+      variacao: mProfessores?.variacao ?? "+0%",
       comparativo: "corpo docente regular",
       icone: GraduationCap,
       corIcone: "text-blue-600 bg-blue-50 border-blue-200",
@@ -41,8 +41,8 @@ export function AdminKpiGrid({ metricas, totalTurmas }: AdminKpiGridProps) {
     {
       id: "turmas",
       label: totalTurmas !== undefined ? "Turmas ativas" : (mAulas?.label || "Aulas agendadas"),
-      valor: totalTurmas !== undefined ? `${totalTurmas} turmas` : (mAulas?.valor ?? "1.284"),
-      variacao: mAulas?.variacao ?? "+18%",
+      valor: totalTurmas !== undefined ? `${totalTurmas} ${totalTurmas === 1 ? "turma" : "turmas"}` : (mAulas?.valor ?? "0"),
+      variacao: mAulas?.variacao ?? "+0%",
       comparativo: "turmas e agendamentos",
       icone: BookOpen,
       corIcone: "text-indigo-600 bg-indigo-50 border-indigo-200",
@@ -51,8 +51,8 @@ export function AdminKpiGrid({ metricas, totalTurmas }: AdminKpiGridProps) {
     {
       id: "frequencia",
       label: mFrequencia?.label || "Frequência média",
-      valor: mFrequencia?.valor ?? "87%",
-      variacao: mFrequencia?.variacao ?? "+5%",
+      valor: mFrequencia?.valor ?? "Sem dados suficientes",
+      variacao: mFrequencia?.variacao ?? "+0%",
       comparativo: "frequência auditada",
       icone: TrendingUp,
       corIcone: "text-emerald-600 bg-emerald-50 border-emerald-200",

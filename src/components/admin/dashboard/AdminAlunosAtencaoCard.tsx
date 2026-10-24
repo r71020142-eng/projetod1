@@ -31,64 +31,75 @@ export function AdminAlunosAtencaoCard({ alunos }: AdminAlunosAtencaoCardProps) 
           </span>
         </div>
 
-        {/* Lista Compacta de Alunos */}
-        <div className="space-y-2.5 my-1">
-          {alunos.slice(0, 4).map((aluno) => {
-            const isAtrasado = aluno.status.toLowerCase().includes("atrasad");
-            const isAtencao = aluno.status.toLowerCase().includes("atenç");
+        {/* Lista Compacta de Alunos ou Estado Vazio */}
+        {alunos.length === 0 ? (
+          <div className="py-7 px-4 my-2 text-center rounded-2xl bg-slate-50/70 border border-dashed border-slate-200">
+            <p className="text-xs font-bold text-slate-800">
+              Todos os alunos em dia!
+            </p>
+            <p className="text-[11px] text-slate-500 mt-1 max-w-xs mx-auto">
+              Nenhum aluno com pendência pedagógica, baixa frequência ou atraso crítico no momento.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2.5 my-1">
+            {alunos.slice(0, 4).map((aluno) => {
+              const isAtrasado = aluno.status.toLowerCase().includes("atrasad");
+              const isAtencao = aluno.status.toLowerCase().includes("atenç");
 
-            return (
-              <Link
-                key={aluno.id}
-                href="/admin/alunos"
-                className="group flex items-center justify-between gap-3 p-3 rounded-2xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50/70 transition-all"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className="relative w-9 h-9 rounded-xl overflow-hidden shrink-0 border border-slate-200/80 bg-slate-100 shadow-2xs"
-                    style={{ width: 36, height: 36, position: "relative" }}
-                  >
-                    <Image
-                      src={aluno.avatarUrl || "/ana-clara.png"}
-                      alt={aluno.nome}
-                      fill
-                      className="object-cover"
-                      sizes="36px"
-                    />
-                  </div>
-
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold text-slate-900 truncate group-hover:text-[#5B4DFC] transition-colors">
-                      {aluno.nome}
-                    </div>
-                    <div className="text-[11px] text-slate-500 truncate mt-0.5">
-                      {aluno.modulo}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-right shrink-0">
-                  <div className="text-xs font-bold text-slate-800">
-                    {aluno.progresso}%
-                  </div>
-                  <div className="mt-0.5">
-                    <span
-                      className={`inline-block px-1.5 py-0.2 rounded text-[10px] font-bold border ${
-                        isAtrasado
-                          ? "bg-rose-50 text-rose-700 border-rose-200"
-                          : isAtencao
-                          ? "bg-amber-50 text-amber-700 border-amber-200"
-                          : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                      }`}
+              return (
+                <Link
+                  key={aluno.id}
+                  href="/admin/alunos"
+                  className="group flex items-center justify-between gap-3 p-3 rounded-2xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50/70 transition-all"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="relative w-9 h-9 rounded-xl overflow-hidden shrink-0 border border-slate-200/80 bg-slate-100 shadow-2xs"
+                      style={{ width: 36, height: 36, position: "relative" }}
                     >
-                      {aluno.status}
-                    </span>
+                      <Image
+                        src={aluno.avatarUrl || "/ana-clara.png"}
+                        alt={aluno.nome}
+                        fill
+                        className="object-cover"
+                        sizes="36px"
+                      />
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-slate-900 truncate group-hover:text-[#5B4DFC] transition-colors">
+                        {aluno.nome}
+                      </div>
+                      <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                        {aluno.modulo}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+
+                  <div className="text-right shrink-0">
+                    <div className="text-xs font-bold text-slate-800">
+                      {aluno.progresso}%
+                    </div>
+                    <div className="mt-0.5">
+                      <span
+                        className={`inline-block px-1.5 py-0.2 rounded text-[10px] font-bold border ${
+                          isAtrasado
+                            ? "bg-rose-50 text-rose-700 border-rose-200"
+                            : isAtencao
+                            ? "bg-amber-50 text-amber-700 border-amber-200"
+                            : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        }`}
+                      >
+                        {aluno.status}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Rodapé */}

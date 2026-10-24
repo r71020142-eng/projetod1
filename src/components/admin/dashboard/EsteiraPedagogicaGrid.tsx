@@ -42,12 +42,12 @@ export function EsteiraPedagogicaGrid({
       kpis: [
         {
           label: "Em avaliação",
-          valor: selfPresentationsMetricas?.emAvaliacao ?? 1,
+          valor: selfPresentationsMetricas?.emAvaliacao ?? 0,
           alerta: (selfPresentationsMetricas?.emAvaliacao ?? 0) > 0,
         },
         {
           label: "Avaliadas",
-          valor: selfPresentationsMetricas?.avaliadas ?? 4,
+          valor: selfPresentationsMetricas?.avaliadas ?? 0,
           alerta: false,
         },
         {
@@ -67,17 +67,21 @@ export function EsteiraPedagogicaGrid({
       kpis: [
         {
           label: "Em correção",
-          valor: metricasAvaliacoes?.tentativasAguardandoCorrecao ?? 1,
+          valor: metricasAvaliacoes?.tentativasAguardandoCorrecao ?? 0,
           alerta: (metricasAvaliacoes?.tentativasAguardandoCorrecao ?? 0) > 0,
         },
         {
           label: "Aguardando validação",
-          valor: metricasAvaliacoes?.alunosAguardandoValidacao ?? 1,
+          valor: metricasAvaliacoes?.alunosAguardandoValidacao ?? 0,
           alerta: (metricasAvaliacoes?.alunosAguardandoValidacao ?? 0) > 0,
         },
         {
           label: "Média objetivas",
-          valor: metricasAvaliacoes?.mediaAvaliacoesObjetivas !== null ? `${metricasAvaliacoes?.mediaAvaliacoesObjetivas ?? 8.5}` : "—",
+          valor:
+            metricasAvaliacoes?.mediaAvaliacoesObjetivas !== null &&
+            metricasAvaliacoes?.mediaAvaliacoesObjetivas !== undefined
+              ? `${metricasAvaliacoes.mediaAvaliacoesObjetivas}`
+              : "—",
           alerta: false,
         },
       ],
@@ -92,17 +96,17 @@ export function EsteiraPedagogicaGrid({
       kpis: [
         {
           label: "Cartões no acervo",
-          valor: flashcardsMetricas?.totalCartoesAtivos ?? 142,
+          valor: flashcardsMetricas?.totalCartoesAtivos ?? 0,
           alerta: false,
         },
         {
           label: "Revisões realizadas",
-          valor: flashcardsMetricas?.revisoesRealizadas ?? 38,
+          valor: flashcardsMetricas?.revisoesRealizadas ?? 0,
           alerta: false,
         },
         {
           label: "Alunos praticando",
-          valor: flashcardsMetricas?.alunosAtivosRevisando ?? 12,
+          valor: flashcardsMetricas?.alunosAtivosRevisando ?? 0,
           alerta: false,
         },
       ],

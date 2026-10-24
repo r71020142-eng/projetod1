@@ -74,7 +74,7 @@ export interface ConquistaItem {
 
 export interface AlunoDashboardData {
   aluno: AlunoProfile;
-  proximaAula: ProximaAula;
+  proximaAula: ProximaAula | null;
   atividadesPendentes: AtividadePendente[];
   evolucaoSemanal: DiaEvolucao[];
   flashcardsResumo: FlashcardResumo;
