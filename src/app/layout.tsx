@@ -41,7 +41,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Método Paulo • Plataforma Educacional de Inglês",
   description:
-    "Plataforma educacional exclusiva de inglês baseada no Método Paulo. Dashboards demonstrativos para Alunos e Administradores com alta fidelidade visual.",
+    "Plataforma educacional exclusiva de inglês baseada no Método Paulo. Portal completo para Alunos, Professores e Coordenação.",
   applicationName: "Método Paulo",
   manifest: "/manifest.webmanifest",
   appleWebApp: {

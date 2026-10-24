@@ -16,7 +16,7 @@ export default function RootPage() {
       <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-md px-6 lg:px-12 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2 font-bold tracking-tight text-slate-900 text-xl">
-            <span>DEMOSTRATIVO</span>
+            <span>MÉTODO PAULO</span>
             <span className="text-indigo-600 font-extrabold">MTD</span>
           </div>
 
@@ -41,7 +41,7 @@ export default function RootPage() {
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.15]">
           Plataforma Educacional <br />
           <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            DEMOSTRATIVO MTD
+            Método Paulo • MTD
           </span>
         </h1>
 

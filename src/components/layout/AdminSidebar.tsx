@@ -90,7 +90,7 @@ export function AdminSidebar({
             </svg>
             <div className="flex items-center gap-1.5">
               <span className="font-extrabold tracking-tight text-white text-base">
-                DEMOSTRATIVO
+                MÉTODO PAULO
               </span>
               <span className="text-[#6366F1] font-extrabold text-base">
                 MTD

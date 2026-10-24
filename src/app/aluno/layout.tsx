@@ -1,6 +1,5 @@
 import React from "react";
 import { getServerIdentity } from "@/lib/auth/session";
-import { getServerEnv } from "@/lib/env";
 import { redirect } from "next/navigation";
 import { AlunoLayoutClient } from "./AlunoLayoutClient";
 
@@ -35,15 +34,8 @@ export default async function AlunoLayout({
     }
   }
 
-  let isAuthTest = false;
-  try {
-    isAuthTest = getServerEnv().isAuthTestWithLocalData;
-  } catch {
-    // fallback
-  }
-
   return (
-    <AlunoLayoutClient identity={identity} isAuthTest={isAuthTest}>
+    <AlunoLayoutClient identity={identity} isAuthTest={false}>
       {children}
     </AlunoLayoutClient>
   );

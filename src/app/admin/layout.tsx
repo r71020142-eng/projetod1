@@ -1,6 +1,5 @@
 import React from "react";
 import { getServerIdentity } from "@/lib/auth/session";
-import { getServerEnv } from "@/lib/env";
 import { redirect } from "next/navigation";
 import { AdminLayoutClient } from "./AdminLayoutClient";
 
@@ -38,15 +37,8 @@ export default async function AdminLayout({
     redirect("/acesso-negado?motivo=permissao_insuficiente");
   }
 
-  let isAuthTest = false;
-  try {
-    isAuthTest = getServerEnv().isAuthTestWithLocalData;
-  } catch {
-    // fallback
-  }
-
   return (
-    <AdminLayoutClient identity={identity} isAuthTest={isAuthTest}>
+    <AdminLayoutClient identity={identity} isAuthTest={false}>
       {children}
     </AdminLayoutClient>
   );

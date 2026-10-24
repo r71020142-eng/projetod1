@@ -447,7 +447,7 @@ export function getServerEnv(): ServerEnv {
     supabasePublishableKey,
     supabaseSecretKey,
     isDemoClient: appMode === "demo" && authMode === "demo",
-    isAuthTestBannerVisible: isAuthTestWithLocalData,
+    isAuthTestBannerVisible: false,
   };
 }
 
@@ -459,8 +459,6 @@ export function getClientEnv(): ClientEnv {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const supabasePublishableKey =
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
-  const isDemo = process.env.NEXT_PUBLIC_DEMO_MODE !== "false";
-  const isAuthTestBanner = process.env.NEXT_PUBLIC_AUTH_TEST_BANNER === "true";
   const defaultClientDataSource: DataSource =
     (process.env.NEXT_PUBLIC_DATA_SOURCE as DataSource) || "local";
   const coreUsersDataSource: DataSource =
@@ -485,8 +483,8 @@ export function getClientEnv(): ClientEnv {
   return {
     supabaseUrl,
     supabasePublishableKey,
-    isDemoClient: isDemo,
-    isAuthTestBannerVisible: isAuthTestBanner,
+    isDemoClient: false,
+    isAuthTestBannerVisible: false,
     dataSource: defaultClientDataSource,
     coreUsersDataSource,
     academicCoreDataSource,

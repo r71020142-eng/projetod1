@@ -75,7 +75,7 @@ export function AlunoSidebar({ isOpenMobile, onCloseMobile, isRealAuth = false }
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5 leading-none">
                   <span className="font-extrabold tracking-tight text-white text-[15px]">
-                    DEMOSTRATIVO
+                    MÉTODO PAULO
                   </span>
                   <span className="font-extrabold text-[15px] text-white">
                     MTD
