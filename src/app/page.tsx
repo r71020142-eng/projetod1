@@ -146,10 +146,10 @@ export default function RootPage() {
             <div>
               <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 <FileCode className="h-5 w-5 text-indigo-600" />
-                Documentação Técnica da ETAPA 1
+                Documentação e Diretrizes do Sistema
               </h3>
               <p className="text-xs text-slate-500 mt-1">
-                Arquivos normativos criados na raiz do repositório para orientar o projeto.
+                Arquivos normativos e arquiteturais que regem o ecossistema da plataforma.
               </p>
             </div>
             <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700">
@@ -191,7 +191,7 @@ export default function RootPage() {
       {/* Footer */}
       <footer className="border-t border-slate-200/80 bg-white py-6 text-center text-xs text-slate-500">
         <p className="max-w-7xl mx-auto px-6">
-          DEMOSTRATIVO MTD • Plataforma Educacional de Inglês • Método Paulo • ETAPA 1 (Demonstrativa)
+          MÉTODO PAULO MTD • Plataforma Educacional de Inglês • Método Paulo
         </p>
       </footer>
     </div>
