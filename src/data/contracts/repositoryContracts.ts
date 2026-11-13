@@ -96,10 +96,10 @@ export interface IAlunoRepository {
 export interface IProfessorRepository {
   listar(filters?: ProfessorFilters): Promise<Professor[]>;
   obterPorId(id: string): Promise<Professor | null>;
-  criar(dados: Omit<Professor, "id" | "dataCadastro">): Promise<OperationResult<Professor>>;
+  criar(dados: Omit<Professor, "id" | "dataCadastro"> & { senha?: string }): Promise<OperationResult<Professor>>;
   atualizar(
     id: string,
-    dados: Partial<Omit<Professor, "id" | "dataCadastro">>
+    dados: Partial<Omit<Professor, "id" | "dataCadastro">> & { senha?: string }
   ): Promise<OperationResult<Professor>>;
   inativar(id: string): Promise<OperationResult<Professor>>;
   reativar(id: string): Promise<OperationResult<Professor>>;

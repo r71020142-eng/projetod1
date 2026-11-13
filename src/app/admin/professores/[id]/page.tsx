@@ -362,19 +362,6 @@ export default function AdminProfessorDetalhesPage() {
               </p>
             </div>
           </div>
-
-          {/* Account Linking Alert */}
-          <div className="rounded-2xl border border-amber-200/70 bg-amber-50/60 p-4 text-xs text-amber-900 flex items-start gap-3">
-            <Info className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
-            <div>
-              <p className="font-bold text-amber-800">
-                Diretriz de Segurança e Contas de Usuário:
-              </p>
-              <p className="mt-0.5 text-amber-900/90 leading-relaxed text-[11px]">
-                O cadastro de professor registra a identidade docente, porém <strong>não cria automaticamente uma conta de acesso ao sistema nem credenciais de login</strong>. Esta associação ocorrerá de forma segura quando a etapa de Autenticação e RBAC for implantada.
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* Right 1 Col: Live Turmas & Upcoming Classes */}

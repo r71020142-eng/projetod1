@@ -14,7 +14,6 @@ import {
   X,
   CheckCircle2,
   Database,
-  Info,
   AlertTriangle,
 } from "lucide-react";
 import { Professor, StatusCadastro } from "@/types";
@@ -330,14 +329,6 @@ export default function AdminProfessoresPage() {
             <span className="text-lg font-extrabold text-slate-600">{totalInativos}</span>
           </div>
         </div>
-      </div>
-
-      {/* Account Notice Alert */}
-      <div className="rounded-2xl border border-amber-200/70 bg-amber-50/50 p-3.5 text-xs text-amber-900 flex items-start gap-2.5">
-        <Info className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
-        <p className="text-[11px] text-amber-900/90 leading-relaxed">
-          <strong>Aviso de Autenticação:</strong> Cadastrar um professor neste painel registra sua ficha pedagógica na escola, mas <strong>não cria automaticamente uma conta de acesso ao sistema</strong>. A gestão de login e permissões será associada com a implementação do módulo de autenticação (RBAC).
-        </p>
       </div>
 
       {/* Filters Bar */}

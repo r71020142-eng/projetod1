@@ -99,7 +99,7 @@ export const professorSupabaseRepository: IProfessorRepository = {
   },
 
   async criar(
-    dados: Omit<Professor, "id" | "dataCadastro">
+    dados: Omit<Professor, "id" | "dataCadastro"> & { senha?: string }
   ): Promise<OperationResult<Professor>> {
     const validation = validateProfessorInput(dados, undefined, []);
     if (!validation.isValid) {
@@ -108,6 +108,29 @@ export const professorSupabaseRepository: IProfessorRepository = {
         error: "Verifique os campos informados antes de prosseguir.",
         fieldErrors: validation.errors as Record<string, string>,
       };
+    }
+
+    // Se executado no cliente, aciona a API administrativa segura que cria usuário Auth + Professor (RBAC)
+    if (typeof window !== "undefined") {
+      try {
+        const res = await fetch("/api/admin/professores", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(dados),
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          notifyMutation();
+          return { success: true, data: json.data };
+        }
+        return {
+          success: false,
+          error: json.error || "Erro ao cadastrar novo professor no servidor.",
+          fieldErrors: json.fieldErrors,
+        };
+      } catch (apiErr: unknown) {
+        console.warn("[professorSupabaseRepository] Fallback para inserção direta no banco:", apiErr);
+      }
     }
 
     const supabase = getSupabase();
@@ -158,8 +181,31 @@ export const professorSupabaseRepository: IProfessorRepository = {
 
   async atualizar(
     id: string,
-    dados: Partial<Omit<Professor, "id" | "dataCadastro">>
+    dados: Partial<Omit<Professor, "id" | "dataCadastro">> & { senha?: string }
   ): Promise<OperationResult<Professor>> {
+    // Se executado no cliente, aciona a API administrativa segura que sincroniza Auth + Professor (RBAC)
+    if (typeof window !== "undefined") {
+      try {
+        const res = await fetch("/api/admin/professores", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, ...dados }),
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          notifyMutation();
+          return { success: true, data: json.data };
+        }
+        return {
+          success: false,
+          error: json.error || "Erro ao atualizar dados do professor no servidor.",
+          fieldErrors: json.fieldErrors,
+        };
+      } catch (apiErr: unknown) {
+        console.warn("[professorSupabaseRepository] Fallback para atualização direta no banco:", apiErr);
+      }
+    }
+
     const supabase = getSupabase();
 
     const payload: {

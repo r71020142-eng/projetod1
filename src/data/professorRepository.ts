@@ -22,13 +22,13 @@ export const professorRepository: IProfessorRepository = {
     return getProfessorRepository().obterPorId(id);
   },
 
-  criar(dados: Omit<Professor, "id" | "dataCadastro">): Promise<OperationResult<Professor>> {
+  criar(dados: Omit<Professor, "id" | "dataCadastro"> & { senha?: string }): Promise<OperationResult<Professor>> {
     return getProfessorRepository().criar(dados);
   },
 
   atualizar(
     id: string,
-    dados: Partial<Omit<Professor, "id" | "dataCadastro">>
+    dados: Partial<Omit<Professor, "id" | "dataCadastro">> & { senha?: string }
   ): Promise<OperationResult<Professor>> {
     return getProfessorRepository().atualizar(id, dados);
   },
