@@ -534,6 +534,17 @@ export const aulaSupabaseRepository: IAulaRepository = {
     return { success: true, data: atualizada };
   },
 
+  async excluir(id: string): Promise<OperationResult<boolean>> {
+    const supabase = getSupabase();
+    const { error } = await supabase.rpc("excluir_aula_admin", { p_aula_id: id });
+    if (error) {
+      console.error("[Supabase Aulas] Erro ao excluir aula:", error);
+      return { success: false, error: error.message };
+    }
+    notifyMutation();
+    return { success: true, data: true };
+  },
+
   async concluir(id: string, confirmarPendencias = false): Promise<OperationResult<Aula>> {
     const supabase = getSupabase();
     const { error } = await supabase.rpc("concluir_aula", {

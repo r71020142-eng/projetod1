@@ -98,6 +98,14 @@ export const aulaRepository: IAulaRepository & {
     return getAulaRepository().cancelar(id, motivo);
   },
 
+  excluir(id: string): Promise<OperationResult<boolean>> {
+    const repo = getAulaRepository();
+    if (repo.excluir) {
+      return repo.excluir(id);
+    }
+    return aulaLocalStorageRepository.excluir!(id);
+  },
+
   concluir(id: string, confirmarPendencias?: boolean): Promise<OperationResult<Aula>> {
     return getAulaRepository().concluir(id, confirmarPendencias);
   },

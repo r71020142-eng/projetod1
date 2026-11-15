@@ -312,6 +312,38 @@ export const professorSupabaseRepository: IProfessorRepository = {
     return { success: true, data: mapRowToProfessor(data as ProfessorDbRow) };
   },
 
+  async excluir(id: string): Promise<OperationResult<boolean>> {
+    try {
+      if (typeof window !== "undefined") {
+        const res = await fetch(`/api/admin/professores?id=${encodeURIComponent(id)}`, {
+          method: "DELETE",
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) {
+          return {
+            success: false,
+            error: json.error || "Erro ao excluir professor via API administrativa.",
+          };
+        }
+        notifyMutation();
+        return { success: true, data: true };
+      }
+
+      const supabase = getSupabase();
+      const { error } = await supabase.rpc("excluir_professor_admin", { p_professor_id: id });
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      notifyMutation();
+      return { success: true, data: true };
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : "Erro inesperado ao excluir professor.",
+      };
+    }
+  },
+
   async contarAtivos(): Promise<number> {
     const supabase = getSupabase();
     const { count, error } = await supabase

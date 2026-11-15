@@ -257,6 +257,16 @@ export const alunoLocalStorageRepository: IAlunoRepository = {
     return { success: true, data: list[index] };
   },
 
+  async excluir(id: string): Promise<OperationResult<boolean>> {
+    const list = loadFromStorage();
+    const updated = list.filter((a) => a.id !== id);
+    if (updated.length === list.length) {
+      return { success: false, error: "Aluno não encontrado." };
+    }
+    saveToStorage(updated);
+    return { success: true, data: true };
+  },
+
   async atualizarNivel(
     alunoId: string,
     novoNivel: NivelAluno,

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Calendar,
@@ -13,6 +13,7 @@ import {
   Edit2,
   UserX,
   UserCheck,
+  Trash2,
   CheckCircle2,
   AlertCircle,
   Info,
@@ -31,6 +32,7 @@ import { CardAcessoSistema } from "@/components/admin/CardAcessoSistema";
 import { executeWithTimeout } from "@/lib/asyncUtils";
 
 export default function AdminProfessorDetalhesPage() {
+  const router = useRouter();
   const params = useParams();
   const professorId = params.id as string;
 
@@ -44,6 +46,11 @@ export default function AdminProfessorDetalhesPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isConfirmInativarOpen, setIsConfirmInativarOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Exclusao de Professor
+  const [isConfirmExcluirOpen, setIsConfirmExcluirOpen] = useState(false);
+  const [isExcluindo, setIsExcluindo] = useState(false);
+  const [excluirErro, setExcluirErro] = useState<string | null>(null);
 
   // Toast
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -164,6 +171,31 @@ export default function AdminProfessorDetalhesPage() {
     setFeedback("Ficha do professor atualizada com sucesso!");
   };
 
+  const handleExcluirProfessor = async () => {
+    if (!professor || isExcluindo) return;
+    if (professor.email === "r71020142@gmail.com") {
+      alert("A conta r71020142@gmail.com é a conta master de administração e não pode ser excluída.");
+      setIsConfirmExcluirOpen(false);
+      return;
+    }
+    setIsExcluindo(true);
+    setExcluirErro(null);
+
+    try {
+      const res = await professorRepository.excluir(professor.id);
+      if (res.success) {
+        router.push("/admin/professores");
+      } else {
+        setExcluirErro(res.error || "Erro ao excluir professor.");
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro inesperado ao excluir professor.";
+      setExcluirErro(msg);
+    } finally {
+      setIsExcluindo(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-12 text-center text-xs text-slate-400">
@@ -264,6 +296,20 @@ export default function AdminProfessorDetalhesPage() {
             >
               <UserCheck className="h-3.5 w-3.5" />
               <span>Reativar Professor</span>
+            </button>
+          )}
+
+          {professor.email !== "r71020142@gmail.com" && (
+            <button
+              type="button"
+              onClick={() => {
+                setExcluirErro(null);
+                setIsConfirmExcluirOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-rose-300 bg-rose-600 px-3.5 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-rose-700 transition-colors"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              <span>Excluir Professor</span>
             </button>
           )}
         </div>
@@ -534,6 +580,74 @@ export default function AdminProfessorDetalhesPage() {
         onConfirm={handleInativarConfirm}
         onCancel={() => setIsConfirmInativarOpen(false)}
       />
+
+      {/* Delete Confirmation Modal */}
+      {isConfirmExcluirOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 p-6 space-y-4">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="h-10 w-10 rounded-xl bg-rose-50 flex items-center justify-center border border-rose-100">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Excluir Professor</h3>
+                <p className="text-xs text-slate-500">Exclusão administrativa permanente</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-rose-50/50 rounded-xl border border-rose-100 text-xs text-slate-700 space-y-1.5">
+              <p className="font-semibold text-rose-900">
+                Você está prestes a excluir o professor &ldquo;{professor.nomeCompleto}&rdquo; ({professor.email}).
+              </p>
+              <p className="text-rose-700">
+                O docente será desvinculado de todas as turmas e aulas, e suas credenciais de login e perfil de acesso serão removidos permanentemente.
+              </p>
+            </div>
+
+            {excluirErro && (
+              <div className="p-3 bg-rose-100/80 border border-rose-300 rounded-xl text-xs text-rose-800">
+                {excluirErro}
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsConfirmExcluirOpen(false);
+                  setExcluirErro(null);
+                }}
+                disabled={isExcluindo}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleExcluirProfessor}
+                disabled={isExcluindo}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {isExcluindo ? (
+                  <>
+                    <span className="h-3.5 w-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    <span>Excluindo...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>Excluir Professor</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

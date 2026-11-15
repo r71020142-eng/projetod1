@@ -433,3 +433,58 @@ export async function PUT(req: NextRequest) {
     );
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: "ID do professor é obrigatório para exclusão." },
+        { status: 400 }
+      );
+    }
+
+    const admin = getAdminClient();
+    if (!admin) {
+      return NextResponse.json(
+        { success: false, error: "Serviço de administração Supabase não configurado." },
+        { status: 500 }
+      );
+    }
+
+    // Chama a RPC transacional segura excluir_professor_admin
+    const { data: rpcRes, error: rpcErr } = await admin.rpc("excluir_professor_admin", {
+      p_professor_id: id,
+    });
+
+    if (rpcErr) {
+      console.error("[API Admin Professores] Erro na RPC excluir_professor_admin:", rpcErr);
+      return NextResponse.json(
+        { success: false, error: rpcErr.message },
+        { status: 400 }
+      );
+    }
+
+    // Se havia perfil_id associado, remove o usuário também do Supabase Auth
+    if (rpcRes?.perfil_id) {
+      try {
+        await admin.auth.admin.deleteUser(rpcRes.perfil_id);
+      } catch (authDelErr) {
+        console.warn("[API Admin Professores] Aviso ao excluir usuário Auth:", authDelErr);
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Professor "${rpcRes?.nome || id}" excluído com sucesso.`,
+    });
+  } catch (err: unknown) {
+    console.error("[API Admin Professores] Erro ao excluir professor:", err);
+    return NextResponse.json(
+      { success: false, error: err instanceof Error ? err.message : "Erro inesperado ao excluir professor." },
+      { status: 500 }
+    );
+  }
+}

@@ -249,6 +249,16 @@ export const professorLocalStorageRepository: IProfessorRepository = {
     return { success: true, data: list[index] };
   },
 
+  async excluir(id: string): Promise<OperationResult<boolean>> {
+    const list = loadFromStorage();
+    const updated = list.filter((p) => p.id !== id);
+    if (updated.length === list.length) {
+      return { success: false, error: "Professor não encontrado." };
+    }
+    saveToStorage(updated);
+    return { success: true, data: true };
+  },
+
   async contarAtivos(): Promise<number> {
     const list = loadFromStorage();
     return list.filter((p) => p.status === "ativo").length;

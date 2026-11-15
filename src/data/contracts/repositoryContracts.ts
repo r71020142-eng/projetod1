@@ -78,6 +78,7 @@ export interface IAlunoRepository {
   ): Promise<OperationResult<Aluno>>;
   inativar(id: string): Promise<OperationResult<Aluno>>;
   reativar(id: string): Promise<OperationResult<Aluno>>;
+  excluir(id: string): Promise<OperationResult<boolean>>;
   atualizarNivel(
     alunoId: string,
     novoNivel: NivelAluno,
@@ -103,6 +104,7 @@ export interface IProfessorRepository {
   ): Promise<OperationResult<Professor>>;
   inativar(id: string): Promise<OperationResult<Professor>>;
   reativar(id: string): Promise<OperationResult<Professor>>;
+  excluir(id: string): Promise<OperationResult<boolean>>;
   contarAtivos(): Promise<number>;
   contarTotal?(): Promise<number>;
 }
@@ -121,6 +123,7 @@ export interface ITurmaRepository {
   matricularAluno(turmaId: string, alunoId: string, motivo?: string): Promise<OperationResult<Turma>>;
   desmatricularAluno(turmaId: string, alunoId: string, motivo?: string): Promise<OperationResult<Turma>>;
   alterarStatus(turmaId: string, novoStatus: Turma["status"]): Promise<OperationResult<Turma>>;
+  excluir(id: string): Promise<OperationResult<boolean>>;
 }
 
 export interface IAulaRepository {
@@ -147,6 +150,7 @@ export interface IAulaRepository {
     dados: Partial<Omit<Aula, "id" | "dataCadastro">>
   ): Promise<OperationResult<Aula> & { conflitos?: ConflitoHorario[] }>;
   cancelar(id: string, motivo?: string): Promise<OperationResult<Aula>>;
+  excluir(id: string): Promise<OperationResult<boolean>>;
   concluir(id: string, confirmarPendencias?: boolean): Promise<OperationResult<Aula>>;
   registrarPresencas(
     id: string,

@@ -322,4 +322,14 @@ export const turmaLocalStorageRepository: ITurmaRepository = {
     saveToStorage(list);
     return { success: true, data: list[index] };
   },
+
+  async excluir(id: string): Promise<OperationResult<boolean>> {
+    const list = loadFromStorage();
+    const updated = list.filter((t) => t.id !== id);
+    if (updated.length === list.length) {
+      return { success: false, error: "Turma não encontrada." };
+    }
+    saveToStorage(updated);
+    return { success: true, data: true };
+  },
 };

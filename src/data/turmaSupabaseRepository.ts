@@ -520,4 +520,15 @@ export const turmaSupabaseRepository: ITurmaRepository = {
     notifyMutation();
     return { success: true, data: turmaAtualizada };
   },
+
+  async excluir(id: string): Promise<OperationResult<boolean>> {
+    const supabase = getSupabase();
+    const { error } = await supabase.rpc("excluir_turma_admin", { p_turma_id: id });
+    if (error) {
+      console.error("[Supabase Turmas] Erro ao excluir turma:", error);
+      return { success: false, error: error.message };
+    }
+    notifyMutation();
+    return { success: true, data: true };
+  },
 };

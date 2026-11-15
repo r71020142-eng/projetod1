@@ -560,6 +560,18 @@ export const aulaLocalStorageRepository: IAulaRepository = {
     return { success: true, data: aula };
   },
 
+  async excluir(id: string): Promise<OperationResult<boolean>> {
+    const list = loadFromStorage();
+    const index = list.findIndex((a) => a.id === id);
+    if (index === -1) {
+      return { success: false, error: "Aula não encontrada." };
+    }
+
+    list.splice(index, 1);
+    saveToStorage(list);
+    return { success: true, data: true };
+  },
+
   async cancelar(id: string, motivo?: string): Promise<OperationResult<Aula>> {
     const list = loadFromStorage();
     const index = list.findIndex((a) => a.id === id);

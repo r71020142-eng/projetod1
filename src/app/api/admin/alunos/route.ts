@@ -382,3 +382,58 @@ export async function PUT(req: NextRequest) {
     );
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: "ID do aluno é obrigatório para exclusão." },
+        { status: 400 }
+      );
+    }
+
+    const admin = getAdminClient();
+    if (!admin) {
+      return NextResponse.json(
+        { success: false, error: "Serviço de administração Supabase não configurado." },
+        { status: 500 }
+      );
+    }
+
+    // Chama a RPC transacional segura excluir_aluno_admin
+    const { data: rpcRes, error: rpcErr } = await admin.rpc("excluir_aluno_admin", {
+      p_aluno_id: id,
+    });
+
+    if (rpcErr) {
+      console.error("[API Admin Alunos] Erro na RPC excluir_aluno_admin:", rpcErr);
+      return NextResponse.json(
+        { success: false, error: rpcErr.message },
+        { status: 400 }
+      );
+    }
+
+    // Se havia perfil_id associado, remove o usuário também do Supabase Auth
+    if (rpcRes?.perfil_id) {
+      try {
+        await admin.auth.admin.deleteUser(rpcRes.perfil_id);
+      } catch (authDelErr) {
+        console.warn("[API Admin Alunos] Aviso ao excluir usuário Auth:", authDelErr);
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Aluno "${rpcRes?.nome || id}" excluído com sucesso.`,
+    });
+  } catch (err: unknown) {
+    console.error("[API Admin Alunos] Erro ao excluir aluno:", err);
+    return NextResponse.json(
+      { success: false, error: err instanceof Error ? err.message : "Erro inesperado ao excluir aluno." },
+      { status: 500 }
+    );
+  }
+}

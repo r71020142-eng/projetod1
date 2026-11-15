@@ -41,6 +41,14 @@ export const professorRepository: IProfessorRepository = {
     return getProfessorRepository().reativar(id);
   },
 
+  excluir(id: string): Promise<OperationResult<boolean>> {
+    const repo = getProfessorRepository();
+    if (repo.excluir) {
+      return repo.excluir(id);
+    }
+    return professorLocalStorageRepository.excluir!(id);
+  },
+
   contarAtivos(): Promise<number> {
     return getProfessorRepository().contarAtivos();
   },

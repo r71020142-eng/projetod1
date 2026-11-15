@@ -68,4 +68,12 @@ export const turmaRepository: ITurmaRepository = {
   ): Promise<OperationResult<Turma>> {
     return getTurmaRepository().alterarStatus(turmaId, novoStatus);
   },
+
+  excluir(id: string): Promise<OperationResult<boolean>> {
+    const repo = getTurmaRepository();
+    if (repo.excluir) {
+      return repo.excluir(id);
+    }
+    return turmaLocalStorageRepository.excluir!(id);
+  },
 };

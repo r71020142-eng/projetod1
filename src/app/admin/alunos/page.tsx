@@ -11,6 +11,7 @@ import {
   Edit2,
   UserX,
   UserCheck,
+  Trash2,
   X,
   CheckCircle2,
   Database,
@@ -40,6 +41,10 @@ export default function AdminAlunosPage() {
 
   const [alunoParaInativar, setAlunoParaInativar] = useState<Aluno | null>(null);
   const [isConfirmingInativar, setIsConfirmingInativar] = useState(false);
+
+  const [alunoParaExcluir, setAlunoParaExcluir] = useState<Aluno | null>(null);
+  const [isConfirmingExcluir, setIsConfirmingExcluir] = useState(false);
+  const [excluirAlunoErro, setExcluirAlunoErro] = useState<string | null>(null);
 
   // Fonte de dados e validação de divergência
   const isSupabaseActive = getCoreUsersDataSource() === "supabase";
@@ -209,6 +214,36 @@ export default function AdminAlunosPage() {
       console.error("[AdminAlunosPage] Erro ao reativar discente:", err);
       const msg = err instanceof Error ? err.message : "Erro inesperado ao reativar discente.";
       alert(msg);
+    }
+  };
+
+  const handleConfirmarExclusaoAluno = async () => {
+    if (!alunoParaExcluir || isConfirmingExcluir) return;
+
+    if (alunoParaExcluir.email === "homologacao.aluno@escolapaulo.com.br") {
+      alert("A conta homologacao.aluno@escolapaulo.com.br é reservada para homologação do sistema e não pode ser excluída.");
+      setAlunoParaExcluir(null);
+      return;
+    }
+
+    setIsConfirmingExcluir(true);
+    setExcluirAlunoErro(null);
+
+    try {
+      const res = await alunoRepository.excluir(alunoParaExcluir.id);
+      if (res.success) {
+        showToast(`Aluno "${alunoParaExcluir.nomeCompleto}" foi excluído com sucesso!`, "info");
+        setAlunoParaExcluir(null);
+        await carregarAlunos();
+      } else {
+        setExcluirAlunoErro(res.error || "Erro ao excluir discente.");
+      }
+    } catch (err: unknown) {
+      console.error("[AdminAlunosPage] Erro ao excluir discente:", err);
+      const msg = err instanceof Error ? err.message : "Erro inesperado ao excluir discente.";
+      setExcluirAlunoErro(msg);
+    } finally {
+      setIsConfirmingExcluir(false);
     }
   };
 
@@ -583,6 +618,19 @@ export default function AdminAlunosPage() {
                                 <UserCheck className="h-4 w-4" />
                               </button>
                             )}
+                            {aluno.email !== "homologacao.aluno@escolapaulo.com.br" && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setExcluirAlunoErro(null);
+                                  setAlunoParaExcluir(aluno);
+                                }}
+                                title="Excluir Aluno"
+                                className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -694,6 +742,19 @@ export default function AdminAlunosPage() {
                           <span>Reativar</span>
                         </button>
                       )}
+                      {aluno.email !== "homologacao.aluno@escolapaulo.com.br" && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setExcluirAlunoErro(null);
+                            setAlunoParaExcluir(aluno);
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span>Excluir</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -727,6 +788,74 @@ export default function AdminAlunosPage() {
         onConfirm={handleConfirmarInativacao}
         onCancel={() => setAlunoParaInativar(null)}
       />
+
+      {/* Delete Confirmation Modal */}
+      {alunoParaExcluir && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 p-6 space-y-4">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="h-10 w-10 rounded-xl bg-rose-50 flex items-center justify-center border border-rose-100">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Excluir Aluno</h3>
+                <p className="text-xs text-slate-500">Exclusão administrativa permanente</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-rose-50/50 rounded-xl border border-rose-100 text-xs text-slate-700 space-y-1.5">
+              <p className="font-semibold text-rose-900">
+                Você está prestes a excluir o aluno &ldquo;{alunoParaExcluir.nomeCompleto}&rdquo; ({alunoParaExcluir.email}).
+              </p>
+              <p className="text-rose-700">
+                Todas as matrículas em turmas, presenças registradas, acessos e credenciais de login serão removidos permanentemente.
+              </p>
+            </div>
+
+            {excluirAlunoErro && (
+              <div className="p-3 bg-rose-100/80 border border-rose-300 rounded-xl text-xs text-rose-800">
+                {excluirAlunoErro}
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setAlunoParaExcluir(null);
+                  setExcluirAlunoErro(null);
+                }}
+                disabled={isConfirmingExcluir}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmarExclusaoAluno}
+                disabled={isConfirmingExcluir}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {isConfirmingExcluir ? (
+                  <>
+                    <span className="h-3.5 w-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    <span>Excluindo...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>Excluir Aluno</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -41,6 +41,14 @@ export const alunoRepository: IAlunoRepository = {
     return getAlunoRepository().reativar(id);
   },
 
+  excluir(id: string): Promise<OperationResult<boolean>> {
+    const repo = getAlunoRepository();
+    if (repo.excluir) {
+      return repo.excluir(id);
+    }
+    return alunoLocalStorageRepository.excluir!(id);
+  },
+
   atualizarNivel(
     alunoId: string,
     novoNivel: NivelAluno,

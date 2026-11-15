@@ -11,6 +11,7 @@ import {
   Edit2,
   UserX,
   UserCheck,
+  Trash2,
   X,
   CheckCircle2,
   Database,
@@ -38,6 +39,10 @@ export default function AdminProfessoresPage() {
 
   const [professorParaInativar, setProfessorParaInativar] = useState<Professor | null>(null);
   const [isConfirmingInativar, setIsConfirmingInativar] = useState(false);
+
+  const [professorParaExcluir, setProfessorParaExcluir] = useState<Professor | null>(null);
+  const [isConfirmingExcluir, setIsConfirmingExcluir] = useState(false);
+  const [excluirProfessorErro, setExcluirProfessorErro] = useState<string | null>(null);
 
   // Fonte de dados e validação de divergência
   const isSupabaseActive = getCoreUsersDataSource() === "supabase";
@@ -205,6 +210,36 @@ export default function AdminProfessoresPage() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro inesperado ao reativar professor.";
       alert(msg);
+    }
+  };
+
+  const handleConfirmarExclusaoProfessor = async () => {
+    if (!professorParaExcluir || isConfirmingExcluir) return;
+
+    if (professorParaExcluir.email === "r71020142@gmail.com") {
+      alert("A conta r71020142@gmail.com é a conta master de administração e não pode ser excluída.");
+      setProfessorParaExcluir(null);
+      return;
+    }
+
+    setIsConfirmingExcluir(true);
+    setExcluirProfessorErro(null);
+
+    try {
+      const res = await professorRepository.excluir(professorParaExcluir.id);
+      if (res.success) {
+        showToast(`Professor "${professorParaExcluir.nomeCompleto}" foi excluído com sucesso!`, "info");
+        setProfessorParaExcluir(null);
+        await carregarProfessores();
+      } else {
+        setExcluirProfessorErro(res.error || "Erro ao excluir professor.");
+      }
+    } catch (err: unknown) {
+      console.error("[AdminProfessoresPage] Erro ao excluir docente:", err);
+      const msg = err instanceof Error ? err.message : "Erro inesperado ao excluir professor.";
+      setExcluirProfessorErro(msg);
+    } finally {
+      setIsConfirmingExcluir(false);
     }
   };
 
@@ -563,6 +598,19 @@ export default function AdminProfessoresPage() {
                                 <UserCheck className="h-4 w-4" />
                               </button>
                             )}
+                            {prof.email !== "r71020142@gmail.com" && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setExcluirProfessorErro(null);
+                                  setProfessorParaExcluir(prof);
+                                }}
+                                title="Excluir Professor"
+                                className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -676,6 +724,19 @@ export default function AdminProfessoresPage() {
                             <span>Reativar</span>
                           </button>
                         )}
+                        {prof.email !== "r71020142@gmail.com" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setExcluirProfessorErro(null);
+                              setProfessorParaExcluir(prof);
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            <span>Excluir</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -710,6 +771,74 @@ export default function AdminProfessoresPage() {
         onConfirm={handleConfirmarInativacao}
         onCancel={() => setProfessorParaInativar(null)}
       />
+
+      {/* Delete Confirmation Modal */}
+      {professorParaExcluir && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 p-6 space-y-4">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="h-10 w-10 rounded-xl bg-rose-50 flex items-center justify-center border border-rose-100">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Excluir Professor</h3>
+                <p className="text-xs text-slate-500">Exclusão administrativa permanente</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-rose-50/50 rounded-xl border border-rose-100 text-xs text-slate-700 space-y-1.5">
+              <p className="font-semibold text-rose-900">
+                Você está prestes a excluir o professor &ldquo;{professorParaExcluir.nomeCompleto}&rdquo; ({professorParaExcluir.email}).
+              </p>
+              <p className="text-rose-700">
+                O vínculo de docência com turmas e aulas será desvinculado e as credenciais de acesso ao painel serão removidas permanentemente.
+              </p>
+            </div>
+
+            {excluirProfessorErro && (
+              <div className="p-3 bg-rose-100/80 border border-rose-300 rounded-xl text-xs text-rose-800">
+                {excluirProfessorErro}
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setProfessorParaExcluir(null);
+                  setExcluirProfessorErro(null);
+                }}
+                disabled={isConfirmingExcluir}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmarExclusaoProfessor}
+                disabled={isConfirmingExcluir}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {isConfirmingExcluir ? (
+                  <>
+                    <span className="h-3.5 w-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    <span>Excluindo...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>Excluir Professor</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

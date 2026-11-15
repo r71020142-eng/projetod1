@@ -371,6 +371,38 @@ export const alunoSupabaseRepository: IAlunoRepository = {
     return { success: true, data: mapRowToAluno(data as AlunoDbRow) };
   },
 
+  async excluir(id: string): Promise<OperationResult<boolean>> {
+    try {
+      if (typeof window !== "undefined") {
+        const res = await fetch(`/api/admin/alunos?id=${encodeURIComponent(id)}`, {
+          method: "DELETE",
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) {
+          return {
+            success: false,
+            error: json.error || "Erro ao excluir aluno via API administrativa.",
+          };
+        }
+        notifyMutation();
+        return { success: true, data: true };
+      }
+
+      const supabase = getSupabase();
+      const { error } = await supabase.rpc("excluir_aluno_admin", { p_aluno_id: id });
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      notifyMutation();
+      return { success: true, data: true };
+    } catch (err: unknown) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : "Erro inesperado ao excluir aluno.",
+      };
+    }
+  },
+
   async atualizarNivel(
     alunoId: string,
     novoNivel: NivelAluno,
