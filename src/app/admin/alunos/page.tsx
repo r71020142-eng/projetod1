@@ -620,9 +620,15 @@ export default function AdminAlunosPage() {
                               >
                                 {aluno.nomeCompleto}
                               </Link>
-                              <span className="text-[11px] text-slate-400 truncate block">
-                                {aluno.email}
-                              </span>
+                              <div className="flex items-center gap-1.5 text-[11px] text-slate-400 truncate">
+                                <span>{aluno.email}</span>
+                                {aluno.profissao && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="text-slate-500 font-medium truncate">{aluno.profissao}</span>
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </td>
@@ -781,9 +787,15 @@ export default function AdminAlunosPage() {
                           >
                             {aluno.nomeCompleto}
                           </Link>
-                          <span className="text-[11px] text-slate-400 truncate block">
-                            {aluno.email}
-                          </span>
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 truncate">
+                            <span>{aluno.email}</span>
+                            {aluno.profissao && (
+                              <>
+                                <span>•</span>
+                                <span className="text-slate-500 font-medium truncate">{aluno.profissao}</span>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
 

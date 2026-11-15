@@ -21,6 +21,8 @@ import {
   Info,
   TrendingUp,
   ArrowRight,
+  GraduationCap,
+  Sparkles,
 } from "lucide-react";
 import {
   Aluno,
@@ -460,6 +462,107 @@ export default function AdminAlunoDetalhesPage() {
               <p className="text-xs text-slate-600 leading-relaxed pt-1 whitespace-pre-wrap">
                 {aluno.observacoesPedagogicas || "Nenhuma anotação pedagógica adicional cadastrada para este aluno."}
               </p>
+            </div>
+          </div>
+
+          {/* Card: Background do Aluno (Visível para Professores e Coordenação) */}
+          <div className="rounded-2xl border border-indigo-100 bg-white p-5 sm:p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="rounded-xl bg-indigo-50 p-2 text-indigo-600">
+                  <GraduationCap className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900">Background do Aluno</h3>
+                  <p className="text-xs text-slate-500">
+                    Informações contextuais, histórico pessoal e profissional visíveis para os professores.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                <Edit2 className="h-3.5 w-3.5 text-slate-500" />
+                <span>Editar Background</span>
+              </button>
+            </div>
+
+            {/* Quick Badges / Metrics Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-xs">
+              <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100">
+                <span className="text-slate-400 block text-[11px] font-medium">Idade</span>
+                <span className="font-bold text-slate-900 mt-0.5 block">
+                  {aluno.idade ? `${aluno.idade} anos` : "Não informada"}
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100">
+                <span className="text-slate-400 block text-[11px] font-medium">Data de Nascimento</span>
+                <span className="font-bold text-slate-900 mt-0.5 block">
+                  {aluno.dataNascimento
+                    ? new Date(aluno.dataNascimento + "T00:00:00").toLocaleDateString("pt-BR")
+                    : "Não informada"}
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100">
+                <span className="text-slate-400 block text-[11px] font-medium">Nacionalidade</span>
+                <span className="font-bold text-slate-900 mt-0.5 block">
+                  {aluno.nacionalidade || "Não informada"}
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100">
+                <span className="text-slate-400 block text-[11px] font-medium">Profissão</span>
+                <span className="font-bold text-slate-900 mt-0.5 block">
+                  {aluno.profissao || "Não informada"}
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100 col-span-2 sm:col-span-1">
+                <span className="text-slate-400 block text-[11px] font-medium">Nível Escolar</span>
+                <span className="font-bold text-slate-900 mt-0.5 block">
+                  {aluno.nivelEscolar || "Não informado"}
+                </span>
+              </div>
+            </div>
+
+            {/* Narrative sections: Sobre o Aluno, Interesses, Biografia */}
+            <div className="space-y-3 pt-1">
+              {/* Sobre o Aluno */}
+              <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                  <UserCheck className="h-4 w-4 text-indigo-600" />
+                  <span>Sobre o Aluno</span>
+                </div>
+                <p className="text-xs text-slate-700 leading-relaxed pt-0.5 whitespace-pre-wrap">
+                  {aluno.sobreAluno || "Nenhum detalhe adicional sobre a rotina ou perfil do aluno informado."}
+                </p>
+              </div>
+
+              {/* Interesses do Aluno */}
+              <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                  <Sparkles className="h-4 w-4 text-amber-500" />
+                  <span>Interesses do Aluno</span>
+                </div>
+                <p className="text-xs text-slate-700 leading-relaxed pt-0.5">
+                  {aluno.interesses || "Nenhum interesse informado."}
+                </p>
+              </div>
+
+              {/* Biografia */}
+              <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                  <BookOpen className="h-4 w-4 text-purple-600" />
+                  <span>Biografia</span>
+                </div>
+                <p className="text-xs text-slate-700 leading-relaxed pt-0.5 whitespace-pre-wrap">
+                  {aluno.biografia || "Nenhuma biografia informada."}
+                </p>
+              </div>
             </div>
           </div>
 

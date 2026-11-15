@@ -14,6 +14,14 @@ interface AlunoDbRow {
   nivel_operacional: string;
   status: string;
   avatar_url: string | null;
+  idade?: number | null;
+  data_nascimento?: string | null;
+  nivel_escolar?: string | null;
+  profissao?: string | null;
+  nacionalidade?: string | null;
+  sobre_aluno?: string | null;
+  interesses?: string | null;
+  biografia?: string | null;
   created_at: string;
   updated_at: string;
   alunos_dados_pedagogicos?:
@@ -57,6 +65,14 @@ function mapRowToAluno(row: AlunoDbRow, overrideObservacoes?: string): Aluno {
     dataCadastro: row.created_at,
     observacoesPedagogicas: observacoes,
     avatarUrl: row.avatar_url || undefined,
+    idade: row.idade ?? undefined,
+    dataNascimento: row.data_nascimento || undefined,
+    nivelEscolar: row.nivel_escolar || undefined,
+    profissao: row.profissao || undefined,
+    nacionalidade: row.nacionalidade || undefined,
+    sobreAluno: row.sobre_aluno || undefined,
+    interesses: row.interesses || undefined,
+    biografia: row.biografia || undefined,
   };
 }
 
@@ -170,6 +186,14 @@ export const alunoSupabaseRepository: IAlunoRepository = {
         nivel_operacional: dados.nivel || "nao_avaliado",
         status: dados.status || "ativo",
         avatar_url: dados.avatarUrl || null,
+        idade: dados.idade !== undefined && dados.idade !== null && !isNaN(Number(dados.idade)) ? Number(dados.idade) : null,
+        data_nascimento: dados.dataNascimento ? dados.dataNascimento.trim() : null,
+        nivel_escolar: dados.nivelEscolar ? normalizeText(dados.nivelEscolar) : null,
+        profissao: dados.profissao ? normalizeText(dados.profissao) : null,
+        nacionalidade: dados.nacionalidade ? normalizeText(dados.nacionalidade) : null,
+        sobre_aluno: dados.sobreAluno ? normalizeText(dados.sobreAluno) : null,
+        interesses: dados.interesses ? normalizeText(dados.interesses) : null,
+        biografia: dados.biografia ? normalizeText(dados.biografia) : null,
       })
       .select()
       .single();
@@ -255,6 +279,14 @@ export const alunoSupabaseRepository: IAlunoRepository = {
       nivel_operacional?: string;
       status?: string;
       avatar_url?: string | null;
+      idade?: number | null;
+      data_nascimento?: string | null;
+      nivel_escolar?: string | null;
+      profissao?: string | null;
+      nacionalidade?: string | null;
+      sobre_aluno?: string | null;
+      interesses?: string | null;
+      biografia?: string | null;
     } = {};
     if (dados.nomeCompleto !== undefined) {
       payload.nome_completo = normalizeText(dados.nomeCompleto);
@@ -276,6 +308,30 @@ export const alunoSupabaseRepository: IAlunoRepository = {
     }
     if (dados.avatarUrl !== undefined) {
       payload.avatar_url = dados.avatarUrl || null;
+    }
+    if (dados.idade !== undefined) {
+      payload.idade = dados.idade !== null && !isNaN(Number(dados.idade)) ? Number(dados.idade) : null;
+    }
+    if (dados.dataNascimento !== undefined) {
+      payload.data_nascimento = dados.dataNascimento ? dados.dataNascimento.trim() : null;
+    }
+    if (dados.nivelEscolar !== undefined) {
+      payload.nivel_escolar = dados.nivelEscolar ? normalizeText(dados.nivelEscolar) : null;
+    }
+    if (dados.profissao !== undefined) {
+      payload.profissao = dados.profissao ? normalizeText(dados.profissao) : null;
+    }
+    if (dados.nacionalidade !== undefined) {
+      payload.nacionalidade = dados.nacionalidade ? normalizeText(dados.nacionalidade) : null;
+    }
+    if (dados.sobreAluno !== undefined) {
+      payload.sobre_aluno = dados.sobreAluno ? normalizeText(dados.sobreAluno) : null;
+    }
+    if (dados.interesses !== undefined) {
+      payload.interesses = dados.interesses ? normalizeText(dados.interesses) : null;
+    }
+    if (dados.biografia !== undefined) {
+      payload.biografia = dados.biografia ? normalizeText(dados.biografia) : null;
     }
 
     const { data: updated, error: updateError } = await supabase

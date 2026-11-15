@@ -145,6 +145,14 @@ export const alunoLocalStorageRepository: IAlunoRepository = {
       observacoesPedagogicas: dados.observacoesPedagogicas
         ? normalizeText(dados.observacoesPedagogicas)
         : undefined,
+      idade: dados.idade !== undefined && dados.idade !== null && !isNaN(Number(dados.idade)) ? Number(dados.idade) : undefined,
+      dataNascimento: dados.dataNascimento ? dados.dataNascimento.trim() : undefined,
+      nivelEscolar: dados.nivelEscolar ? normalizeText(dados.nivelEscolar) : undefined,
+      profissao: dados.profissao ? normalizeText(dados.profissao) : undefined,
+      nacionalidade: dados.nacionalidade ? normalizeText(dados.nacionalidade) : undefined,
+      sobreAluno: dados.sobreAluno ? normalizeText(dados.sobreAluno) : undefined,
+      interesses: dados.interesses ? normalizeText(dados.interesses) : undefined,
+      biografia: dados.biografia ? normalizeText(dados.biografia) : undefined,
     };
 
     const updatedList = [novoAluno, ...list];
@@ -203,6 +211,14 @@ export const alunoLocalStorageRepository: IAlunoRepository = {
       observacoesPedagogicas: merged.observacoesPedagogicas
         ? normalizeText(merged.observacoesPedagogicas)
         : undefined,
+      idade: merged.idade !== undefined && merged.idade !== null && !isNaN(Number(merged.idade)) ? Number(merged.idade) : undefined,
+      dataNascimento: merged.dataNascimento ? merged.dataNascimento.trim() : undefined,
+      nivelEscolar: merged.nivelEscolar ? normalizeText(merged.nivelEscolar) : undefined,
+      profissao: merged.profissao ? normalizeText(merged.profissao) : undefined,
+      nacionalidade: merged.nacionalidade ? normalizeText(merged.nacionalidade) : undefined,
+      sobreAluno: merged.sobreAluno ? normalizeText(merged.sobreAluno) : undefined,
+      interesses: merged.interesses ? normalizeText(merged.interesses) : undefined,
+      biografia: merged.biografia ? normalizeText(merged.biografia) : undefined,
     };
 
     list[index] = updatedAluno;

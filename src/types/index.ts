@@ -175,6 +175,16 @@ export interface Aluno {
   dataCadastro: string; // ISO 8601
   observacoesPedagogicas?: string;
   avatarUrl?: string;
+
+  // Background do Aluno (Campos Opcionais)
+  idade?: number;
+  dataNascimento?: string; // YYYY-MM-DD
+  nivelEscolar?: string;
+  profissao?: string;
+  nacionalidade?: string;
+  sobreAluno?: string;
+  interesses?: string;
+  biografia?: string;
 }
 
 export interface Professor {

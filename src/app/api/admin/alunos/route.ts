@@ -67,6 +67,14 @@ export async function POST(req: NextRequest) {
       nivel,
       status,
       observacoesPedagogicas,
+      idade,
+      dataNascimento,
+      nivelEscolar,
+      profissao,
+      nacionalidade,
+      sobreAluno,
+      interesses,
+      biografia,
     } = body;
 
     // Validações básicas
@@ -160,6 +168,14 @@ export async function POST(req: NextRequest) {
         objetivo: objetivoIngles ? String(objetivoIngles).trim() : "Geral",
         nivel_operacional: nivel || "nao_avaliado",
         status: status || "ativo",
+        idade: idade !== undefined && idade !== null && String(idade).trim() !== "" && !isNaN(Number(idade)) ? Number(idade) : null,
+        data_nascimento: dataNascimento && String(dataNascimento).trim() ? String(dataNascimento).trim() : null,
+        nivel_escolar: nivelEscolar && String(nivelEscolar).trim() ? String(nivelEscolar).trim() : null,
+        profissao: profissao && String(profissao).trim() ? String(profissao).trim() : null,
+        nacionalidade: nacionalidade && String(nacionalidade).trim() ? String(nacionalidade).trim() : null,
+        sobre_aluno: sobreAluno && String(sobreAluno).trim() ? String(sobreAluno).trim() : null,
+        interesses: interesses && String(interesses).trim() ? String(interesses).trim() : null,
+        biografia: biografia && String(biografia).trim() ? String(biografia).trim() : null,
       })
       .select()
       .single();
@@ -218,6 +234,14 @@ export async function POST(req: NextRequest) {
         status: novoAluno.status,
         avatarUrl: novoAluno.avatar_url || undefined,
         observacoesPedagogicas: observacoesPedagogicas ? String(observacoesPedagogicas).trim() : undefined,
+        idade: novoAluno.idade ?? undefined,
+        dataNascimento: novoAluno.data_nascimento || undefined,
+        nivelEscolar: novoAluno.nivel_escolar || undefined,
+        profissao: novoAluno.profissao || undefined,
+        nacionalidade: novoAluno.nacionalidade || undefined,
+        sobreAluno: novoAluno.sobre_aluno || undefined,
+        interesses: novoAluno.interesses || undefined,
+        biografia: novoAluno.biografia || undefined,
         dataCadastro: novoAluno.created_at,
       },
     });
@@ -247,6 +271,14 @@ export async function PUT(req: NextRequest) {
       nivel,
       status,
       observacoesPedagogicas,
+      idade,
+      dataNascimento,
+      nivelEscolar,
+      profissao,
+      nacionalidade,
+      sobreAluno,
+      interesses,
+      biografia,
     } = body;
 
     if (!id) {
@@ -314,6 +346,30 @@ export async function PUT(req: NextRequest) {
     if (nivel !== undefined) payloadUpdate.nivel_operacional = nivel;
     if (status !== undefined) payloadUpdate.status = status;
     if (authUserId) payloadUpdate.perfil_id = authUserId;
+    if (idade !== undefined) {
+      payloadUpdate.idade = idade !== null && String(idade).trim() !== "" && !isNaN(Number(idade)) ? Number(idade) : null;
+    }
+    if (dataNascimento !== undefined) {
+      payloadUpdate.data_nascimento = dataNascimento && String(dataNascimento).trim() ? String(dataNascimento).trim() : null;
+    }
+    if (nivelEscolar !== undefined) {
+      payloadUpdate.nivel_escolar = nivelEscolar && String(nivelEscolar).trim() ? String(nivelEscolar).trim() : null;
+    }
+    if (profissao !== undefined) {
+      payloadUpdate.profissao = profissao && String(profissao).trim() ? String(profissao).trim() : null;
+    }
+    if (nacionalidade !== undefined) {
+      payloadUpdate.nacionalidade = nacionalidade && String(nacionalidade).trim() ? String(nacionalidade).trim() : null;
+    }
+    if (sobreAluno !== undefined) {
+      payloadUpdate.sobre_aluno = sobreAluno && String(sobreAluno).trim() ? String(sobreAluno).trim() : null;
+    }
+    if (interesses !== undefined) {
+      payloadUpdate.interesses = interesses && String(interesses).trim() ? String(interesses).trim() : null;
+    }
+    if (biografia !== undefined) {
+      payloadUpdate.biografia = biografia && String(biografia).trim() ? String(biografia).trim() : null;
+    }
 
     const { data: alunoAtualizado, error: updateErr } = await admin
       .from("alunos")
@@ -371,6 +427,14 @@ export async function PUT(req: NextRequest) {
         status: alunoAtualizado.status,
         avatarUrl: alunoAtualizado.avatar_url || undefined,
         observacoesPedagogicas: observacoesPedagogicas ? String(observacoesPedagogicas).trim() : undefined,
+        idade: alunoAtualizado.idade ?? undefined,
+        dataNascimento: alunoAtualizado.data_nascimento || undefined,
+        nivelEscolar: alunoAtualizado.nivel_escolar || undefined,
+        profissao: alunoAtualizado.profissao || undefined,
+        nacionalidade: alunoAtualizado.nacionalidade || undefined,
+        sobreAluno: alunoAtualizado.sobre_aluno || undefined,
+        interesses: alunoAtualizado.interesses || undefined,
+        biografia: alunoAtualizado.biografia || undefined,
         dataCadastro: alunoAtualizado.created_at,
       },
     });

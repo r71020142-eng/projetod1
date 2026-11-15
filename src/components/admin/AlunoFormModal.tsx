@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { X, AlertCircle, Info, CheckCircle2, Key, Eye, EyeOff } from "lucide-react";
+import { X, AlertCircle, Info, CheckCircle2, Key, Eye, EyeOff, GraduationCap } from "lucide-react";
 import { Aluno, NivelAluno, StatusCadastro } from "@/types";
 import { alunoRepository } from "@/data/alunoRepository";
 import { FormPersistenceNotice } from "@/components/common/FormPersistenceNotice";
@@ -31,6 +31,14 @@ export function AlunoFormModal({
     nivel: "nao_avaliado" as NivelAluno,
     status: "ativo" as StatusCadastro,
     observacoesPedagogicas: "",
+    idade: "",
+    dataNascimento: "",
+    nivelEscolar: "",
+    profissao: "",
+    nacionalidade: "",
+    sobreAluno: "",
+    interesses: "",
+    biografia: "",
   });
 
   const [senha, setSenha] = useState("");
@@ -72,6 +80,14 @@ export function AlunoFormModal({
           nivel: alunoParaEditar.nivel,
           status: alunoParaEditar.status,
           observacoesPedagogicas: alunoParaEditar.observacoesPedagogicas || "",
+          idade: alunoParaEditar.idade !== undefined && alunoParaEditar.idade !== null ? String(alunoParaEditar.idade) : "",
+          dataNascimento: alunoParaEditar.dataNascimento || "",
+          nivelEscolar: alunoParaEditar.nivelEscolar || "",
+          profissao: alunoParaEditar.profissao || "",
+          nacionalidade: alunoParaEditar.nacionalidade || "",
+          sobreAluno: alunoParaEditar.sobreAluno || "",
+          interesses: alunoParaEditar.interesses || "",
+          biografia: alunoParaEditar.biografia || "",
         });
       } else {
         setFormData({
@@ -82,6 +98,14 @@ export function AlunoFormModal({
           nivel: "nao_avaliado",
           status: "ativo",
           observacoesPedagogicas: "",
+          idade: "",
+          dataNascimento: "",
+          nivelEscolar: "",
+          profissao: "",
+          nacionalidade: "",
+          sobreAluno: "",
+          interesses: "",
+          biografia: "",
         });
       }
     }
@@ -149,6 +173,9 @@ export function AlunoFormModal({
     setIsSubmitting(true);
     setGeneralError(null);
 
+    const parsedIdade = formData.idade.trim() ? parseInt(formData.idade.trim(), 10) : undefined;
+    const cleanIdade = parsedIdade !== undefined && !isNaN(parsedIdade) ? parsedIdade : undefined;
+
     try {
       if (isEditing && alunoParaEditar) {
         const res = await executeWithTimeout(
@@ -161,6 +188,14 @@ export function AlunoFormModal({
             status: formData.status,
             observacoesPedagogicas: formData.observacoesPedagogicas || undefined,
             senha: senha.trim() || undefined,
+            idade: cleanIdade,
+            dataNascimento: formData.dataNascimento.trim() || undefined,
+            nivelEscolar: formData.nivelEscolar.trim() || undefined,
+            profissao: formData.profissao.trim() || undefined,
+            nacionalidade: formData.nacionalidade.trim() || undefined,
+            sobreAluno: formData.sobreAluno.trim() || undefined,
+            interesses: formData.interesses.trim() || undefined,
+            biografia: formData.biografia.trim() || undefined,
           })
         );
 
@@ -190,6 +225,14 @@ export function AlunoFormModal({
             status: formData.status,
             observacoesPedagogicas: formData.observacoesPedagogicas || undefined,
             senha: senha.trim() || undefined,
+            idade: cleanIdade,
+            dataNascimento: formData.dataNascimento.trim() || undefined,
+            nivelEscolar: formData.nivelEscolar.trim() || undefined,
+            profissao: formData.profissao.trim() || undefined,
+            nacionalidade: formData.nacionalidade.trim() || undefined,
+            sobreAluno: formData.sobreAluno.trim() || undefined,
+            interesses: formData.interesses.trim() || undefined,
+            biografia: formData.biografia.trim() || undefined,
           })
         );
 
@@ -561,6 +604,145 @@ export function AlunoFormModal({
               onChange={(e) => handleChange("observacoesPedagogicas", e.target.value)}
               className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
             />
+          </div>
+
+          {/* Seção: Background do Aluno (Campos Opcionais) */}
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="rounded-lg bg-indigo-600 p-1.5 text-white shadow-xs">
+                <GraduationCap className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-slate-900">
+                  Background do Aluno <span className="text-slate-400 font-normal text-[11px]">(Campos Opcionais)</span>
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Informações contextuais que ficarão visíveis para os professores para personalizar as aulas.
+                </p>
+              </div>
+            </div>
+
+            {/* Grid 1: Idade, Data de Nascimento e Nacionalidade */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label htmlFor="idade" className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  Idade
+                </label>
+                <input
+                  id="idade"
+                  type="number"
+                  min="1"
+                  max="120"
+                  placeholder="Ex.: 28"
+                  value={formData.idade}
+                  onChange={(e) => handleChange("idade", e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="dataNascimento" className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  Data de Nascimento
+                </label>
+                <input
+                  id="dataNascimento"
+                  type="date"
+                  value={formData.dataNascimento}
+                  onChange={(e) => handleChange("dataNascimento", e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="nacionalidade" className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  Nacionalidade
+                </label>
+                <input
+                  id="nacionalidade"
+                  type="text"
+                  placeholder="Ex.: Brasileira"
+                  value={formData.nacionalidade}
+                  onChange={(e) => handleChange("nacionalidade", e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
+                />
+              </div>
+            </div>
+
+            {/* Grid 2: Profissão e Nível Escolar */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="profissao" className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  Profissão
+                </label>
+                <input
+                  id="profissao"
+                  type="text"
+                  placeholder="Ex.: Engenheiro de Software, Médico, Advogada..."
+                  value={formData.profissao}
+                  onChange={(e) => handleChange("profissao", e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="nivelEscolar" className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  Nível Escolar
+                </label>
+                <input
+                  id="nivelEscolar"
+                  type="text"
+                  placeholder="Ex.: Ensino Superior, Pós-graduação, Ensino Médio..."
+                  value={formData.nivelEscolar}
+                  onChange={(e) => handleChange("nivelEscolar", e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
+                />
+              </div>
+            </div>
+
+            {/* Sobre o Aluno */}
+            <div>
+              <label htmlFor="sobreAluno" className="block text-[11px] font-semibold text-slate-700 mb-1">
+                Sobre o Aluno
+              </label>
+              <textarea
+                id="sobreAluno"
+                rows={2}
+                placeholder="Resumo geral sobre o momento de vida, rotina de estudos ou histórico do aluno."
+                value={formData.sobreAluno}
+                onChange={(e) => handleChange("sobreAluno", e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
+              />
+            </div>
+
+            {/* Interesses do Aluno */}
+            <div>
+              <label htmlFor="interesses" className="block text-[11px] font-semibold text-slate-700 mb-1">
+                Interesses do Aluno
+              </label>
+              <input
+                id="interesses"
+                type="text"
+                placeholder="Ex.: Viagens, tecnologia, música, negócios, culinária..."
+                value={formData.interesses}
+                onChange={(e) => handleChange("interesses", e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
+              />
+            </div>
+
+            {/* Biografia */}
+            <div>
+              <label htmlFor="biografia" className="block text-[11px] font-semibold text-slate-700 mb-1">
+                Biografia
+              </label>
+              <textarea
+                id="biografia"
+                rows={2}
+                placeholder="Breve biografia ou trajetória pessoal do aluno."
+                value={formData.biografia}
+                onChange={(e) => handleChange("biografia", e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
+              />
+            </div>
           </div>
 
           {/* Footer Buttons */}
