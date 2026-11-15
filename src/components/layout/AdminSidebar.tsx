@@ -60,7 +60,7 @@ export function AdminSidebar({
   userRole,
 }: AdminSidebarProps) {
   const pathname = usePathname();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
 
   const filteredNavItems = React.useMemo(() => {
     if (userRole === "professor") {
@@ -155,9 +155,19 @@ export function AdminSidebar({
         <div className="relative overflow-hidden rounded-2xl bg-[#161347] p-4 border border-indigo-500/10 flex items-center justify-between">
           <div className="z-10 max-w-[125px]">
             <p className="text-xs font-semibold text-slate-200 leading-snug">
-              Educação <br />
-              que transforma <br />
-              <span className="text-slate-400 font-normal">com o Método Paulo.</span>
+              {locale === "en" ? (
+                <>
+                  Education <br />
+                  that transforms <br />
+                  <span className="text-slate-400 font-normal">with Paulo Method.</span>
+                </>
+              ) : (
+                <>
+                  Educação <br />
+                  que transforma <br />
+                  <span className="text-slate-400 font-normal">com o Método Paulo.</span>
+                </>
+              )}
             </p>
           </div>
 

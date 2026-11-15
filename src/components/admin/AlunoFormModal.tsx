@@ -7,6 +7,7 @@ import { alunoRepository } from "@/data/alunoRepository";
 import { FormPersistenceNotice } from "@/components/common/FormPersistenceNotice";
 import { executeWithTimeout } from "@/lib/asyncUtils";
 import { InternationalPhoneInput } from "@/components/common/InternationalPhoneInput";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 interface AlunoFormModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export function AlunoFormModal({
   onSuccess,
 }: AlunoFormModalProps) {
   const isEditing = !!alunoParaEditar;
+  const { locale } = useLanguage();
 
   const [formData, setFormData] = useState({
     nomeCompleto: "",
@@ -280,12 +282,18 @@ export function AlunoFormModal({
         <div className="flex items-center justify-between pb-4 border-b border-slate-100">
           <div>
             <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
-              {isEditing ? "Editar Aluno" : "Cadastrar Novo Aluno"}
+              {isEditing
+                ? (locale === "en" ? "Edit Student" : "Editar Aluno")
+                : (locale === "en" ? "Register New Student" : "Cadastrar Novo Aluno")}
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
               {isEditing
-                ? `Atualize os dados cadastrais do discente (${alunoParaEditar?.id}).`
-                : "Preencha as informações para registrar o aluno no Método Paulo."}
+                ? (locale === "en"
+                    ? `Update registration records for student (${alunoParaEditar?.id}).`
+                    : `Atualize os dados cadastrais do discente (${alunoParaEditar?.id}).`)
+                : (locale === "en"
+                    ? "Fill in the information to register the student in Paulo Method."
+                    : "Preencha as informações para registrar o aluno no Método Paulo.")}
             </p>
           </div>
           <button
@@ -322,7 +330,7 @@ export function AlunoFormModal({
             {isEditing && (
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  ID do Aluno
+                  {locale === "en" ? "Student ID" : "ID do Aluno"}
                 </label>
                 <input
                   type="text"
@@ -338,12 +346,12 @@ export function AlunoFormModal({
                 htmlFor="nomeCompleto"
                 className="block text-xs font-semibold text-slate-700 mb-1"
               >
-                Nome Completo <span className="text-rose-500">*</span>
+                {locale === "en" ? "Full Name" : "Nome Completo"} <span className="text-rose-500">*</span>
               </label>
               <input
                 id="nomeCompleto"
                 type="text"
-                placeholder="Ex.: Mariana Oliveira"
+                placeholder={locale === "en" ? "e.g.: Mariana Oliveira" : "Ex.: Mariana Oliveira"}
                 value={formData.nomeCompleto}
                 onChange={(e) => handleChange("nomeCompleto", e.target.value)}
                 className={`w-full rounded-xl border px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5] ${
@@ -367,12 +375,12 @@ export function AlunoFormModal({
                 htmlFor="email"
                 className="block text-xs font-semibold text-slate-700 mb-1"
               >
-                E-mail <span className="text-rose-500">*</span>
+                {locale === "en" ? "Email Address" : "E-mail"} <span className="text-rose-500">*</span>
               </label>
               <input
                 id="email"
                 type="email"
-                placeholder="usuario@dominio.com"
+                placeholder="user@domain.com"
                 value={formData.email}
                 onChange={(e) => handleChange("email", e.target.value)}
                 className={`w-full rounded-xl border px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5] ${
@@ -391,7 +399,7 @@ export function AlunoFormModal({
             <div>
               <InternationalPhoneInput
                 id="telefone"
-                label="Telefone com Código de País"
+                label={locale === "en" ? "Phone with Country Code" : "Telefone com Código de País"}
                 value={formData.telefone}
                 onChange={(val) => handleChange("telefone", val)}
                 error={errors.telefone}
@@ -408,12 +416,18 @@ export function AlunoFormModal({
               </div>
               <div>
                 <h3 className="text-xs font-bold text-slate-900">
-                  {isEditing ? "Acesso à Plataforma (Redefinição Opcional de Senha)" : "Credenciais de Acesso à Plataforma"}
+                  {isEditing
+                    ? (locale === "en" ? "Platform Access (Optional Password Reset)" : "Acesso à Plataforma (Redefinição Opcional de Senha)")
+                    : (locale === "en" ? "Platform Access Credentials" : "Credenciais de Acesso à Plataforma")}
                 </h3>
                 <p className="text-[11px] text-slate-500">
                   {isEditing
-                    ? "Preencha apenas se desejar redefinir a senha de login deste aluno."
-                    : "Defina a senha que o aluno usará para logar em /login com seu e-mail."}
+                    ? (locale === "en"
+                        ? "Fill in only if you wish to reset this student's login password."
+                        : "Preencha apenas se desejar redefinir a senha de login deste aluno.")
+                    : (locale === "en"
+                        ? "Set the password the student will use to log in at /login with their email."
+                        : "Defina a senha que o aluno usará para logar em /login com seu e-mail.")}
                 </p>
               </div>
             </div>
@@ -422,7 +436,9 @@ export function AlunoFormModal({
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label htmlFor="senha" className="block text-xs font-semibold text-slate-700">
-                    {isEditing ? "Nova Senha" : "Senha de Acesso"}{" "}
+                    {isEditing
+                      ? (locale === "en" ? "New Password" : "Nova Senha")
+                      : (locale === "en" ? "Access Password" : "Senha de Acesso")}{" "}
                     {!isEditing && <span className="text-rose-500">*</span>}
                   </label>
                   <button
@@ -433,12 +449,12 @@ export function AlunoFormModal({
                     {mostrarSenha ? (
                       <>
                         <EyeOff className="h-3 w-3" />
-                        <span>Ocultar</span>
+                        <span>{locale === "en" ? "Hide" : "Ocultar"}</span>
                       </>
                     ) : (
                       <>
                         <Eye className="h-3 w-3" />
-                        <span>Ver</span>
+                        <span>{locale === "en" ? "Show" : "Ver"}</span>
                       </>
                     )}
                   </button>
@@ -447,7 +463,11 @@ export function AlunoFormModal({
                   <input
                     id="senha"
                     type={mostrarSenha ? "text" : "password"}
-                    placeholder={isEditing ? "Deixe em branco para manter" : "Mínimo 6 caracteres"}
+                    placeholder={
+                      isEditing
+                        ? (locale === "en" ? "Leave blank to keep current" : "Deixe em branco para manter")
+                        : (locale === "en" ? "Minimum 6 characters" : "Mínimo 6 caracteres")
+                    }
                     value={senha}
                     onChange={(e) => {
                       setSenha(e.target.value);
@@ -471,12 +491,16 @@ export function AlunoFormModal({
 
               <div>
                 <label htmlFor="confirmarSenha" className="block text-xs font-semibold text-slate-700 mb-1">
-                  Confirmar Senha {!isEditing && <span className="text-rose-500">*</span>}
+                  {locale === "en" ? "Confirm Password" : "Confirmar Senha"} {!isEditing && <span className="text-rose-500">*</span>}
                 </label>
                 <input
                   id="confirmarSenha"
                   type={mostrarSenha ? "text" : "password"}
-                  placeholder={isEditing ? "Confirme se for alterar" : "Repita a senha"}
+                  placeholder={
+                    isEditing
+                      ? (locale === "en" ? "Confirm if changing" : "Confirme se for alterar")
+                      : (locale === "en" ? "Repeat password" : "Repita a senha")
+                  }
                   value={confirmarSenha}
                   onChange={(e) => {
                     setConfirmarSenha(e.target.value);
@@ -506,7 +530,7 @@ export function AlunoFormModal({
                 htmlFor="nivel"
                 className="block text-xs font-semibold text-slate-700 mb-1"
               >
-                Nível Pedagógico <span className="text-rose-500">*</span>
+                {locale === "en" ? "Pedagogical Level" : "Nível Pedagógico"} <span className="text-rose-500">*</span>
               </label>
               <select
                 id="nivel"
@@ -514,13 +538,15 @@ export function AlunoFormModal({
                 onChange={(e) => handleChange("nivel", e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
               >
-                <option value="nao_avaliado">Não avaliado (Padrão inicial)</option>
-                <option value="A1">Iniciante (A1)</option>
-                <option value="A2">Básico (A2)</option>
-                <option value="B1">Intermediário (B1)</option>
-                <option value="B2">Intermediário Superior (B2)</option>
-                <option value="C1">Avançado (C1)</option>
-                <option value="C2">Proficiente (C2)</option>
+                <option value="nao_avaliado">
+                  {locale === "en" ? "Not evaluated (Initial standard)" : "Não avaliado (Padrão inicial)"}
+                </option>
+                <option value="A1">{locale === "en" ? "Beginner (A1)" : "Iniciante (A1)"}</option>
+                <option value="A2">{locale === "en" ? "Elementary (A2)" : "Básico (A2)"}</option>
+                <option value="B1">{locale === "en" ? "Intermediate (B1)" : "Intermediário (B1)"}</option>
+                <option value="B2">{locale === "en" ? "Upper Intermediate (B2)" : "Intermediário Superior (B2)"}</option>
+                <option value="C1">{locale === "en" ? "Advanced (C1)" : "Avançado (C1)"}</option>
+                <option value="C2">{locale === "en" ? "Proficient (C2)" : "Proficiente (C2)"}</option>
               </select>
               {errors.nivel && (
                 <p className="mt-1 text-[11px] font-medium text-rose-600">
@@ -534,7 +560,7 @@ export function AlunoFormModal({
                 htmlFor="status"
                 className="block text-xs font-semibold text-slate-700 mb-1"
               >
-                Status de Matrícula <span className="text-rose-500">*</span>
+                {locale === "en" ? "Enrollment Status" : "Status de Matrícula"} <span className="text-rose-500">*</span>
               </label>
               <select
                 id="status"
@@ -542,8 +568,12 @@ export function AlunoFormModal({
                 onChange={(e) => handleChange("status", e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
               >
-                <option value="ativo">Ativo (Participando de aulas e atividades)</option>
-                <option value="inativo">Inativo (Acesso suspenso ou trancado)</option>
+                <option value="ativo">
+                  {locale === "en" ? "Active (Attending classes & activities)" : "Ativo (Participando de aulas e atividades)"}
+                </option>
+                <option value="inativo">
+                  {locale === "en" ? "Inactive (Suspended or locked access)" : "Inativo (Acesso suspenso ou trancado)"}
+                </option>
               </select>
               {errors.status && (
                 <p className="mt-1 text-[11px] font-medium text-rose-600">
@@ -557,7 +587,10 @@ export function AlunoFormModal({
           <div className="rounded-xl bg-indigo-50/60 p-3 border border-indigo-100 text-[11px] text-indigo-900 flex items-start gap-2">
             <Info className="h-4 w-4 shrink-0 text-indigo-600 mt-0.5" />
             <p>
-              <strong>Aviso de Nivelamento:</strong> O nível inicial de todo aluno novo é definido como <em>&quot;Não avaliado&quot;</em>. A atribuição manual do nível nesta tela é um parâmetro interno da coordenação e <strong>não representa emissão de certificado formal CEFR</strong>.
+              <strong>{locale === "en" ? "Leveling Notice:" : "Aviso de Nivelamento:"}</strong>{" "}
+              {locale === "en"
+                ? "The initial level of all new students is set to 'Not evaluated'. Manual assignment on this screen is an internal administrative parameter and does not represent formal CEFR certificate issuance."
+                : "O nível inicial de todo aluno novo é definido como 'Não avaliado'. A atribuição manual do nível nesta tela é um parâmetro interno da coordenação e não representa emissão de certificado formal CEFR."}
             </p>
           </div>
 
@@ -567,12 +600,12 @@ export function AlunoFormModal({
               htmlFor="objetivoIngles"
               className="block text-xs font-semibold text-slate-700 mb-1"
             >
-              Objetivo com o Inglês <span className="text-rose-500">*</span>
+              {locale === "en" ? "English Learning Goal" : "Objetivo com o Inglês"} <span className="text-rose-500">*</span>
             </label>
             <input
               id="objetivoIngles"
               type="text"
-              placeholder="Ex.: Fluência para reuniões executivas e viagens internacionais"
+              placeholder={locale === "en" ? "e.g.: Fluency for executive meetings and international travel" : "Ex.: Fluência para reuniões executivas e viagens internacionais"}
               value={formData.objetivoIngles}
               onChange={(e) => handleChange("objetivoIngles", e.target.value)}
               className={`w-full rounded-xl border px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5] ${
@@ -594,12 +627,12 @@ export function AlunoFormModal({
               htmlFor="observacoesPedagogicas"
               className="block text-xs font-semibold text-slate-700 mb-1"
             >
-              Observações Pedagógicas <span className="text-slate-400 font-normal">(opcional)</span>
+              {locale === "en" ? "Pedagogical Notes" : "Observações Pedagógicas"} <span className="text-slate-400 font-normal">{locale === "en" ? "(optional)" : "(opcional)"}</span>
             </label>
             <textarea
               id="observacoesPedagogicas"
               rows={3}
-              placeholder="Anotações internas sobre perfil de aprendizado, pontos de atenção ou histórico prévio."
+              placeholder={locale === "en" ? "Internal notes on learning style, attention points, or previous history." : "Anotações internas sobre perfil de aprendizado, pontos de atenção ou histórico prévio."}
               value={formData.observacoesPedagogicas}
               onChange={(e) => handleChange("observacoesPedagogicas", e.target.value)}
               className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
@@ -614,10 +647,15 @@ export function AlunoFormModal({
               </div>
               <div>
                 <h3 className="text-xs font-bold text-slate-900">
-                  Background do Aluno <span className="text-slate-400 font-normal text-[11px]">(Campos Opcionais)</span>
+                  {locale === "en" ? "Student Background" : "Background do Aluno"}{" "}
+                  <span className="text-slate-400 font-normal text-[11px]">
+                    {locale === "en" ? "(Optional Fields)" : "(Campos Opcionais)"}
+                  </span>
                 </h3>
                 <p className="text-[11px] text-slate-500">
-                  Informações contextuais que ficarão visíveis para os professores para personalizar as aulas.
+                  {locale === "en"
+                    ? "Contextual information visible to teachers to personalize classes."
+                    : "Informações contextuais que ficarão visíveis para os professores para personalizar as aulas."}
                 </p>
               </div>
             </div>
@@ -626,14 +664,14 @@ export function AlunoFormModal({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label htmlFor="idade" className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Idade
+                  {locale === "en" ? "Age" : "Idade"}
                 </label>
                 <input
                   id="idade"
                   type="number"
                   min="1"
                   max="120"
-                  placeholder="Ex.: 28"
+                  placeholder={locale === "en" ? "e.g.: 28" : "Ex.: 28"}
                   value={formData.idade}
                   onChange={(e) => handleChange("idade", e.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
@@ -642,7 +680,7 @@ export function AlunoFormModal({
 
               <div>
                 <label htmlFor="dataNascimento" className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Data de Nascimento
+                  {locale === "en" ? "Date of Birth" : "Data de Nascimento"}
                 </label>
                 <input
                   id="dataNascimento"
@@ -655,12 +693,12 @@ export function AlunoFormModal({
 
               <div>
                 <label htmlFor="nacionalidade" className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Nacionalidade
+                  {locale === "en" ? "Nationality" : "Nacionalidade"}
                 </label>
                 <input
                   id="nacionalidade"
                   type="text"
-                  placeholder="Ex.: Brasileira"
+                  placeholder={locale === "en" ? "e.g.: Brazilian" : "Ex.: Brasileira"}
                   value={formData.nacionalidade}
                   onChange={(e) => handleChange("nacionalidade", e.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
@@ -672,12 +710,12 @@ export function AlunoFormModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label htmlFor="profissao" className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Profissão
+                  {locale === "en" ? "Profession" : "Profissão"}
                 </label>
                 <input
                   id="profissao"
                   type="text"
-                  placeholder="Ex.: Engenheiro de Software, Médico, Advogada..."
+                  placeholder={locale === "en" ? "e.g.: Software Engineer, Doctor, Lawyer..." : "Ex.: Engenheiro de Software, Médico, Advogada..."}
                   value={formData.profissao}
                   onChange={(e) => handleChange("profissao", e.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
@@ -686,12 +724,12 @@ export function AlunoFormModal({
 
               <div>
                 <label htmlFor="nivelEscolar" className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  Nível Escolar
+                  {locale === "en" ? "Education Level" : "Nível Escolar"}
                 </label>
                 <input
                   id="nivelEscolar"
                   type="text"
-                  placeholder="Ex.: Ensino Superior, Pós-graduação, Ensino Médio..."
+                  placeholder={locale === "en" ? "e.g.: Higher Education, Postgraduate, High School..." : "Ex.: Ensino Superior, Pós-graduação, Ensino Médio..."}
                   value={formData.nivelEscolar}
                   onChange={(e) => handleChange("nivelEscolar", e.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
@@ -702,12 +740,12 @@ export function AlunoFormModal({
             {/* Sobre o Aluno */}
             <div>
               <label htmlFor="sobreAluno" className="block text-[11px] font-semibold text-slate-700 mb-1">
-                Sobre o Aluno
+                {locale === "en" ? "About the Student" : "Sobre o Aluno"}
               </label>
               <textarea
                 id="sobreAluno"
                 rows={2}
-                placeholder="Resumo geral sobre o momento de vida, rotina de estudos ou histórico do aluno."
+                placeholder={locale === "en" ? "General summary about life stage, study routine, or background." : "Resumo geral sobre o momento de vida, rotina de estudos ou histórico do aluno."}
                 value={formData.sobreAluno}
                 onChange={(e) => handleChange("sobreAluno", e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
@@ -717,12 +755,12 @@ export function AlunoFormModal({
             {/* Interesses do Aluno */}
             <div>
               <label htmlFor="interesses" className="block text-[11px] font-semibold text-slate-700 mb-1">
-                Interesses do Aluno
+                {locale === "en" ? "Student's Interests" : "Interesses do Aluno"}
               </label>
               <input
                 id="interesses"
                 type="text"
-                placeholder="Ex.: Viagens, tecnologia, música, negócios, culinária..."
+                placeholder={locale === "en" ? "e.g.: Travel, tech, music, business, cooking..." : "Ex.: Viagens, tecnologia, música, negócios, culinária..."}
                 value={formData.interesses}
                 onChange={(e) => handleChange("interesses", e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
@@ -732,12 +770,12 @@ export function AlunoFormModal({
             {/* Biografia */}
             <div>
               <label htmlFor="biografia" className="block text-[11px] font-semibold text-slate-700 mb-1">
-                Biografia
+                {locale === "en" ? "Biography" : "Biografia"}
               </label>
               <textarea
                 id="biografia"
                 rows={2}
-                placeholder="Breve biografia ou trajetória pessoal do aluno."
+                placeholder={locale === "en" ? "Brief biography or personal story." : "Breve biografia ou trajetória pessoal do aluno."}
                 value={formData.biografia}
                 onChange={(e) => handleChange("biografia", e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
@@ -753,7 +791,7 @@ export function AlunoFormModal({
               disabled={isSubmitting}
               className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
             >
-              Cancelar
+              {locale === "en" ? "Cancel" : "Cancelar"}
             </button>
             <button
               type="submit"
@@ -761,11 +799,15 @@ export function AlunoFormModal({
               className="inline-flex items-center gap-1.5 rounded-xl bg-[#5046E5] px-5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition-colors disabled:opacity-50"
             >
               {isSubmitting ? (
-                <span>Salvando...</span>
+                <span>{locale === "en" ? "Saving..." : "Salvando..."}</span>
               ) : (
                 <>
                   <CheckCircle2 className="h-4 w-4" />
-                  <span>{isEditing ? "Salvar Alterações" : "Concluir Cadastro"}</span>
+                  <span>
+                    {isEditing
+                      ? (locale === "en" ? "Save Changes" : "Salvar Alterações")
+                      : (locale === "en" ? "Complete Registration" : "Concluir Cadastro")}
+                  </span>
                 </>
               )}
             </button>

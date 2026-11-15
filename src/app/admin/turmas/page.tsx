@@ -28,10 +28,12 @@ import { useAdminIdentity } from "@/app/admin/AdminLayoutClient";
 import { TurmaStatusBadge, ModalidadeBadge } from "@/components/common/TurmaBadges";
 import { TurmaFormModal } from "@/components/admin/TurmaFormModal";
 import { MatricularAlunoModal } from "@/components/admin/MatricularAlunoModal";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export default function AdminTurmasPage() {
   const identity = useAdminIdentity();
   const isProfessor = identity?.role === "professor";
+  const { locale } = useLanguage();
 
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [professores, setProfessores] = useState<Professor[]>([]);
@@ -332,15 +334,19 @@ export default function AdminTurmasPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Turmas</h1>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+              {locale === "en" ? "Classes & Groups" : "Turmas"}
+            </h1>
             {isProfessor && (
               <span className="rounded-full bg-purple-50 px-2.5 py-0.5 text-[11px] font-bold text-purple-700 border border-purple-100">
-                Visualização do Docente
+                {locale === "en" ? "Teacher View" : "Visualização do Docente"}
               </span>
             )}
           </div>
           <p className="text-sm text-slate-500 mt-1">
-            Organize coortes em grupo e aulas individuais, acompanhando ocupação e professor responsável.
+            {locale === "en"
+              ? "Organize cohort groups and private classes, monitoring capacity, enrolled students, and assigned instructors."
+              : "Organize coortes em grupo e aulas individuais, acompanhando ocupação e professor responsável."}
           </p>
         </div>
 
@@ -351,7 +357,7 @@ export default function AdminTurmasPage() {
             className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm shadow-sm transition-all hover:shadow"
           >
             <Plus className="h-4 w-4" />
-            <span>Nova Turma</span>
+            <span>{locale === "en" ? "New Class" : "Nova Turma"}</span>
           </button>
         )}
       </div>
@@ -359,19 +365,19 @@ export default function AdminTurmasPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
-          <p className="text-xs font-semibold text-slate-500">Total de Turmas</p>
+          <p className="text-xs font-semibold text-slate-500">{locale === "en" ? "Total Classes" : "Total de Turmas"}</p>
           <p className="text-2xl font-bold text-slate-900 mt-1">{stats.total}</p>
         </div>
         <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
-          <p className="text-xs font-semibold text-emerald-600">Turmas Ativas</p>
+          <p className="text-xs font-semibold text-emerald-600">{locale === "en" ? "Active Classes" : "Turmas Ativas"}</p>
           <p className="text-2xl font-bold text-emerald-700 mt-1">{stats.ativas}</p>
         </div>
         <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
-          <p className="text-xs font-semibold text-amber-600">Em Formação</p>
+          <p className="text-xs font-semibold text-amber-600">{locale === "en" ? "Forming" : "Em Formação"}</p>
           <p className="text-2xl font-bold text-amber-700 mt-1">{stats.formacao}</p>
         </div>
         <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
-          <p className="text-xs font-semibold text-purple-600">Alunos Matriculados</p>
+          <p className="text-xs font-semibold text-purple-600">{locale === "en" ? "Enrolled Students" : "Alunos Matriculados"}</p>
           <p className="text-2xl font-bold text-purple-700 mt-1">{stats.totalMatriculas}</p>
         </div>
       </div>
@@ -384,7 +390,7 @@ export default function AdminTurmasPage() {
             <Search className="h-4 w-4 text-slate-400 absolute left-3.5 top-3" />
             <input
               type="text"
-              placeholder="Buscar por nome da turma ou professor..."
+              placeholder={locale === "en" ? "Search by class name or teacher..." : "Buscar por nome da turma ou professor..."}
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               className="w-full pl-9 pr-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-200"
@@ -399,11 +405,11 @@ export default function AdminTurmasPage() {
               onChange={(e) => setFiltroStatus(e.target.value)}
               className="px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white font-medium text-slate-700 focus:outline-none focus:border-purple-500"
             >
-              <option value="todos">Status: Todos</option>
-              <option value="formacao">Em formação</option>
-              <option value="ativa">Ativa</option>
-              <option value="pausada">Pausada</option>
-              <option value="encerrada">Encerrada</option>
+              <option value="todos">{locale === "en" ? "Status: All" : "Status: Todos"}</option>
+              <option value="formacao">{locale === "en" ? "Forming" : "Em formação"}</option>
+              <option value="ativa">{locale === "en" ? "Active" : "Ativa"}</option>
+              <option value="pausada">{locale === "en" ? "Paused" : "Pausada"}</option>
+              <option value="encerrada">{locale === "en" ? "Closed" : "Encerrada"}</option>
             </select>
 
             {/* Modalidade */}
@@ -412,9 +418,9 @@ export default function AdminTurmasPage() {
               onChange={(e) => setFiltroModalidade(e.target.value)}
               className="px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white font-medium text-slate-700 focus:outline-none focus:border-purple-500"
             >
-              <option value="todos">Modalidade: Todas</option>
-              <option value="grupo">Em Grupo</option>
-              <option value="individual">Individual</option>
+              <option value="todos">{locale === "en" ? "Modality: All" : "Modalidade: Todas"}</option>
+              <option value="grupo">{locale === "en" ? "Group" : "Em Grupo"}</option>
+              <option value="individual">{locale === "en" ? "Individual" : "Individual"}</option>
             </select>
 
             {/* Nível */}
@@ -423,8 +429,8 @@ export default function AdminTurmasPage() {
               onChange={(e) => setFiltroNivel(e.target.value)}
               className="px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white font-medium text-slate-700 focus:outline-none focus:border-purple-500"
             >
-              <option value="todos">Nível: Todos</option>
-              <option value="nao_definido">Não definido</option>
+              <option value="todos">{locale === "en" ? "Level: All" : "Nível: Todos"}</option>
+              <option value="nao_definido">{locale === "en" ? "Undefined" : "Não definido"}</option>
               <option value="A1">A1</option>
               <option value="A2">A2</option>
               <option value="B1">B1</option>
@@ -517,15 +523,15 @@ export default function AdminTurmasPage() {
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50/70 text-slate-500 text-xs font-semibold uppercase tracking-wider border-b border-slate-100">
                 <tr>
-                  <th className="px-5 py-3.5">Turma</th>
-                  <th className="px-4 py-3.5">Modalidade</th>
-                  <th className="px-4 py-3.5">Nível</th>
-                  <th className="px-4 py-3.5">Professor</th>
-                  <th className="px-4 py-3.5">Alunos</th>
-                  <th className="px-4 py-3.5">Ocupação</th>
-                  <th className="px-4 py-3.5">Status</th>
-                  <th className="px-4 py-3.5">Próxima Aula</th>
-                  <th className="px-5 py-3.5 text-right">Ações</th>
+                  <th className="px-5 py-3.5">{locale === "en" ? "Class" : "Turma"}</th>
+                  <th className="px-4 py-3.5">{locale === "en" ? "Modality" : "Modalidade"}</th>
+                  <th className="px-4 py-3.5">{locale === "en" ? "Level" : "Nível"}</th>
+                  <th className="px-4 py-3.5">{locale === "en" ? "Teacher" : "Professor"}</th>
+                  <th className="px-4 py-3.5">{locale === "en" ? "Students" : "Alunos"}</th>
+                  <th className="px-4 py-3.5">{locale === "en" ? "Capacity" : "Ocupação"}</th>
+                  <th className="px-4 py-3.5">{locale === "en" ? "Status" : "Status"}</th>
+                  <th className="px-4 py-3.5">{locale === "en" ? "Next Session" : "Próxima Aula"}</th>
+                  <th className="px-5 py-3.5 text-right">{locale === "en" ? "Actions" : "Ações"}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -929,17 +935,27 @@ export default function AdminTurmasPage() {
                 <Trash2 className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900">Excluir Turma</h3>
-                <p className="text-xs text-slate-500">Ação irreversível de exclusão administrativa</p>
+                <h3 className="text-base font-bold text-slate-900">
+                  {locale === "en" ? "Delete Class" : "Excluir Turma"}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {locale === "en" ? "Irreversible administrative action" : "Ação irreversível de exclusão administrativa"}
+                </p>
               </div>
             </div>
 
             <div className="p-3.5 bg-rose-50/50 rounded-xl border border-rose-100 text-xs text-slate-700 space-y-1.5">
               <p className="font-semibold text-rose-900">
-                Você está prestes a excluir a turma &ldquo;{turmaParaExcluir.nome}&rdquo; ({turmaParaExcluir.id}).
+                {locale === "en" ? (
+                  <>You are about to delete the class &ldquo;{turmaParaExcluir.nome}&rdquo; ({turmaParaExcluir.id}).</>
+                ) : (
+                  <>Você está prestes a excluir a turma &ldquo;{turmaParaExcluir.nome}&rdquo; ({turmaParaExcluir.id}).</>
+                )}
               </p>
               <p className="text-rose-700">
-                Todas as aulas agendadas e matrículas associadas a esta turma serão removidas do sistema.
+                {locale === "en"
+                  ? "All scheduled sessions and enrollments associated with this class will be removed from the system."
+                  : "Todas as aulas agendadas e matrículas associadas a esta turma serão removidas do sistema."}
               </p>
             </div>
 
@@ -959,7 +975,7 @@ export default function AdminTurmasPage() {
                 disabled={isExcluindo}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition disabled:opacity-50"
               >
-                Cancelar
+                {locale === "en" ? "Cancel" : "Cancelar"}
               </button>
               <button
                 type="button"
@@ -970,12 +986,12 @@ export default function AdminTurmasPage() {
                 {isExcluindo ? (
                   <>
                     <span className="h-3.5 w-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    <span>Excluindo...</span>
+                    <span>{locale === "en" ? "Deleting..." : "Excluindo..."}</span>
                   </>
                 ) : (
                   <>
                     <Trash2 className="h-3.5 w-3.5" />
-                    <span>Excluir Turma</span>
+                    <span>{locale === "en" ? "Delete Class" : "Excluir Turma"}</span>
                   </>
                 )}
               </button>

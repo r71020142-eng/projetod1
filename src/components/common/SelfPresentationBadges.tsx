@@ -10,6 +10,7 @@ import {
   Award,
 } from "lucide-react";
 import { StatusSelfPresentation, TipoSelfPresentation } from "@/types";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 interface StatusSelfPresentationBadgeProps {
   status: StatusSelfPresentation;
@@ -20,6 +21,8 @@ export function StatusSelfPresentationBadge({
   status,
   className = "",
 }: StatusSelfPresentationBadgeProps) {
+  const { locale } = useLanguage();
+
   switch (status) {
     case "rascunho":
       return (
@@ -27,7 +30,7 @@ export function StatusSelfPresentationBadge({
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200/80 ${className}`}
         >
           <FileText className="h-3.5 w-3.5 text-slate-500" />
-          <span>Rascunho</span>
+          <span>{locale === "en" ? "Draft" : "Rascunho"}</span>
         </span>
       );
     case "enviada":
@@ -36,7 +39,7 @@ export function StatusSelfPresentationBadge({
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200/80 ${className}`}
         >
           <Clock className="h-3.5 w-3.5 text-amber-600" />
-          <span>Aguardando Avaliação</span>
+          <span>{locale === "en" ? "Pending Evaluation" : "Aguardando Avaliação"}</span>
         </span>
       );
     case "em_avaliacao":
@@ -45,7 +48,7 @@ export function StatusSelfPresentationBadge({
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 ${className}`}
         >
           <Clock className="h-3.5 w-3.5 text-indigo-600" />
-          <span>Em Avaliação</span>
+          <span>{locale === "en" ? "In Evaluation" : "Em Avaliação"}</span>
         </span>
       );
     case "reenvio_solicitado":
@@ -54,7 +57,7 @@ export function StatusSelfPresentationBadge({
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 ${className}`}
         >
           <RotateCcw className="h-3.5 w-3.5 text-purple-600" />
-          <span>Reenvio Solicitado</span>
+          <span>{locale === "en" ? "Resubmission Requested" : "Reenvio Solicitado"}</span>
         </span>
       );
     case "avaliada":
@@ -63,7 +66,7 @@ export function StatusSelfPresentationBadge({
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/80 ${className}`}
         >
           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-          <span>Avaliação Concluída</span>
+          <span>{locale === "en" ? "Evaluation Completed" : "Avaliação Concluída"}</span>
         </span>
       );
     default:
@@ -72,7 +75,7 @@ export function StatusSelfPresentationBadge({
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 ${className}`}
         >
           <AlertCircle className="h-3.5 w-3.5" />
-          <span>Status Indefinido</span>
+          <span>{locale === "en" ? "Undefined Status" : "Status Indefinido"}</span>
         </span>
       );
   }
@@ -87,13 +90,15 @@ export function TipoSelfPresentationBadge({
   tipo,
   className = "",
 }: TipoSelfPresentationBadgeProps) {
+  const { locale } = useLanguage();
+
   if (tipo === "nivelamento_inicial") {
     return (
       <span
         className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/60 ${className}`}
       >
         <Award className="h-3 w-3 text-indigo-600" />
-        <span>Nivelamento Inicial</span>
+        <span>{locale === "en" ? "Initial Leveling" : "Nivelamento Inicial"}</span>
       </span>
     );
   }
@@ -103,7 +108,7 @@ export function TipoSelfPresentationBadge({
       className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-cyan-50 text-cyan-800 border border-cyan-200/60 ${className}`}
     >
       <RotateCcw className="h-3 w-3 text-cyan-600" />
-      <span>Reavaliação</span>
+      <span>{locale === "en" ? "Reassessment" : "Reavaliação"}</span>
     </span>
   );
 }

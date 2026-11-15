@@ -1,6 +1,9 @@
+"use client";
+
 import React from "react";
 import { StatusCadastro } from "@/types";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 interface StatusBadgeProps {
   status: StatusCadastro;
@@ -8,6 +11,7 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
+  const { locale } = useLanguage();
   const isAtivo = status === "ativo";
 
   return (
@@ -26,7 +30,15 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
           isAtivo ? "bg-emerald-500" : "bg-slate-400"
         )}
       />
-      <span>{isAtivo ? "Ativo" : "Inativo"}</span>
+      <span>
+        {locale === "en"
+          ? isAtivo
+            ? "Active"
+            : "Inactive"
+          : isAtivo
+          ? "Ativo"
+          : "Inativo"}
+      </span>
     </span>
   );
 }

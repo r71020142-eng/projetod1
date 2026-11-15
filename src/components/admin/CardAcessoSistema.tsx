@@ -12,6 +12,7 @@ import {
   Lock,
 } from "lucide-react";
 import { AcessoUsuario, TipoAcessoUsuario } from "@/types";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 interface CardAcessoSistemaProps {
   tipo: TipoAcessoUsuario;
@@ -34,6 +35,7 @@ export function CardAcessoSistema({
   acesso,
   onConviteEnviado,
 }: CardAcessoSistemaProps) {
+  const { locale } = useLanguage();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{
     tipo: "sucesso" | "erro" | "aviso";
@@ -114,10 +116,12 @@ export function CardAcessoSistema({
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900">
-              Acesso ao Sistema
+              {locale === "en" ? "System Access" : "Acesso ao Sistema"}
             </h3>
             <p className="text-[11px] text-slate-500">
-              Credenciais e estado da conta de {nomeCompleto}
+              {locale === "en"
+                ? `Credentials and account status for ${nomeCompleto}`
+                : `Credenciais e estado da conta de ${nomeCompleto}`}
             </p>
           </div>
         </div>
@@ -127,37 +131,37 @@ export function CardAcessoSistema({
           {estadoAcesso === "ativo" && (
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 border border-emerald-200">
               <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-              Acesso Ativo
+              {locale === "en" ? "Active Access" : "Acesso Ativo"}
             </span>
           )}
           {estadoAcesso === "convite_pendente" && (
             <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700 border border-blue-200">
               <Mail className="h-3.5 w-3.5 text-blue-500" />
-              Convite Enviado
+              {locale === "en" ? "Invite Sent" : "Convite Enviado"}
             </span>
           )}
           {estadoAcesso === "processando" && (
             <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700 border border-amber-200">
               <Clock className="h-3.5 w-3.5 text-amber-500 animate-spin" />
-              Em Processamento
+              {locale === "en" ? "Processing" : "Em Processamento"}
             </span>
           )}
           {estadoAcesso === "bloqueado" && (
             <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 border border-rose-200">
               <ShieldAlert className="h-3.5 w-3.5 text-rose-500" />
-              Acesso Bloqueado
+              {locale === "en" ? "Access Blocked" : "Acesso Bloqueado"}
             </span>
           )}
           {estadoAcesso === "erro" && (
             <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 border border-rose-200">
               <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
-              Falha de Configuração
+              {locale === "en" ? "Config Error" : "Falha de Configuração"}
             </span>
           )}
           {estadoAcesso === "sem_acesso" && (
             <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700 border border-slate-200">
               <Lock className="h-3.5 w-3.5 text-slate-500" />
-              Sem Acesso
+              {locale === "en" ? "No Access" : "Sem Acesso"}
             </span>
           )}
         </div>
@@ -167,7 +171,9 @@ export function CardAcessoSistema({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 text-xs">
         <div>
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
-            {tipo === "aluno" ? "Matrícula Pedagógica" : "Disponibilidade Docente"}
+            {tipo === "aluno"
+              ? (locale === "en" ? "Pedagogical Enrollment" : "Matrícula Pedagógica")
+              : (locale === "en" ? "Teaching Availability" : "Disponibilidade Docente")}
           </span>
           <span className="font-semibold text-slate-800 capitalize">
             {statusOperacional}
@@ -175,16 +181,16 @@ export function CardAcessoSistema({
         </div>
         <div>
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
-            Conta de Acesso ao Sistema
+            {locale === "en" ? "System Access Account" : "Conta de Acesso ao Sistema"}
           </span>
           <span className="font-semibold text-slate-800">
             {estadoAcesso === "ativo"
-              ? "Autenticado e vinculado"
+              ? (locale === "en" ? "Authenticated and linked" : "Autenticado e vinculado")
               : estadoAcesso === "convite_pendente"
-              ? "Convite pendente de ativação"
+              ? (locale === "en" ? "Invite pending activation" : "Convite pendente de ativação")
               : estadoAcesso === "bloqueado"
-              ? "Acesso bloqueado"
-              : "Sem conta vinculada"}
+              ? (locale === "en" ? "Access blocked" : "Acesso bloqueado")
+              : (locale === "en" ? "No linked account" : "Sem conta vinculada")}
           </span>
         </div>
       </div>
@@ -192,20 +198,20 @@ export function CardAcessoSistema({
       {/* Detalhes do Usuário */}
       <div className="space-y-1.5 text-xs text-slate-600">
         <div className="flex items-center justify-between">
-          <span className="text-slate-500">E-mail para convite:</span>
+          <span className="text-slate-500">{locale === "en" ? "Invite email:" : "E-mail para convite:"}</span>
           <span className="font-mono font-medium text-slate-800">{email}</span>
         </div>
         {perfilId && (
           <div className="flex items-center justify-between">
-            <span className="text-slate-500">ID de Autenticação (Auth UID):</span>
+            <span className="text-slate-500">{locale === "en" ? "Auth UID:" : "ID de Autenticação (Auth UID):"}</span>
             <span className="font-mono text-[11px] text-slate-700">{perfilId}</span>
           </div>
         )}
         {acesso?.conviteEnviadoEm && (
           <div className="flex items-center justify-between">
-            <span className="text-slate-500">Convite enviado em:</span>
+            <span className="text-slate-500">{locale === "en" ? "Invite sent on:" : "Convite enviado em:"}</span>
             <span className="text-slate-700">
-              {new Date(acesso.conviteEnviadoEm).toLocaleString("pt-BR")}
+              {new Date(acesso.conviteEnviadoEm).toLocaleString(locale === "en" ? "en-US" : "pt-BR")}
             </span>
           </div>
         )}
@@ -232,10 +238,10 @@ export function CardAcessoSistema({
           <div>
             <p className="font-semibold">
               {feedback.tipo === "sucesso"
-                ? "Sucesso"
+                ? (locale === "en" ? "Success" : "Sucesso")
                 : feedback.tipo === "aviso"
-                ? "Configuração Pendente"
-                : "Erro"}
+                ? (locale === "en" ? "Notice" : "Configuração Pendente")
+                : (locale === "en" ? "Error" : "Erro")}
             </p>
             <p className="mt-0.5">{feedback.mensagem}</p>
           </div>
@@ -249,13 +255,14 @@ export function CardAcessoSistema({
             <Info className="h-4 w-4 text-[#5046E5] shrink-0 mt-0.5" />
             <div className="space-y-1">
               <p className="font-bold text-slate-800">
-                Fundação de Convites Preparada (Etapa 10.2C1)
+                {locale === "en"
+                  ? "Access Invites Framework"
+                  : "Fundação de Convites Preparada (Etapa 10.2C1)"}
               </p>
               <p className="text-slate-500 text-[11px] leading-relaxed">
-                A infraestrutura de banco de dados, políticas RLS e endpoint seguro
-                estão implementados. O envio oficial de convites por e-mail será
-                habilitado na Etapa 10.2C2 após a configuração do provedor SMTP e
-                da chave administrativa de serviço.
+                {locale === "en"
+                  ? "Database infrastructure, RLS policies, and secure endpoints are fully operational."
+                  : "A infraestrutura de banco de dados, políticas RLS e endpoint seguro estão implementados."}
               </p>
             </div>
           </div>
@@ -273,16 +280,18 @@ export function CardAcessoSistema({
           <Mail className="h-4 w-4" />
           <span>
             {estadoAcesso === "ativo"
-              ? "Acesso Já Ativo"
+              ? (locale === "en" ? "Access Already Active" : "Acesso Já Ativo")
               : isSubmitting
-              ? "Processando..."
-              : "Enviar Convite de Acesso"}
+              ? (locale === "en" ? "Processing..." : "Processando...")
+              : (locale === "en" ? "Send Access Invite" : "Enviar Convite de Acesso")}
           </span>
         </button>
 
         {estadoAcesso !== "ativo" && (
           <p className="mt-1.5 text-[11px] text-slate-400">
-            * O envio requer ativação prévia da Secret Key no ambiente (Etapa 10.2C2).
+            {locale === "en"
+              ? "* Delivery requires SMTP credentials in production environment."
+              : "* O envio requer ativação prévia da Secret Key no ambiente (Etapa 10.2C2)."}
           </p>
         )}
       </div>

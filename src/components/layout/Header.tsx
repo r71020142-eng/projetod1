@@ -33,12 +33,21 @@ export function Header({
   onToggleMobileMenu,
   isMobileMenuOpen,
 }: HeaderProps) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const usuarioId = variant === "admin" ? "adm-001" : "alu-001";
   const [isNotificacoesOpen, setIsNotificacoesOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  const getTranslatedRole = (role?: string) => {
+    if (!role) return variant === "admin" ? (locale === "en" ? "Administrator" : "Administrador") : (locale === "en" ? "Student" : "Aluno");
+    if (locale !== "en") return role;
+    if (role.toLowerCase().includes("admin")) return "Administrator";
+    if (role.toLowerCase().includes("profess")) return "Teacher";
+    if (role.toLowerCase().includes("alun")) return "Student";
+    return role;
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -185,7 +194,7 @@ export function Header({
               </span>
               {variant === "admin" && userRoleLabel && (
                 <span className="text-[11px] text-[#60708F] font-normal leading-tight mt-0.5">
-                  {userRoleLabel}
+                  {getTranslatedRole(userRoleLabel)}
                 </span>
               )}
             </div>
@@ -208,7 +217,7 @@ export function Header({
                   </p>
                 )}
                 <span className="inline-block mt-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-semibold rounded-md uppercase tracking-wider">
-                  {userRoleLabel || (variant === "admin" ? "Administrador" : "Aluno")}
+                  {getTranslatedRole(userRoleLabel)}
                 </span>
               </div>
 
