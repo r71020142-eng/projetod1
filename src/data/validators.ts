@@ -116,6 +116,16 @@ export function validateAlunoInput(
     errors.nivel = "Selecione um nível válido para o aluno.";
   }
 
+  // Validação opcional de telefone (suporta formato nacional e internacional com código de país: ex: +1, +55, +44, +351)
+  if (input.telefone && input.telefone.trim()) {
+    const tel = input.telefone.trim();
+    const digitsOnly = tel.replace(/\D/g, "");
+    const isValidFormat = /^(\+)?[0-9\s().-]{7,25}$/.test(tel) && digitsOnly.length >= 7;
+    if (!isValidFormat) {
+      errors.telefone = "Informe um telefone válido com código de país (ex: +55 (11) 98765-4321 ou +1 555-0192).";
+    }
+  }
+
   if (input.status !== "ativo" && input.status !== "inativo") {
     errors.status = "Selecione um status válido (ativo ou inativo).";
   }
@@ -178,6 +188,16 @@ export function validateProfessorInput(
     errors.idiomasFalados = "Informe pelo menos um idioma falado pelo professor.";
   }
 
+  // Validação opcional de telefone (suporta formato nacional e internacional com código de país: ex: +1, +55, +44, +351)
+  if (input.telefone && input.telefone.trim()) {
+    const tel = input.telefone.trim();
+    const digitsOnly = tel.replace(/\D/g, "");
+    const isValidFormat = /^(\+)?[0-9\s().-]{7,25}$/.test(tel) && digitsOnly.length >= 7;
+    if (!isValidFormat) {
+      errors.telefone = "Informe um telefone válido com código de país (ex: +55 (11) 98111-2233 ou +1 555-0192).";
+    }
+  }
+
   if (input.status !== "ativo" && input.status !== "inativo") {
     errors.status = "Selecione um status válido (ativo ou inativo).";
   }
@@ -198,6 +218,7 @@ export function validateTurmaInput(
     nivel?: NivelTurma;
     objetivoPrincipal?: string;
     professorId?: string;
+    professoresIds?: string[];
     alunoIds?: string[];
     capacidade?: number;
     status?: StatusTurma;
@@ -245,18 +266,37 @@ export function validateTurmaInput(
     errors.objetivoPrincipal = "Descreva o objetivo com pelo menos 5 caracteres.";
   }
 
-  // Professor responsável
-  if (!input.professorId) {
-    errors.professorId = "Selecione o professor responsável pela turma.";
+  // Professores responsáveis (suporta 1, 2 ou mais professores na mesma turma)
+  const listaProfessores = (input.professoresIds && input.professoresIds.length > 0)
+    ? input.professoresIds
+    : input.professorId
+    ? [input.professorId]
+    : [];
+
+  if (listaProfessores.length === 0) {
+    errors.professorId = "Selecione pelo menos um professor responsável pela turma.";
   } else {
-    const prof = professores.find((p) => p.id === input.professorId);
-    if (!prof) {
-      errors.professorId = "O professor selecionado não foi encontrado.";
-    } else {
-      // If it's a new assignment, professor must be active
-      const isNewAssignment = !currentTurma || currentTurma.professorId !== input.professorId;
+    // Verifica duplicidade de professores na mesma turma
+    const uniqueProfs = new Set(listaProfessores);
+    if (uniqueProfs.size !== listaProfessores.length) {
+      errors.professorId = "Não é permitido adicionar o mesmo professor mais de uma vez na turma.";
+    }
+
+    // Valida cada professor selecionado
+    const existingProfs = new Set(
+      currentTurma?.professoresIds || (currentTurma?.professorId ? [currentTurma.professorId] : [])
+    );
+
+    for (const pId of listaProfessores) {
+      const prof = professores.find((p) => p.id === pId);
+      if (!prof) {
+        errors.professorId = `O professor selecionado (${pId}) não foi encontrado.`;
+        break;
+      }
+      const isNewAssignment = !existingProfs.has(pId);
       if (isNewAssignment && prof.status !== "ativo") {
-        errors.professorId = `O professor "${prof.nomeCompleto}" está inativo. Apenas professores ativos podem ser responsáveis por novas turmas.`;
+        errors.professorId = `O professor "${prof.nomeCompleto}" está inativo. Apenas professores ativos podem ser vinculados à turma.`;
+        break;
       }
     }
   }

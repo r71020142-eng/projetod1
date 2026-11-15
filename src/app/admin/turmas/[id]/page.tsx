@@ -53,7 +53,7 @@ export default function AdminTurmaDetailPage() {
   const isSupabaseActive = getAcademicCoreDataSource() === "supabase";
 
   const [turma, setTurma] = useState<Turma | null>(null);
-  const [professor, setProfessor] = useState<Professor | null>(null);
+  const [professores, setProfessores] = useState<Professor[]>([]);
   const [alunosMatriculados, setAlunosMatriculados] = useState<Aluno[]>([]);
   const [aulas, setAulas] = useState<Aula[]>([]);
   const [frequencia, setFrequencia] = useState<FrequenciaCalculada | null>(null);
@@ -86,14 +86,21 @@ export default function AdminTurmaDetailPage() {
       }
       setTurma(turmaData);
 
-      const [profData, todosAlunos, aulasData, freqData] = await Promise.all([
+      const profIds =
+        turmaData.professoresIds && turmaData.professoresIds.length > 0
+          ? turmaData.professoresIds
+          : [turmaData.professorId];
+
+      const [profData, todosAlunos, aulasData, freqData, listaTodosProfs] = await Promise.all([
         professorRepository.obterPorId(turmaData.professorId),
         alunoRepository.listar(),
         aulaRepository.listarPorTurma(turmaId),
         aulaRepository.calcularFrequenciaTurma(turmaId),
+        professorRepository.listar(),
       ]);
 
-      setProfessor(profData);
+      const profsVinculados = listaTodosProfs.filter((p) => profIds.includes(p.id));
+      setProfessores(profsVinculados.length > 0 ? profsVinculados : profData ? [profData] : []);
       setAlunosMatriculados(todosAlunos.filter((a) => turmaData.alunoIds.includes(a.id)));
       setAulas(aulasData);
       setFrequencia(freqData);
@@ -348,13 +355,17 @@ export default function AdminTurmaDetailPage() {
 
       {/* Grid: Professor & Consolidado de Frequência */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Professor Responsável */}
+        {/* Professores Responsáveis */}
         <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-800">Professor Responsável</h3>
-            {professor && (
+            <h3 className="text-sm font-bold text-slate-800">
+              {professores.length > 1
+                ? `Corpo Docente (${professores.length} professores)`
+                : "Professor Responsável"}
+            </h3>
+            {professores.length === 1 && (
               <Link
-                href={`/admin/professores/${professor.id}`}
+                href={`/admin/professores/${professores[0].id}`}
                 className="text-xs font-semibold text-purple-600 hover:underline flex items-center gap-1"
               >
                 <span>Ver perfil</span>
@@ -363,33 +374,56 @@ export default function AdminTurmaDetailPage() {
             )}
           </div>
 
-          {professor ? (
+          {professores.length > 0 ? (
             <div className="space-y-3 pt-1">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-purple-100 text-purple-700 font-bold text-base flex items-center justify-center border border-purple-200">
-                  {professor.nomeCompleto.slice(0, 2).toUpperCase()}
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900">{professor.nomeCompleto}</h4>
-                  <p className="text-xs text-slate-400">{professor.email}</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    Status:{" "}
-                    <span
-                      className={`font-semibold ${
-                        professor.status === "ativo" ? "text-emerald-600" : "text-rose-600"
-                      }`}
-                    >
-                      {professor.status === "ativo" ? "Ativo" : "Inativo"}
-                    </span>
-                  </p>
-                </div>
-              </div>
+              {professores.map((profItem, idx) => {
+                const isTitular = idx === 0;
+                return (
+                  <div
+                    key={profItem.id}
+                    className="p-3 rounded-xl border border-slate-100 bg-slate-50/50 space-y-2 hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="h-10 w-10 shrink-0 rounded-xl bg-purple-100 text-purple-700 font-bold text-sm flex items-center justify-center border border-purple-200">
+                          {profItem.nomeCompleto.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="text-sm font-bold text-slate-900 truncate">
+                              {profItem.nomeCompleto}
+                            </h4>
+                            {isTitular ? (
+                              <span className="text-[10px] text-amber-800 bg-amber-100 border border-amber-200 px-1.5 py-0.2 rounded-full font-bold">
+                                Titular
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-purple-700 bg-purple-100 border border-purple-200 px-1.5 py-0.2 rounded-full font-semibold">
+                                Co-docente
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-400 truncate">{profItem.email}</p>
+                        </div>
+                      </div>
 
-              {professor.biografiaCurta && (
-                <p className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100 leading-relaxed line-clamp-3">
-                  &ldquo;{professor.biografiaCurta}&rdquo;
-                </p>
-              )}
+                      <Link
+                        href={`/admin/professores/${profItem.id}`}
+                        className="text-xs font-semibold text-purple-600 hover:underline shrink-0 flex items-center gap-0.5"
+                        title="Ver perfil completo do professor"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    </div>
+
+                    {profItem.biografiaCurta && professores.length <= 2 && (
+                      <p className="text-xs text-slate-600 bg-white p-2 rounded-lg border border-slate-100 leading-relaxed line-clamp-2">
+                        &ldquo;{profItem.biografiaCurta}&rdquo;
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="p-4 rounded-xl border border-dashed border-slate-200 text-center text-xs text-slate-400">

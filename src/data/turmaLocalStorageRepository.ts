@@ -92,8 +92,11 @@ export const turmaLocalStorageRepository: ITurmaRepository = {
 
       result = result.filter((t) => {
         const matchesName = t.nome.toLowerCase().includes(q);
-        const profNome = profMap.get(t.professorId) || "";
-        const matchesProf = profNome.includes(q);
+        const profIds = t.professoresIds && t.professoresIds.length > 0 ? t.professoresIds : [t.professorId];
+        const matchesProf = profIds.some((pId) => {
+          const profNome = profMap.get(pId) || "";
+          return profNome.includes(q);
+        });
         return matchesName || matchesProf;
       });
     }
@@ -117,7 +120,11 @@ export const turmaLocalStorageRepository: ITurmaRepository = {
 
   async listarPorProfessor(professorId: string): Promise<Turma[]> {
     const list = loadFromStorage();
-    return list.filter((t) => t.professorId === professorId);
+    return list.filter(
+      (t) =>
+        t.professorId === professorId ||
+        (t.professoresIds && t.professoresIds.includes(professorId))
+    );
   },
 
   async contarAtivas(): Promise<number> {
@@ -141,13 +148,20 @@ export const turmaLocalStorageRepository: ITurmaRepository = {
       };
     }
 
+    const listaProfs =
+      dados.professoresIds && dados.professoresIds.length > 0
+        ? dados.professoresIds
+        : [dados.professorId];
+    const primaryProfId = listaProfs[0] || dados.professorId;
+
     const novaTurma: Turma = {
       id: generateTurmaId(list),
       nome: normalizeText(dados.nome),
       modalidade: dados.modalidade,
       nivel: dados.nivel,
       objetivoPrincipal: normalizeText(dados.objetivoPrincipal),
-      professorId: dados.professorId,
+      professorId: primaryProfId,
+      professoresIds: listaProfs,
       alunoIds: dados.alunoIds || [],
       capacidade: dados.modalidade === "individual" ? 1 : (dados.capacidade || 6),
       status: dados.status || "formacao",
@@ -194,13 +208,22 @@ export const turmaLocalStorageRepository: ITurmaRepository = {
       };
     }
 
+    const novosProfs =
+      dados.professoresIds && dados.professoresIds.length > 0
+        ? dados.professoresIds
+        : dados.professorId
+        ? [dados.professorId]
+        : current.professoresIds || [current.professorId];
+    const novoPrimary = novosProfs[0] || current.professorId;
+
     const updatedTurma: Turma = {
       ...current,
       nome: normalizeText(merged.nome),
       modalidade: merged.modalidade,
       nivel: merged.nivel,
       objetivoPrincipal: normalizeText(merged.objetivoPrincipal),
-      professorId: merged.professorId,
+      professorId: novoPrimary,
+      professoresIds: novosProfs,
       alunoIds: merged.alunoIds,
       capacidade: merged.modalidade === "individual" ? 1 : merged.capacidade,
       status: merged.status,

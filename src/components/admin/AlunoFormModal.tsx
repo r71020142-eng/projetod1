@@ -6,6 +6,7 @@ import { Aluno, NivelAluno, StatusCadastro } from "@/types";
 import { alunoRepository } from "@/data/alunoRepository";
 import { FormPersistenceNotice } from "@/components/common/FormPersistenceNotice";
 import { executeWithTimeout } from "@/lib/asyncUtils";
+import { InternationalPhoneInput } from "@/components/common/InternationalPhoneInput";
 
 interface AlunoFormModalProps {
   isOpen: boolean;
@@ -345,19 +346,13 @@ export function AlunoFormModal({
             </div>
 
             <div>
-              <label
-                htmlFor="telefone"
-                className="block text-xs font-semibold text-slate-700 mb-1"
-              >
-                Telefone <span className="text-slate-400 font-normal">(opcional)</span>
-              </label>
-              <input
+              <InternationalPhoneInput
                 id="telefone"
-                type="text"
-                placeholder="(11) 98765-4321"
+                label="Telefone com Código de País"
                 value={formData.telefone}
-                onChange={(e) => handleChange("telefone", e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
+                onChange={(val) => handleChange("telefone", val)}
+                error={errors.telefone}
+                disabled={isSubmitting}
               />
             </div>
           </div>

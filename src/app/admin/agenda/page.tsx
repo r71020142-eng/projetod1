@@ -157,7 +157,11 @@ export default function AdminAgendaPage() {
   const turmasDisponiveis = useMemo(() => {
     if (isProfessor) {
       if (!professorOperationalId) return [];
-      return turmas.filter((t) => t.professorId === professorOperationalId);
+      return turmas.filter(
+        (t) =>
+          t.professorId === professorOperationalId ||
+          (t.professoresIds && t.professoresIds.includes(professorOperationalId))
+      );
     }
     return turmas;
   }, [turmas, isProfessor, professorOperationalId]);

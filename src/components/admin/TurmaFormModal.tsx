@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, AlertCircle, Info, Users, User } from "lucide-react";
+import { X, AlertCircle, Info, Users, User, Star } from "lucide-react";
 import { Turma, ModalidadeTurma, NivelTurma, StatusTurma, Professor } from "@/types";
 import { turmaRepository } from "@/data/turmaRepository";
 import { professorRepository } from "@/data/professorRepository";
@@ -29,6 +29,7 @@ export function TurmaFormModal({
     nivel: "nao_definido" as NivelTurma,
     objetivoPrincipal: "",
     professorId: "",
+    professoresIds: [] as string[],
     capacidade: 6,
     status: "formacao" as StatusTurma,
     dataInicio: new Date().toISOString().slice(0, 10),
@@ -58,12 +59,20 @@ export function TurmaFormModal({
   // Load data when opening or switching turma
   useEffect(() => {
     if (turmaParaEditar) {
+      const initialProfs =
+        turmaParaEditar.professoresIds && turmaParaEditar.professoresIds.length > 0
+          ? turmaParaEditar.professoresIds
+          : turmaParaEditar.professorId
+          ? [turmaParaEditar.professorId]
+          : [];
+
       setFormData({
         nome: turmaParaEditar.nome,
         modalidade: turmaParaEditar.modalidade,
         nivel: turmaParaEditar.nivel,
         objetivoPrincipal: turmaParaEditar.objetivoPrincipal,
-        professorId: turmaParaEditar.professorId,
+        professorId: initialProfs[0] || turmaParaEditar.professorId,
+        professoresIds: initialProfs,
         capacidade: turmaParaEditar.capacidade,
         status: turmaParaEditar.status,
         dataInicio: turmaParaEditar.dataInicio || new Date().toISOString().slice(0, 10),
@@ -76,6 +85,7 @@ export function TurmaFormModal({
         nivel: "nao_definido",
         objetivoPrincipal: "",
         professorId: "",
+        professoresIds: [],
         capacidade: 6,
         status: "formacao",
         dataInicio: new Date().toISOString().slice(0, 10),
@@ -98,11 +108,55 @@ export function TurmaFormModal({
     }));
   };
 
+  const handleAddProfessor = (profId: string) => {
+    if (!profId || formData.professoresIds.includes(profId)) return;
+    setFormData((prev) => {
+      const nextList = [...prev.professoresIds, profId];
+      return {
+        ...prev,
+        professoresIds: nextList,
+        professorId: nextList[0],
+      };
+    });
+    if (errors.professorId) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.professorId;
+        return next;
+      });
+    }
+  };
+
+  const handleRemoveProfessor = (profId: string) => {
+    setFormData((prev) => {
+      const nextList = prev.professoresIds.filter((id) => id !== profId);
+      return {
+        ...prev,
+        professoresIds: nextList,
+        professorId: nextList[0] || "",
+      };
+    });
+  };
+
+  const handleSetPrincipal = (profId: string) => {
+    setFormData((prev) => {
+      const remaining = prev.professoresIds.filter((id) => id !== profId);
+      const nextList = [profId, ...remaining];
+      return {
+        ...prev,
+        professoresIds: nextList,
+        professorId: profId,
+      };
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setErrors({});
     setGeneralError(null);
+
+    const primaryProfId = formData.professoresIds[0] || formData.professorId;
 
     try {
       if (isEditing && turmaParaEditar) {
@@ -112,7 +166,8 @@ export function TurmaFormModal({
             modalidade: formData.modalidade,
             nivel: formData.nivel,
             objetivoPrincipal: formData.objetivoPrincipal,
-            professorId: formData.professorId,
+            professorId: primaryProfId,
+            professoresIds: formData.professoresIds,
             capacidade: formData.modalidade === "individual" ? 1 : Number(formData.capacidade),
             status: formData.status,
             dataInicio: formData.dataInicio,
@@ -140,7 +195,8 @@ export function TurmaFormModal({
             modalidade: formData.modalidade,
             nivel: formData.nivel,
             objetivoPrincipal: formData.objetivoPrincipal,
-            professorId: formData.professorId,
+            professorId: primaryProfId,
+            professoresIds: formData.professoresIds,
             alunoIds: [],
             capacidade: formData.modalidade === "individual" ? 1 : Number(formData.capacidade),
             status: formData.status,
@@ -175,11 +231,16 @@ export function TurmaFormModal({
 
   // Only active professors can be selected for new assignments
   const professoresDisponiveis = professores.filter((p) => {
-    if (isEditing && turmaParaEditar && p.id === turmaParaEditar.professorId) {
+    const profsAtuais = turmaParaEditar?.professoresIds || (turmaParaEditar?.professorId ? [turmaParaEditar.professorId] : []);
+    if (isEditing && turmaParaEditar && profsAtuais.includes(p.id)) {
       return true; // allow keeping current professor even if inactive
     }
     return p.status === "ativo";
   });
+
+  const professoresDisponiveisParaAdicionar = professoresDisponiveis.filter(
+    (p) => !formData.professoresIds.includes(p.id)
+  );
 
   return (
     <div
@@ -346,32 +407,129 @@ export function TurmaFormModal({
             </div>
           </div>
 
-          {/* Professor Responsável */}
-          <div>
-            <label htmlFor="professorId" className="block text-xs font-semibold text-slate-700 mb-1">
-              Professor Responsável <span className="text-rose-500">*</span>
-            </label>
-            <select
-              id="professorId"
-              required
-              value={formData.professorId}
-              onChange={(e) => setFormData({ ...formData, professorId: e.target.value })}
-              className={`w-full px-3.5 py-2 rounded-xl text-sm border transition-colors focus:outline-none focus:ring-2 ${
-                errors.professorId
-                  ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100 bg-rose-50/30 text-rose-900"
-                  : "border-slate-200 focus:border-purple-500 focus:ring-purple-100"
-              }`}
-            >
-              <option value="">Selecione um professor ativo...</option>
-              {professoresDisponiveis.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nomeCompleto} ({p.email}) {p.status === "inativo" ? "— [INATIVO]" : ""}
-                </option>
-              ))}
-            </select>
+          {/* Professores Responsáveis (Suporte a múltiplos professores) */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-slate-700">
+                Professores Responsáveis <span className="text-rose-500">*</span>
+              </label>
+              <span className="text-[11px] font-medium text-slate-500">
+                {formData.professoresIds.length}{" "}
+                {formData.professoresIds.length === 1 ? "docente selecionado" : "docentes selecionados"}
+              </span>
+            </div>
+
+            {/* Lista dos Professores Vinculados */}
+            {formData.professoresIds.length > 0 ? (
+              <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/60 p-2.5">
+                {formData.professoresIds.map((profId, index) => {
+                  const prof = professores.find((p) => p.id === profId);
+                  const isPrimary = index === 0;
+
+                  return (
+                    <div
+                      key={profId}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-2.5 shadow-xs"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-100 font-bold text-xs text-purple-700">
+                          {prof ? prof.nomeCompleto.slice(0, 2).toUpperCase() : "??"}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-xs font-bold text-slate-900 truncate">
+                              {prof?.nomeCompleto || "Professor"}
+                            </span>
+                            {isPrimary ? (
+                              <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                                <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                                Principal / Titular
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-semibold text-purple-700">
+                                Co-docente
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[11px] text-slate-400 block truncate">
+                            {prof?.email} {prof?.status === "inativo" && "— [INATIVO]"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {!isPrimary && (
+                          <button
+                            type="button"
+                            onClick={() => handleSetPrincipal(profId)}
+                            className="rounded-lg px-2 py-1 text-[11px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors"
+                            title="Tornar este professor o titular da turma"
+                          >
+                            Tornar Titular
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveProfessor(profId)}
+                          disabled={formData.professoresIds.length <= 1}
+                          className={`rounded-lg p-1.5 text-slate-400 transition-colors ${
+                            formData.professoresIds.length <= 1
+                              ? "opacity-30 cursor-not-allowed"
+                              : "hover:bg-rose-50 hover:text-rose-600"
+                          }`}
+                          title={
+                            formData.professoresIds.length <= 1
+                              ? "A turma precisa de pelo menos 1 professor responsável"
+                              : "Remover professor da turma"
+                          }
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-slate-300 p-3 text-center text-xs text-slate-500">
+                Nenhum professor selecionado para esta turma.
+              </div>
+            )}
+
+            {/* Dropdown para Adicionar mais professores */}
+            {professoresDisponiveisParaAdicionar.length > 0 && (
+              <div className="flex items-center gap-2 pt-1">
+                <select
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      handleAddProfessor(e.target.value);
+                    }
+                  }}
+                  className="w-full px-3 py-2 rounded-xl text-xs border border-slate-200 bg-white text-slate-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-100 focus:outline-none transition-colors"
+                >
+                  <option value="">+ Adicionar {formData.professoresIds.length === 0 ? "um professor" : "outro professor à turma"}...</option>
+                  {professoresDisponiveisParaAdicionar.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nomeCompleto} ({p.email}) {p.status === "inativo" ? "— [INATIVO]" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {formData.professoresIds.length >= 2 && (
+              <div className="flex items-center gap-2 rounded-xl bg-purple-50/70 p-2.5 text-[11px] text-purple-700">
+                <Users className="h-4 w-4 shrink-0 text-purple-600" />
+                <span>
+                  <strong>Co-docência ativa:</strong> Esta turma conta com {formData.professoresIds.length} professores. Todos terão acesso pedagógico para conduzir aulas e acompanhar os alunos.
+                </span>
+              </div>
+            )}
+
             {errors.professorId && <p className="text-xs text-rose-600 mt-1">{errors.professorId}</p>}
-            <p className="text-[11px] text-slate-400 mt-1">
-              Apenas professores com cadastro ativo podem ser vinculados a novas turmas.
+            <p className="text-[11px] text-slate-400">
+              Você pode adicionar 2 ou mais professores na mesma turma para dividir responsabilidades. O primeiro docente é o titular.
             </p>
           </div>
 

@@ -346,7 +346,14 @@ export default function MinhasAulasPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {turmas.map((t) => {
-                const prof = profMap.get(t.professorId);
+                const profIds =
+                  t.professoresIds && t.professoresIds.length > 0
+                    ? t.professoresIds
+                    : [t.professorId];
+                const profs = profIds
+                  .map((pId) => profMap.get(pId))
+                  .filter(Boolean) as Professor[];
+
                 return (
                   <div
                     key={t.id}
@@ -362,7 +369,12 @@ export default function MinhasAulasPage() {
                     <p className="text-xs text-slate-500 line-clamp-1">{t.objetivoPrincipal}</p>
 
                     <div className="pt-1 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-600">
-                      <span>Professor: {prof?.nomeCompleto || "Lucas Ferreira"}</span>
+                      <span>
+                        {profs.length > 1 ? "Professores: " : "Professor: "}
+                        {profs.length > 0
+                          ? profs.map((p) => p.nomeCompleto).join(", ")
+                          : "Lucas Ferreira"}
+                      </span>
                       <span>Nível: {t.nivel === "nao_definido" ? "Não definido" : t.nivel}</span>
                     </div>
                   </div>

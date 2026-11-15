@@ -145,9 +145,15 @@ export default function AdminTurmasPage() {
       if (busca.trim()) {
         const q = busca.trim().toLowerCase();
         const nomeMatch = t.nome.toLowerCase().includes(q);
-        const prof = professorMap.get(t.professorId);
-        const profMatch = prof?.nomeCompleto.toLowerCase().includes(q);
-        return nomeMatch || !!profMatch;
+        const profIds =
+          t.professoresIds && t.professoresIds.length > 0
+            ? t.professoresIds
+            : [t.professorId];
+        const profMatch = profIds.some((pId) => {
+          const prof = professorMap.get(pId);
+          return prof?.nomeCompleto.toLowerCase().includes(q);
+        });
+        return nomeMatch || profMatch;
       }
 
       return true;
@@ -481,7 +487,13 @@ export default function AdminTurmasPage() {
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {turmasFiltradas.map((t) => {
-                  const prof = professorMap.get(t.professorId);
+                  const profIds =
+                    t.professoresIds && t.professoresIds.length > 0
+                      ? t.professoresIds
+                      : [t.professorId];
+                  const profs = profIds
+                    .map((pId) => professorMap.get(pId))
+                    .filter(Boolean) as Professor[];
                   const prox = proximasAulas[t.id];
                   const ocupacaoPercent = Math.min(
                     100,
@@ -511,18 +523,38 @@ export default function AdminTurmasPage() {
                       </td>
 
                       <td className="px-4 py-4 whitespace-nowrap">
-                        {prof ? (
-                          <Link
-                            href={`/admin/professores/${prof.id}`}
-                            className="font-medium text-slate-800 hover:text-purple-600 transition-colors"
-                          >
-                            {prof.nomeCompleto}
-                            {prof.status === "inativo" && (
-                              <span className="ml-1 text-[10px] text-rose-600 bg-rose-50 px-1 py-0.2 rounded">
-                                [Inativo]
+                        {profs.length > 0 ? (
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-1.5 flex-wrap max-w-xs">
+                              {profs.map((p, idx) => (
+                                <Link
+                                  key={p.id}
+                                  href={`/admin/professores/${p.id}`}
+                                  className="font-medium text-slate-800 hover:text-purple-600 transition-colors inline-flex items-center gap-1"
+                                >
+                                  <span>{p.nomeCompleto}</span>
+                                  {profs.length > 1 && idx === 0 && (
+                                    <span className="text-[9px] text-amber-700 bg-amber-50 border border-amber-200 px-1 py-0.2 rounded font-semibold">
+                                      Titular
+                                    </span>
+                                  )}
+                                  {p.status === "inativo" && (
+                                    <span className="text-[10px] text-rose-600 bg-rose-50 px-1 py-0.2 rounded">
+                                      [Inativo]
+                                    </span>
+                                  )}
+                                  {idx < profs.length - 1 && (
+                                    <span className="text-slate-300">,</span>
+                                  )}
+                                </Link>
+                              ))}
+                            </div>
+                            {profs.length > 1 && (
+                              <span className="text-[10px] text-purple-600 font-semibold">
+                                Co-docência ({profs.length} professores)
                               </span>
                             )}
-                          </Link>
+                          </div>
                         ) : (
                           <span className="text-slate-400 text-xs italic">Não atribuído</span>
                         )}
@@ -603,7 +635,13 @@ export default function AdminTurmasPage() {
         /* CARDS VIEW */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {turmasFiltradas.map((t) => {
-            const prof = professorMap.get(t.professorId);
+            const profIds =
+              t.professoresIds && t.professoresIds.length > 0
+                ? t.professoresIds
+                : [t.professorId];
+            const profs = profIds
+              .map((pId) => professorMap.get(pId))
+              .filter(Boolean) as Professor[];
             const prox = proximasAulas[t.id];
             const ocupacaoPercent = Math.min(
               100,
@@ -642,9 +680,11 @@ export default function AdminTurmasPage() {
 
                   <div className="pt-2 border-t border-slate-100 space-y-2 text-xs">
                     <div className="flex items-center justify-between text-slate-600">
-                      <span>Professor:</span>
-                      <span className="font-semibold text-slate-800">
-                        {prof?.nomeCompleto || "Não atribuído"}
+                      <span>{profs.length > 1 ? "Professores:" : "Professor:"}</span>
+                      <span className="font-semibold text-slate-800 text-right truncate max-w-[65%]">
+                        {profs.length > 0
+                          ? profs.map((p) => p.nomeCompleto).join(", ")
+                          : "Não atribuído"}
                       </span>
                     </div>
 

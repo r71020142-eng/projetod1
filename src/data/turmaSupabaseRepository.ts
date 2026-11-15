@@ -19,6 +19,7 @@ interface TurmaDbRow {
   nivel: string;
   objetivo_principal: string;
   professor_id: string;
+  professores_ids?: string[] | null;
   capacidade: number;
   status: string;
   data_inicio: string;
@@ -52,6 +53,11 @@ function mapRowToTurma(row: TurmaDbRow): Turma {
     }
   }
 
+  const listaProfs =
+    row.professores_ids && Array.isArray(row.professores_ids) && row.professores_ids.length > 0
+      ? row.professores_ids
+      : [row.professor_id];
+
   return {
     id: row.id,
     nome: row.nome,
@@ -59,6 +65,7 @@ function mapRowToTurma(row: TurmaDbRow): Turma {
     nivel: (row.nivel || "nao_definido") as NivelTurma,
     objetivoPrincipal: row.objetivo_principal || "Geral",
     professorId: row.professor_id,
+    professoresIds: listaProfs,
     alunoIds: activeAlunoIds,
     capacidade: row.capacidade,
     status: (row.status || "formacao") as StatusTurma,
@@ -126,8 +133,14 @@ export const turmaSupabaseRepository: ITurmaRepository = {
 
         turmas = turmas.filter((t) => {
           const matchesName = t.nome.toLowerCase().includes(q);
-          const profNome = profMap.get(t.professorId) || "";
-          const matchesProf = profNome.includes(q);
+          const profIds =
+            t.professoresIds && t.professoresIds.length > 0
+              ? t.professoresIds
+              : [t.professorId];
+          const matchesProf = profIds.some((pId) => {
+            const profNome = profMap.get(pId) || "";
+            return profNome.includes(q);
+          });
           return matchesName || matchesProf;
         });
       } catch {
@@ -200,7 +213,7 @@ export const turmaSupabaseRepository: ITurmaRepository = {
     const { data, error } = await supabase
       .from("turmas")
       .select("*, matriculas_turmas(aluno_id, status)")
-      .eq("professor_id", professorId)
+      .or(`professor_id.eq.${professorId},professores_ids.cs.{${professorId}}`)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -248,13 +261,20 @@ export const turmaSupabaseRepository: ITurmaRepository = {
     const capacidadeFinal =
       dados.modalidade === "individual" ? 1 : Number(dados.capacidade) || 6;
 
+    const listaProfs =
+      dados.professoresIds && dados.professoresIds.length > 0
+        ? dados.professoresIds
+        : [dados.professorId];
+    const primaryProfId = listaProfs[0] || dados.professorId;
+
     // 2. Inserção na tabela public.turmas
     const payload = {
       nome: normalizeText(dados.nome),
       modalidade: dados.modalidade,
       nivel: dados.nivel || "nao_definido",
       objetivo_principal: normalizeText(dados.objetivoPrincipal || "Geral"),
-      professor_id: dados.professorId,
+      professor_id: primaryProfId,
+      professores_ids: listaProfs,
       capacidade: capacidadeFinal,
       status: dados.status || "formacao",
       data_inicio: dados.dataInicio || new Date().toISOString().slice(0, 10),
@@ -346,11 +366,22 @@ export const turmaSupabaseRepository: ITurmaRepository = {
       }
     }
 
-    // 3. Se o professor foi alterado, atualiza via RPC para validação de status ativo
-    if (dados.professorId && dados.professorId !== atual.professorId) {
+    // 3. Se os professores foram alterados
+    const novosProfessoresIds =
+      dados.professoresIds && dados.professoresIds.length > 0
+        ? dados.professoresIds
+        : dados.professorId
+        ? [dados.professorId]
+        : null;
+
+    const novoPrimaryId = novosProfessoresIds
+      ? novosProfessoresIds[0]
+      : dados.professorId || atual.professorId;
+
+    if (novoPrimaryId && novoPrimaryId !== atual.professorId) {
       const { error: profError } = await supabase.rpc("trocar_professor_turma", {
         p_turma_id: id,
-        p_novo_professor_id: dados.professorId,
+        p_novo_professor_id: novoPrimaryId,
       });
 
       if (profError) {
@@ -361,8 +392,8 @@ export const turmaSupabaseRepository: ITurmaRepository = {
       }
     }
 
-    // 4. Atualiza os demais campos textuais da turma
-    const updatePayload: Record<string, string | number | null> = {
+    // 4. Atualiza os demais campos textuais e professores_ids da turma
+    const updatePayload: Record<string, string | number | string[] | null> = {
       nome: normalizeText(merged.nome),
       modalidade: merged.modalidade,
       nivel: merged.nivel,
@@ -372,6 +403,11 @@ export const turmaSupabaseRepository: ITurmaRepository = {
       observacoes: merged.observacoes ? normalizeText(merged.observacoes) : null,
       updated_at: new Date().toISOString(),
     };
+
+    if (novosProfessoresIds) {
+      updatePayload.professores_ids = novosProfessoresIds;
+      updatePayload.professor_id = novoPrimaryId;
+    }
 
     const { data, error } = await supabase
       .from("turmas")

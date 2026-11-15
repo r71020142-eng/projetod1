@@ -237,6 +237,7 @@ export interface Turma {
   nivel: NivelTurma;
   objetivoPrincipal: string;
   professorId: string;
+  professoresIds?: string[]; // Múltiplos professores (2 ou mais)
   alunoIds: string[];
   capacidade: number;
   status: StatusTurma;
