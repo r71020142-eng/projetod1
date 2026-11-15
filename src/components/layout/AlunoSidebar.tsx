@@ -20,20 +20,31 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DemoRoleSwitcher } from "@/components/layout/DemoRoleSwitcher";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { TranslationKey } from "@/lib/i18n/translations";
+
+interface AlunoNavItem {
+  title: string;
+  href: string;
+  icon: import("lucide-react").LucideIcon;
+  exact?: boolean;
+  badge?: number;
+  transKey: TranslationKey;
+}
 
 // Navegação oficial do aluno preservada
-const ALUNO_NAV_ITEMS = [
-  { title: "Início", href: "/aluno", icon: Home, exact: true },
-  { title: "Minha jornada", href: "/aluno/jornada", icon: TrendingUp },
-  { title: "Aulas", href: "/aluno/aulas", icon: PlaySquare },
-  { title: "Atividades", href: "/aluno/atividades", icon: CheckSquare },
-  { title: "Materiais", href: "/aluno/materiais", icon: FileText },
-  { title: "Avaliações", href: "/aluno/avaliacoes", icon: BarChart3 },
-  { title: "Self Presentation", href: "/aluno/self-presentation", icon: Video },
-  { title: "Flashcards", href: "/aluno/flashcards", icon: Layers },
-  { title: "Comunidade", href: "/aluno/comunidade", icon: MessageSquare, badge: 2 },
-  { title: "Conquistas", href: "/aluno/conquistas", icon: Award },
-  { title: "Meu perfil", href: "/aluno/perfil", icon: User },
+const ALUNO_NAV_ITEMS: AlunoNavItem[] = [
+  { title: "Início", href: "/aluno", icon: Home, exact: true, transKey: "navDashboard" },
+  { title: "Minha jornada", href: "/aluno/jornada", icon: TrendingUp, transKey: "navJornada" },
+  { title: "Aulas", href: "/aluno/aulas", icon: PlaySquare, transKey: "navMinhasAulas" },
+  { title: "Atividades", href: "/aluno/atividades", icon: CheckSquare, transKey: "navAtividades" },
+  { title: "Materiais", href: "/aluno/materiais", icon: FileText, transKey: "navMateriais" },
+  { title: "Avaliações", href: "/aluno/avaliacoes", icon: BarChart3, transKey: "navAvaliacoes" },
+  { title: "Self Presentation", href: "/aluno/self-presentation", icon: Video, transKey: "navSelfPresentation" },
+  { title: "Flashcards", href: "/aluno/flashcards", icon: Layers, transKey: "navFlashcards" },
+  { title: "Comunidade", href: "/aluno/comunidade", icon: MessageSquare, badge: 2, transKey: "navComunidade" },
+  { title: "Conquistas", href: "/aluno/conquistas", icon: Award, transKey: "navConquistas" },
+  { title: "Meu perfil", href: "/aluno/perfil", icon: User, transKey: "profile" },
 ];
 
 interface AlunoSidebarProps {
@@ -44,6 +55,7 @@ interface AlunoSidebarProps {
 
 export function AlunoSidebar({ isOpenMobile, onCloseMobile, isRealAuth = false }: AlunoSidebarProps) {
   const pathname = usePathname();
+  const { t } = useLanguage();
 
   const sidebarInner = (
     <div className="relative h-full w-full overflow-hidden bg-[#06142C] text-white select-none flex flex-col justify-between">
@@ -127,7 +139,7 @@ export function AlunoSidebar({ isOpenMobile, onCloseMobile, isRealAuth = false }
                       )}
                       aria-hidden="true"
                     />
-                    <span>{item.title}</span>
+                    <span>{t(item.transKey, item.title)}</span>
                   </div>
                   {item.badge !== undefined && (
                     <span className="inline-flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-[#EF4444] text-[10px] font-bold text-white shadow-xs">

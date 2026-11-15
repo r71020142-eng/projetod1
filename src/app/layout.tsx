@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import { DM_Serif_Display, Inter } from "next/font/google";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
+import { I18nProvider } from "@/lib/i18n/LanguageContext";
 import "./globals.css";
 
 const dmSerif = DM_Serif_Display({
@@ -80,9 +81,11 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${dmSerif.variable} ${geistSans.variable} ${geistMono.variable} font-sans antialiased selection:bg-[#5B2FE8] selection:text-white`}
       >
-        <PwaRegister />
-        {children}
-        <PwaInstallPrompt />
+        <I18nProvider>
+          <PwaRegister />
+          {children}
+          <PwaInstallPrompt />
+        </I18nProvider>
       </body>
     </html>
   );

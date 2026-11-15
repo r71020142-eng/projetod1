@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isRouteAllowedForRole, type UserRole } from "@/lib/auth/permissions";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { TranslationKey } from "@/lib/i18n/translations";
 
 interface AdminNavItem {
   title: string;
@@ -27,22 +29,23 @@ interface AdminNavItem {
   icon: import("lucide-react").LucideIcon;
   exact?: boolean;
   badge?: number | string;
+  transKey?: TranslationKey;
 }
 
 // Navegação oficial administrativa e pedagógica
 const ADMIN_NAV_ITEMS: AdminNavItem[] = [
-  { title: "Visão geral", href: "/admin", icon: Home, exact: true },
-  { title: "Alunos", href: "/admin/alunos", icon: Users },
-  { title: "Professores", href: "/admin/professores", icon: GraduationCap },
-  { title: "Turmas", href: "/admin/turmas", icon: BookOpen },
-  { title: "Agenda", href: "/admin/agenda", icon: Calendar },
-  { title: "Materiais", href: "/admin/materiais", icon: FileText },
-  { title: "Avaliações", href: "/admin/avaliacoes", icon: BarChart2 },
-  { title: "Self Presentation", href: "/admin/self-presentation", icon: Video },
-  { title: "Flashcards", href: "/admin/flashcards", icon: Layers },
-  { title: "Comunidade", href: "/admin/comunidade", icon: MessageSquare },
-  { title: "Conquistas", href: "/admin/conquistas", icon: Award },
-  { title: "Configurações", href: "/admin/configuracoes", icon: Settings },
+  { title: "Visão geral", href: "/admin", icon: Home, exact: true, transKey: "navDashboard" },
+  { title: "Alunos", href: "/admin/alunos", icon: Users, transKey: "navAlunos" },
+  { title: "Professores", href: "/admin/professores", icon: GraduationCap, transKey: "navProfessores" },
+  { title: "Turmas", href: "/admin/turmas", icon: BookOpen, transKey: "navTurmas" },
+  { title: "Agenda", href: "/admin/agenda", icon: Calendar, transKey: "navAgenda" },
+  { title: "Materiais", href: "/admin/materiais", icon: FileText, transKey: "navMateriais" },
+  { title: "Avaliações", href: "/admin/avaliacoes", icon: BarChart2, transKey: "navAvaliacoes" },
+  { title: "Self Presentation", href: "/admin/self-presentation", icon: Video, transKey: "navSelfPresentation" },
+  { title: "Flashcards", href: "/admin/flashcards", icon: Layers, transKey: "navFlashcards" },
+  { title: "Comunidade", href: "/admin/comunidade", icon: MessageSquare, transKey: "navComunidade" },
+  { title: "Conquistas", href: "/admin/conquistas", icon: Award, transKey: "navConquistas" },
+  { title: "Configurações", href: "/admin/configuracoes", icon: Settings, transKey: "navConfiguracoes" },
 ];
 
 interface AdminSidebarProps {
@@ -57,6 +60,7 @@ export function AdminSidebar({
   userRole,
 }: AdminSidebarProps) {
   const pathname = usePathname();
+  const { t } = useLanguage();
 
   const filteredNavItems = React.useMemo(() => {
     if (userRole === "professor") {
@@ -133,7 +137,7 @@ export function AdminSidebar({
                       active ? "text-white" : "text-slate-400 group-hover:text-slate-200"
                     )}
                   />
-                  <span>{item.title}</span>
+                  <span>{item.transKey ? t(item.transKey, item.title) : item.title}</span>
                 </div>
                 {item.badge !== undefined && (
                   <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#EF4444] text-[11px] font-bold text-white shadow-xs">

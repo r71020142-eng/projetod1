@@ -17,11 +17,13 @@ import {
   CheckCircle2,
   AlertCircle,
   Info,
+  Star,
 } from "lucide-react";
-import { Professor, Turma, Aula, AcessoUsuario } from "@/types";
+import { Professor, Turma, Aula, AcessoUsuario, AvaliacaoAula } from "@/types";
 import { professorRepository } from "@/data/professorRepository";
 import { turmaRepository } from "@/data/turmaRepository";
 import { aulaRepository } from "@/data/aulaRepository";
+import { avaliacaoAulaRepository } from "@/data/avaliacaoAulaRepository";
 import { acessoUsuarioRepository } from "@/data/acessoUsuarioRepository";
 import { getAcademicCoreDataSource } from "@/data/repositoryFactory";
 import { StatusBadge } from "@/components/common/StatusBadge";
@@ -40,6 +42,7 @@ export default function AdminProfessorDetalhesPage() {
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [proximasAulas, setProximasAulas] = useState<Aula[]>([]);
   const [totalAlunosVinculados, setTotalAlunosVinculados] = useState(0);
+  const [avaliacoes, setAvaliacoes] = useState<AvaliacaoAula[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Modals
@@ -65,15 +68,17 @@ export default function AdminProfessorDetalhesPage() {
       setProfessor(profData);
 
       if (profData) {
-        const [listTurmas, listAulas, acessoData] = await Promise.all([
+        const [listTurmas, listAulas, acessoData, listAvaliacoes] = await Promise.all([
           turmaRepository.listarPorProfessor(professorId),
           aulaRepository.listarPorProfessor(professorId),
           acessoUsuarioRepository.obterPorProfessorId(professorId),
+          avaliacaoAulaRepository.listarPorProfessor(professorId),
         ]);
 
         setTurmas(listTurmas);
         setProximasAulas(listAulas.filter((a) => a.status === "agendada"));
         setAcesso(acessoData);
+        setAvaliacoes(listAvaliacoes);
 
         // Count unique students across all turmas of this professor
         const studentSet = new Set<string>();
@@ -108,9 +113,11 @@ export default function AdminProfessorDetalhesPage() {
 
     window.addEventListener("mtd_storage_updated", handleStorageUpdate);
     window.addEventListener("mtd_core_users_updated", handleStorageUpdate);
+    window.addEventListener("mtd_avaliacoes_aulas_updated", handleStorageUpdate);
     return () => {
       window.removeEventListener("mtd_storage_updated", handleStorageUpdate);
       window.removeEventListener("mtd_core_users_updated", handleStorageUpdate);
+      window.removeEventListener("mtd_avaliacoes_aulas_updated", handleStorageUpdate);
     };
   }, [professorId, carregarDados]);
 
@@ -407,6 +414,79 @@ export default function AdminProfessorDetalhesPage() {
                 {professor.biografiaCurta}
               </p>
             </div>
+          </div>
+
+          {/* Card: Avaliações dos Alunos (Notas 0 a 10 & Opiniões) */}
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="rounded-xl bg-amber-50 p-2 text-amber-600">
+                  <Star className="h-5 w-5 fill-amber-400 text-amber-500" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                    Avaliações dos Alunos
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Notas de 0 a 10 e percepções pedagógicas enviadas após as aulas
+                  </p>
+                </div>
+              </div>
+
+              {avaliacoes.length > 0 && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-950 text-xs font-bold shrink-0">
+                  <Star className="h-4 w-4 fill-amber-400 text-amber-500" />
+                  <span>
+                    Média: {(avaliacoes.reduce((acc, a) => acc + a.notaProfessor, 0) / avaliacoes.length).toFixed(1)} / 10
+                  </span>
+                  <span className="text-amber-300">•</span>
+                  <span className="font-normal text-slate-600">
+                    ({avaliacoes.length} {avaliacoes.length === 1 ? "avaliação" : "avaliações"})
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {avaliacoes.length === 0 ? (
+              <div className="p-6 text-center rounded-xl bg-slate-50/60 border border-dashed border-slate-200 text-xs text-slate-400">
+                Nenhuma avaliação de aula foi registrada para este professor ainda.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {avaliacoes.map((av) => (
+                  <div
+                    key={av.id}
+                    className="p-4 rounded-xl border border-slate-100 bg-slate-50/40 space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 font-bold text-xs">
+                          Nota Prof.: {av.notaProfessor}/10
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 font-semibold text-[11px]">
+                          Nota Aula: {av.notaAula}/10
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-slate-400">
+                        {new Date(av.createdAt).toLocaleDateString("pt-BR")}
+                      </span>
+                    </div>
+
+                    {av.opiniaoProfessor && (
+                      <p className="text-xs text-slate-700 italic">
+                        <strong>Opinião sobre o professor:</strong> &ldquo;{av.opiniaoProfessor}&rdquo;
+                      </p>
+                    )}
+
+                    {av.opiniaoAula && (
+                      <p className="text-xs text-slate-600">
+                        <strong>Opinião sobre a aula:</strong> &ldquo;{av.opiniaoAula}&rdquo;
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

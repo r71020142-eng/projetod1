@@ -276,6 +276,19 @@ export interface RegistroPresencaItem {
 
 export type TipoAula = "regular" | "reposicao";
 
+export interface AvaliacaoAula {
+  id: string;
+  aulaId: string;
+  alunoId: string;
+  professorId?: string;
+  notaAula: number; // 0 a 10
+  opiniaoAula?: string;
+  notaProfessor: number; // 0 a 10
+  opiniaoProfessor?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface Aula {
   id: string;
   turmaId: string;
@@ -292,6 +305,7 @@ export interface Aula {
   observacoes?: string;
   presencas: Record<string, RegistroPresencaItem>; // chave: alunoId
   chamada?: Array<{ alunoId: string; presenca?: StatusPresenca; statusPresenca?: StatusPresenca; status?: StatusPresenca }>;
+  avaliacoes?: Record<string, AvaliacaoAula>; // chave: alunoId
   dataCadastro: string; // ISO
 }
 

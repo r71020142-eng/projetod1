@@ -5,6 +5,8 @@ import Image from "next/image";
 import { Search, Bell, Menu, X, ChevronDown, LogOut } from "lucide-react";
 import { NotificacoesDrawer } from "@/components/notificacoes/NotificacoesDrawer";
 import { DemoRoleSwitcher } from "@/components/layout/DemoRoleSwitcher";
+import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { gamificacaoRepository } from "@/data/api";
 
 interface HeaderProps {
@@ -31,6 +33,7 @@ export function Header({
   onToggleMobileMenu,
   isMobileMenuOpen,
 }: HeaderProps) {
+  const { t } = useLanguage();
   const usuarioId = variant === "admin" ? "adm-001" : "alu-001";
   const [isNotificacoesOpen, setIsNotificacoesOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -65,8 +68,8 @@ export function Header({
 
   const placeholderText =
     variant === "aluno"
-      ? "Buscar aulas, materiais ou algo específico..."
-      : "Buscar alunos, professores, aulas...";
+      ? t("searchPlaceholderAluno", "Buscar aulas, materiais ou algo específico...")
+      : t("searchPlaceholderAdmin", "Buscar alunos, professores, aulas...");
 
   return (
     <header
@@ -127,9 +130,12 @@ export function Header({
         </div>
       </div>
 
-      {/* Right side: Demo Switcher (desktop se não for real auth), Notification Bell & User Profile */}
-      <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
+      {/* Right side: Demo Switcher (desktop se não for real auth), Language Switcher, Notification Bell & User Profile */}
+      <div className="flex items-center gap-2 sm:gap-3.5 shrink-0">
         {!isRealAuth && <DemoRoleSwitcher variant="inline" className="hidden sm:flex" />}
+
+        {/* Global Language Switcher PT / EN */}
+        <LanguageSwitcher />
 
         {/* Notification Bell with red badge dot */}
         <button
@@ -137,8 +143,8 @@ export function Header({
           onClick={() => setIsNotificacoesOpen(true)}
           aria-label={
             unreadCount > 0
-              ? `Notificações (${unreadCount} não lidas)`
-              : "Notificações"
+              ? `${t("notifications", "Notificações")} (${unreadCount})`
+              : t("notifications", "Notificações")
           }
           className="relative text-[#07132E] hover:text-[#5B2FE8] transition-colors p-1.5 rounded-lg hover:bg-black/5"
         >
@@ -213,7 +219,7 @@ export function Header({
                   className="w-full text-left px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 rounded-lg flex items-center gap-2 transition-colors font-medium cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5 shrink-0" />
-                  <span>Sair da conta</span>
+                  <span>{t("logout", "Sair da conta")}</span>
                 </button>
               </form>
             </div>

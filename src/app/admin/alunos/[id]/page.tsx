@@ -23,7 +23,16 @@ import {
   ArrowRight,
   GraduationCap,
   Sparkles,
+  Languages,
 } from "lucide-react";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import {
+  translateNacionalidade,
+  translateProfissao,
+  translateNivelEscolar,
+  translateTextoBackground,
+} from "@/lib/i18n/backgroundTranslator";
+import { Locale } from "@/lib/i18n/translations";
 import {
   Aluno,
   Turma,
@@ -97,6 +106,14 @@ export default function AdminAlunoDetalhesPage() {
 
   // Acesso ao Sistema (Etapa 10.2C1)
   const [acesso, setAcesso] = useState<AcessoUsuario | null>(null);
+
+  // i18n & Tradução de Background
+  const { locale: globalLocale } = useLanguage();
+  const [backgroundLang, setBackgroundLang] = useState<Locale>(globalLocale);
+
+  useEffect(() => {
+    setBackgroundLang(globalLocale);
+  }, [globalLocale]);
 
   const carregarDados = useCallback(async () => {
     setIsLoading(true);
@@ -465,66 +482,111 @@ export default function AdminAlunoDetalhesPage() {
             </div>
           </div>
 
-          {/* Card: Background do Aluno (Visível para Professores e Coordenação) */}
+          {/* Card: Background do Aluno (Visível para Professores e Coordenação - Suporte a Tradução PT/EN) */}
           <div className="rounded-2xl border border-indigo-100 bg-white p-5 sm:p-6 shadow-xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div className="rounded-xl bg-indigo-50 p-2 text-indigo-600">
                   <GraduationCap className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm sm:text-base font-bold text-slate-900">Background do Aluno</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                      {backgroundLang === "en" ? "Student Background" : "Background do Aluno"}
+                    </h3>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      {backgroundLang === "en" ? "EN Active" : "PT Ativo"}
+                    </span>
+                  </div>
                   <p className="text-xs text-slate-500">
-                    Informações contextuais, histórico pessoal e profissional visíveis para os professores.
+                    {backgroundLang === "en"
+                      ? "Contextual profile, personal and professional history visible to teachers."
+                      : "Informações contextuais, histórico pessoal e profissional visíveis para os professores."}
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsEditModalOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-              >
-                <Edit2 className="h-3.5 w-3.5 text-slate-500" />
-                <span>Editar Background</span>
-              </button>
+
+              <div className="flex items-center gap-2">
+                {/* Botão de Tradução Específico do Background */}
+                <button
+                  type="button"
+                  onClick={() => setBackgroundLang((prev) => (prev === "pt" ? "en" : "pt"))}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50/70 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition-all active:scale-[0.98]"
+                  title={backgroundLang === "pt" ? "Traduzir background para Inglês" : "Ver background em Português"}
+                >
+                  <Languages className="h-3.5 w-3.5 text-indigo-600" />
+                  <span>
+                    {backgroundLang === "pt" ? "Traduzir para Inglês (EN)" : "Ver em Português (PT)"}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  <Edit2 className="h-3.5 w-3.5 text-slate-500" />
+                  <span>{backgroundLang === "en" ? "Edit Background" : "Editar Background"}</span>
+                </button>
+              </div>
             </div>
 
             {/* Quick Badges / Metrics Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-xs">
               <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100">
-                <span className="text-slate-400 block text-[11px] font-medium">Idade</span>
+                <span className="text-slate-400 block text-[11px] font-medium">
+                  {backgroundLang === "en" ? "Age" : "Idade"}
+                </span>
                 <span className="font-bold text-slate-900 mt-0.5 block">
-                  {aluno.idade ? `${aluno.idade} anos` : "Não informada"}
+                  {aluno.idade
+                    ? (backgroundLang === "en" ? `${aluno.idade} years old` : `${aluno.idade} anos`)
+                    : (backgroundLang === "en" ? "Not provided" : "Não informada")}
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100">
-                <span className="text-slate-400 block text-[11px] font-medium">Data de Nascimento</span>
+                <span className="text-slate-400 block text-[11px] font-medium">
+                  {backgroundLang === "en" ? "Date of Birth" : "Data de Nascimento"}
+                </span>
                 <span className="font-bold text-slate-900 mt-0.5 block">
                   {aluno.dataNascimento
-                    ? new Date(aluno.dataNascimento + "T00:00:00").toLocaleDateString("pt-BR")
-                    : "Não informada"}
+                    ? (backgroundLang === "en"
+                        ? new Date(aluno.dataNascimento + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                        : new Date(aluno.dataNascimento + "T00:00:00").toLocaleDateString("pt-BR"))
+                    : (backgroundLang === "en" ? "Not provided" : "Não informada")}
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100">
-                <span className="text-slate-400 block text-[11px] font-medium">Nacionalidade</span>
+                <span className="text-slate-400 block text-[11px] font-medium">
+                  {backgroundLang === "en" ? "Nationality" : "Nacionalidade"}
+                </span>
                 <span className="font-bold text-slate-900 mt-0.5 block">
-                  {aluno.nacionalidade || "Não informada"}
+                  {aluno.nacionalidade
+                    ? (backgroundLang === "en" ? translateNacionalidade(aluno.nacionalidade, "en") : aluno.nacionalidade)
+                    : (backgroundLang === "en" ? "Not provided" : "Não informada")}
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100">
-                <span className="text-slate-400 block text-[11px] font-medium">Profissão</span>
+                <span className="text-slate-400 block text-[11px] font-medium">
+                  {backgroundLang === "en" ? "Profession" : "Profissão"}
+                </span>
                 <span className="font-bold text-slate-900 mt-0.5 block">
-                  {aluno.profissao || "Não informada"}
+                  {aluno.profissao
+                    ? (backgroundLang === "en" ? translateProfissao(aluno.profissao, "en") : aluno.profissao)
+                    : (backgroundLang === "en" ? "Not provided" : "Não informada")}
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100 col-span-2 sm:col-span-1">
-                <span className="text-slate-400 block text-[11px] font-medium">Nível Escolar</span>
+                <span className="text-slate-400 block text-[11px] font-medium">
+                  {backgroundLang === "en" ? "Education Level" : "Nível Escolar"}
+                </span>
                 <span className="font-bold text-slate-900 mt-0.5 block">
-                  {aluno.nivelEscolar || "Não informado"}
+                  {aluno.nivelEscolar
+                    ? (backgroundLang === "en" ? translateNivelEscolar(aluno.nivelEscolar, "en") : aluno.nivelEscolar)
+                    : (backgroundLang === "en" ? "Not provided" : "Não informado")}
                 </span>
               </div>
             </div>
@@ -535,10 +597,12 @@ export default function AdminAlunoDetalhesPage() {
               <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
                   <UserCheck className="h-4 w-4 text-indigo-600" />
-                  <span>Sobre o Aluno</span>
+                  <span>{backgroundLang === "en" ? "About the Student" : "Sobre o Aluno"}</span>
                 </div>
                 <p className="text-xs text-slate-700 leading-relaxed pt-0.5 whitespace-pre-wrap">
-                  {aluno.sobreAluno || "Nenhum detalhe adicional sobre a rotina ou perfil do aluno informado."}
+                  {aluno.sobreAluno
+                    ? (backgroundLang === "en" ? translateTextoBackground(aluno.sobreAluno, "en") : aluno.sobreAluno)
+                    : (backgroundLang === "en" ? "No additional details provided." : "Nenhum detalhe adicional sobre a rotina ou perfil do aluno informado.")}
                 </p>
               </div>
 
@@ -546,10 +610,12 @@ export default function AdminAlunoDetalhesPage() {
               <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
                   <Sparkles className="h-4 w-4 text-amber-500" />
-                  <span>Interesses do Aluno</span>
+                  <span>{backgroundLang === "en" ? "Student's Interests" : "Interesses do Aluno"}</span>
                 </div>
                 <p className="text-xs text-slate-700 leading-relaxed pt-0.5">
-                  {aluno.interesses || "Nenhum interesse informado."}
+                  {aluno.interesses
+                    ? (backgroundLang === "en" ? translateTextoBackground(aluno.interesses, "en") : aluno.interesses)
+                    : (backgroundLang === "en" ? "No interests provided." : "Nenhum interesse informado.")}
                 </p>
               </div>
 
@@ -557,10 +623,12 @@ export default function AdminAlunoDetalhesPage() {
               <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
                   <BookOpen className="h-4 w-4 text-purple-600" />
-                  <span>Biografia</span>
+                  <span>{backgroundLang === "en" ? "Biography" : "Biografia"}</span>
                 </div>
                 <p className="text-xs text-slate-700 leading-relaxed pt-0.5 whitespace-pre-wrap">
-                  {aluno.biografia || "Nenhuma biografia informada."}
+                  {aluno.biografia
+                    ? (backgroundLang === "en" ? translateTextoBackground(aluno.biografia, "en") : aluno.biografia)
+                    : (backgroundLang === "en" ? "No biography provided." : "Nenhuma biografia informada.")}
                 </p>
               </div>
             </div>
