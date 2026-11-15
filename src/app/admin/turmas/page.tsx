@@ -18,9 +18,10 @@ import {
   AlertTriangle,
   RotateCcw,
 } from "lucide-react";
-import { Turma, Professor, Aula } from "@/types";
+import { Turma, Professor, Aula, Aluno } from "@/types";
 import { turmaRepository } from "@/data/turmaRepository";
 import { professorRepository } from "@/data/professorRepository";
+import { alunoRepository } from "@/data/alunoRepository";
 import { aulaRepository } from "@/data/aulaRepository";
 import { getAcademicCoreDataSource } from "@/data/repositoryFactory";
 import { useAdminIdentity } from "@/app/admin/AdminLayoutClient";
@@ -34,6 +35,7 @@ export default function AdminTurmasPage() {
 
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [professores, setProfessores] = useState<Professor[]>([]);
+  const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [proximasAulas, setProximasAulas] = useState<Record<string, Aula | null>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -88,14 +90,16 @@ export default function AdminTurmasPage() {
     setLoading(true);
     setError(null);
     try {
-      const [listTurmas, listProfs, allAulas] = await Promise.all([
+      const [listTurmas, listProfs, listAlunos, allAulas] = await Promise.all([
         turmaRepository.listar(),
         professorRepository.listar(),
+        alunoRepository.listar(),
         aulaRepository.listar({ status: "agendada" }),
       ]);
 
       setTurmas(listTurmas);
       setProfessores(listProfs);
+      setAlunos(listAlunos);
 
       // Map next class for each turma
       const nextAulasMap: Record<string, Aula | null> = {};
@@ -122,7 +126,8 @@ export default function AdminTurmasPage() {
       if (
         !customEvent.detail?.entity ||
         customEvent.detail.entity === "turmas" ||
-        customEvent.detail.entity === "aulas"
+        customEvent.detail.entity === "aulas" ||
+        customEvent.detail.entity === "alunos"
       ) {
         carregarDados();
       }
@@ -139,6 +144,10 @@ export default function AdminTurmasPage() {
   const professorMap = useMemo(() => {
     return new Map(professores.map((p) => [p.id, p]));
   }, [professores]);
+
+  const alunoMap = useMemo(() => {
+    return new Map(alunos.map((a) => [a.id, a]));
+  }, [alunos]);
 
   // Filtered turmas
   const turmasFiltradas = useMemo(() => {
@@ -158,12 +167,19 @@ export default function AdminTurmasPage() {
           const prof = professorMap.get(pId);
           return prof?.nomeCompleto.toLowerCase().includes(q);
         });
-        return nomeMatch || profMatch;
+        const alunoMatch = (t.alunoIds || []).some((aId) => {
+          const aluno = alunoMap.get(aId);
+          return (
+            aluno?.nomeCompleto.toLowerCase().includes(q) ||
+            aluno?.email.toLowerCase().includes(q)
+          );
+        });
+        return nomeMatch || profMatch || alunoMatch;
       }
 
       return true;
     });
-  }, [turmas, filtroStatus, filtroNivel, filtroModalidade, busca, professorMap]);
+  }, [turmas, filtroStatus, filtroNivel, filtroModalidade, busca, professorMap, alunoMap]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -505,6 +521,7 @@ export default function AdminTurmasPage() {
                   <th className="px-4 py-3.5">Modalidade</th>
                   <th className="px-4 py-3.5">Nível</th>
                   <th className="px-4 py-3.5">Professor</th>
+                  <th className="px-4 py-3.5">Alunos</th>
                   <th className="px-4 py-3.5">Ocupação</th>
                   <th className="px-4 py-3.5">Status</th>
                   <th className="px-4 py-3.5">Próxima Aula</th>
@@ -583,6 +600,49 @@ export default function AdminTurmasPage() {
                           </div>
                         ) : (
                           <span className="text-slate-400 text-xs italic">Não atribuído</span>
+                        )}
+                      </td>
+
+                      {/* Alunos Matriculados */}
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        {t.alunoIds && t.alunoIds.length > 0 ? (
+                          <div className="flex flex-col gap-1 max-w-[220px]">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {t.alunoIds.slice(0, 2).map((aId) => {
+                                const al = alunoMap.get(aId);
+                                if (!al) {
+                                  return (
+                                    <span key={aId} className="text-slate-400 text-xs italic">
+                                      Aluno ({aId.slice(0, 8)})
+                                    </span>
+                                  );
+                                }
+                                return (
+                                  <Link
+                                    key={al.id}
+                                    href={`/admin/alunos/${al.id}`}
+                                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-100/80 hover:bg-emerald-100 hover:text-emerald-900 transition-colors truncate max-w-[180px]"
+                                    title={`Ficha de ${al.nomeCompleto} (${al.email})`}
+                                  >
+                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                    <span className="truncate">{al.nomeCompleto}</span>
+                                  </Link>
+                                );
+                              })}
+                            </div>
+                            {t.alunoIds.length > 2 && (
+                              <span
+                                className="text-[10px] font-semibold text-slate-500 cursor-help"
+                                title={t.alunoIds
+                                  .map((aId) => alunoMap.get(aId)?.nomeCompleto || aId)
+                                  .join(", ")}
+                              >
+                                +{t.alunoIds.length - 2} outro(s) aluno(s)
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 text-xs italic">Nenhum aluno</span>
                         )}
                       </td>
 
@@ -723,6 +783,39 @@ export default function AdminTurmasPage() {
                           ? profs.map((p) => p.nomeCompleto).join(", ")
                           : "Não atribuído"}
                       </span>
+                    </div>
+
+                    <div className="flex items-start justify-between text-slate-600 gap-2">
+                      <span className="shrink-0">{t.modalidade === "individual" ? "Aluno:" : "Alunos:"}</span>
+                      <div className="flex flex-col items-end gap-1 max-w-[70%]">
+                        {t.alunoIds && t.alunoIds.length > 0 ? (
+                          <div className="flex flex-wrap items-center justify-end gap-1.5">
+                            {t.alunoIds.map((aId) => {
+                              const al = alunoMap.get(aId);
+                              if (!al) {
+                                return (
+                                  <span key={aId} className="text-slate-400 text-[11px] italic">
+                                    Aluno ({aId.slice(0, 8)})
+                                  </span>
+                                );
+                              }
+                              return (
+                                <Link
+                                  key={al.id}
+                                  href={`/admin/alunos/${al.id}`}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-100 hover:bg-emerald-100 hover:text-emerald-900 transition-colors"
+                                  title={`Ficha de ${al.nomeCompleto} (${al.email})`}
+                                >
+                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                  <span className="truncate max-w-[130px]">{al.nomeCompleto}</span>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 text-xs italic">Nenhum aluno matriculado</span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="space-y-1">
