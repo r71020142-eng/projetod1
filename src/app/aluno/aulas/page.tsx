@@ -18,7 +18,7 @@ import { turmaRepository } from "@/data/turmaRepository";
 import { professorRepository } from "@/data/professorRepository";
 import { getAcademicAgendaDataSource } from "@/data/repositoryFactory";
 import { useAlunoIdentity } from "@/app/aluno/AlunoLayoutClient";
-import { PresencaBadge, AulaStatusBadge } from "@/components/common/TurmaBadges";
+import { PresencaBadge, AulaStatusBadge, AulaTipoBadge } from "@/components/common/TurmaBadges";
 
 const DEMO_ALUNO_ID = "alu-001"; // Fallback para modo demonstrativo (Mariana Oliveira)
 
@@ -411,6 +411,7 @@ export default function MinhasAulasPage() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-sm text-slate-900">{aula.titulo}</span>
+                      <AulaTipoBadge tipo={aula.tipo} />
                       <AulaStatusBadge status={aula.status} />
                     </div>
 

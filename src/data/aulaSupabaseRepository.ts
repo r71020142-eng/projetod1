@@ -28,6 +28,7 @@ interface AulaDbRow {
   fim_em: string;
   status: string;
   titulo: string;
+  tipo?: string | null;
   meeting_url: string | null;
   topicos_trabalhados: string | null;
   observacoes: string | null;
@@ -100,6 +101,7 @@ function mapRowToAula(row: AulaDbRow): Aula {
     turmaId: row.turma_id,
     professorId: row.professor_id,
     titulo: row.titulo,
+    tipo: (row.tipo === "reposicao" || row.titulo?.toLowerCase().includes("reposi")) ? "reposicao" : "regular",
     data: date,
     horario: time,
     duracaoMinutos,
@@ -364,6 +366,7 @@ export const aulaSupabaseRepository: IAulaRepository = {
       p_meeting_url: meetingUrl,
       p_observacoes: dados.observacoes || null,
       p_serie_id: null,
+      p_tipo: dados.tipo || (dados.titulo?.toLowerCase().includes("reposi") ? "reposicao" : "regular"),
     });
 
     if (error) {
@@ -454,6 +457,81 @@ export const aulaSupabaseRepository: IAulaRepository = {
     return { success: true, data: (aulasData as AulaDbRow[]).map(mapRowToAula) };
   },
 
+  async criarMultiplasAulas(
+    aulas: Array<
+      Omit<Aula, "id" | "dataCadastro" | "professorId" | "presencas"> & {
+        professorId?: string;
+        presencas?: Record<string, RegistroPresencaItem>;
+      }
+    >
+  ): Promise<OperationResult<Aula[]> & { conflitos?: ConflitoHorario[] }> {
+    if (!aulas || aulas.length === 0) {
+      return { success: false, error: "Nenhuma aula informada para agendamento." };
+    }
+
+    const supabase = getSupabase();
+
+    // Cache turmas to resolve professorId if not provided
+    const turmaIds = Array.from(new Set(aulas.map((a) => a.turmaId)));
+    const { data: turmasData } = await supabase
+      .from("turmas")
+      .select("id, professor_id")
+      .in("id", turmaIds);
+
+    const profMap = new Map(
+      ((turmasData || []) as Array<{ id: string; professor_id: string }>).map((t) => [
+        t.id,
+        t.professor_id,
+      ])
+    );
+
+    const payload = aulas.map((a) => {
+      const profId = a.professorId || profMap.get(a.turmaId);
+      const duracao = a.duracaoMinutos || 50;
+      const inicioUtc = localToUtc(a.data, a.horario);
+      const fimUtc = addMinutesToUtc(inicioUtc, duracao);
+      const meetingUrl = a.linkZoom || a.meetingUrl || null;
+      const tipo = a.tipo || (a.titulo?.toLowerCase().includes("reposi") ? "reposicao" : "regular");
+
+      return {
+        turma_id: a.turmaId,
+        professor_id: profId,
+        titulo: a.titulo,
+        inicio_em: inicioUtc,
+        fim_em: fimUtc,
+        meeting_url: meetingUrl,
+        observacoes: a.observacoes || null,
+        tipo,
+      };
+    });
+
+    const { data: aulaIds, error } = await supabase.rpc("agendar_multiplas_aulas", {
+      p_aulas: payload,
+    });
+
+    if (error) {
+      const msg = error.message;
+      return { success: false, error: msg };
+    }
+
+    if (!aulaIds || !Array.isArray(aulaIds) || aulaIds.length === 0) {
+      return { success: false, error: "Aulas geradas mas nenhum ID retornado." };
+    }
+
+    const { data: aulasData, error: listError } = await supabase
+      .from("aulas")
+      .select("*, presencas_aulas(*)")
+      .in("id", aulaIds)
+      .order("inicio_em", { ascending: true });
+
+    if (listError || !aulasData) {
+      return { success: false, error: "Aulas salvas, mas falha ao recuperar registros criados." };
+    }
+
+    notifyMutation();
+    return { success: true, data: (aulasData as AulaDbRow[]).map(mapRowToAula) };
+  },
+
   async atualizar(
     id: string,
     dados: Partial<Omit<Aula, "id" | "dataCadastro">>
@@ -492,6 +570,7 @@ export const aulaSupabaseRepository: IAulaRepository = {
     // Atualização de campos secundários
     const updates: Record<string, string | null> = {};
     if (dados.titulo) updates.titulo = dados.titulo;
+    if (dados.tipo !== undefined) updates.tipo = dados.tipo;
     if (dados.topicoTrabalhado !== undefined) updates.topicos_trabalhados = dados.topicoTrabalhado || null;
     if (dados.meetingUrl !== undefined || dados.linkZoom !== undefined) {
       updates.meeting_url = dados.linkZoom || dados.meetingUrl || null;

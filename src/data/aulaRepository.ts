@@ -87,6 +87,21 @@ export const aulaRepository: IAulaRepository & {
     return getAulaRepository().criarSequenciaSemanal(dadosBase, quantidadeEncontros);
   },
 
+  criarMultiplasAulas(
+    aulas: Array<
+      Omit<Aula, "id" | "dataCadastro" | "professorId" | "presencas"> & {
+        professorId?: string;
+        presencas?: Record<string, RegistroPresencaItem>;
+      }
+    >
+  ): Promise<OperationResult<Aula[]> & { conflitos?: ConflitoHorario[] }> {
+    const active = getAulaRepository();
+    if (active.criarMultiplasAulas) {
+      return active.criarMultiplasAulas(aulas);
+    }
+    return aulaLocalStorageRepository.criarMultiplasAulas!(aulas);
+  },
+
   atualizar(
     id: string,
     dados: Partial<Omit<Aula, "id" | "dataCadastro">>

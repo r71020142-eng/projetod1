@@ -28,7 +28,7 @@ import { turmaRepository } from "@/data/turmaRepository";
 import { professorRepository } from "@/data/professorRepository";
 import { getAcademicAgendaDataSource } from "@/data/repositoryFactory";
 import { useAdminIdentity } from "@/app/admin/AdminLayoutClient";
-import { AulaStatusBadge } from "@/components/common/TurmaBadges";
+import { AulaStatusBadge, AulaTipoBadge } from "@/components/common/TurmaBadges";
 import { AulaFormModal } from "@/components/admin/AulaFormModal";
 import { PresencaModal } from "@/components/admin/PresencaModal";
 
@@ -604,7 +604,10 @@ export default function AdminAgendaPage() {
                               {aula.horario} ({aula.duracaoMinutos || 50} min)
                             </span>
                           </div>
-                          <AulaStatusBadge status={aula.status} />
+                          <div className="flex items-center gap-1.5">
+                            <AulaTipoBadge tipo={aula.tipo} />
+                            <AulaStatusBadge status={aula.status} />
+                          </div>
                         </div>
 
                         {/* Title & Turma */}
@@ -781,7 +784,10 @@ export default function AdminAgendaPage() {
                         >
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-purple-700">{a.horario}</span>
-                            <AulaStatusBadge status={a.status} className="text-[10px] px-1.5 py-0" />
+                            <div className="flex items-center gap-1">
+                              <AulaTipoBadge tipo={a.tipo} className="text-[10px] px-1.5 py-0" />
+                              <AulaStatusBadge status={a.status} className="text-[10px] px-1.5 py-0" />
+                            </div>
                           </div>
 
                           <p className="font-semibold text-slate-800 line-clamp-2 leading-tight">

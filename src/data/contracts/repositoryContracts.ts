@@ -145,6 +145,14 @@ export interface IAulaRepository {
     dadosBase: Omit<Aula, "id" | "dataCadastro" | "professorId" | "presencas">,
     quantidadeEncontros: number
   ): Promise<OperationResult<Aula[]> & { conflitos?: ConflitoHorario[] }>;
+  criarMultiplasAulas(
+    aulas: Array<
+      Omit<Aula, "id" | "dataCadastro" | "professorId" | "presencas"> & {
+        professorId?: string;
+        presencas?: Record<string, RegistroPresencaItem>;
+      }
+    >
+  ): Promise<OperationResult<Aula[]> & { conflitos?: ConflitoHorario[] }>;
   atualizar(
     id: string,
     dados: Partial<Omit<Aula, "id" | "dataCadastro">>

@@ -264,11 +264,14 @@ export interface RegistroPresencaItem {
   registradoEm?: string;
 }
 
+export type TipoAula = "regular" | "reposicao";
+
 export interface Aula {
   id: string;
   turmaId: string;
   professorId: string; // obtido da turma
   titulo: string;
+  tipo?: TipoAula;
   data: string; // YYYY-MM-DD
   horario: string; // HH:mm
   duracaoMinutos: number; // padrão 50 ou 60

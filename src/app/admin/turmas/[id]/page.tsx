@@ -38,6 +38,7 @@ import {
   TurmaStatusBadge,
   ModalidadeBadge,
   AulaStatusBadge,
+  AulaTipoBadge,
 } from "@/components/common/TurmaBadges";
 import { TurmaFormModal } from "@/components/admin/TurmaFormModal";
 import { MatricularAlunoModal } from "@/components/admin/MatricularAlunoModal";
@@ -672,6 +673,7 @@ export default function AdminTurmaDetailPage() {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-sm text-slate-900">{aula.titulo}</span>
+                    <AulaTipoBadge tipo={aula.tipo} />
                     <AulaStatusBadge status={aula.status} />
                   </div>
                   <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
@@ -791,6 +793,7 @@ export default function AdminTurmaDetailPage() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-sm text-slate-900">{aula.titulo}</span>
+                      <AulaTipoBadge tipo={aula.tipo} />
                       <AulaStatusBadge status={aula.status} />
                     </div>
 

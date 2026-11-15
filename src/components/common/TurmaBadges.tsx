@@ -1,7 +1,7 @@
 import React from "react";
 import { ModalidadeTurma, StatusTurma, StatusAula, StatusPresenca } from "@/types";
 import { cn } from "@/lib/utils";
-import { Users, User, Check, X, AlertTriangle, HelpCircle } from "lucide-react";
+import { Users, User, Check, X, AlertTriangle, HelpCircle, RotateCcw } from "lucide-react";
 
 export function TurmaStatusBadge({ status, className }: { status: StatusTurma; className?: string }) {
   const configs: Record<StatusTurma, { label: string; bg: string; text: string; dot: string; border: string }> = {
@@ -68,6 +68,22 @@ export function ModalidadeBadge({ modalidade, className }: { modalidade: Modalid
     >
       {isIndividual ? <User className="h-3 w-3" /> : <Users className="h-3 w-3" />}
       <span>{isIndividual ? "Individual" : "Em Grupo"}</span>
+    </span>
+  );
+}
+
+export function AulaTipoBadge({ tipo, className }: { tipo?: "regular" | "reposicao" | string; className?: string }) {
+  if (tipo !== "reposicao") return null;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-xs",
+        className
+      )}
+      title="Aula de reposição pedagógica"
+    >
+      <RotateCcw className="h-3 w-3 stroke-[2.5]" />
+      <span>Reposição</span>
     </span>
   );
 }

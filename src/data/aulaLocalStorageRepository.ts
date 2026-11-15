@@ -343,6 +343,7 @@ export const aulaLocalStorageRepository: IAulaRepository = {
       turmaId: dados.turmaId,
       professorId,
       titulo: normalizeText(dados.titulo),
+      tipo: dados.tipo || (dados.titulo?.toLowerCase().includes("reposi") ? "reposicao" : "regular"),
       data: dados.data,
       horario: dados.horario,
       duracaoMinutos,
@@ -449,6 +450,101 @@ export const aulaLocalStorageRepository: IAulaRepository = {
     const saved = saveToStorage(currentList);
     if (!saved && isBrowser()) {
       return { success: false, error: "Falha ao gravar série de aulas no armazenamento local." };
+    }
+
+    return { success: true, data: aulasGeradas };
+  },
+
+  async criarMultiplasAulas(
+    aulas: Array<
+      Omit<Aula, "id" | "dataCadastro" | "professorId" | "presencas"> & {
+        professorId?: string;
+        presencas?: Record<string, RegistroPresencaItem>;
+      }
+    >
+  ): Promise<OperationResult<Aula[]> & { conflitos?: ConflitoHorario[] }> {
+    if (!aulas || aulas.length === 0) {
+      return { success: false, error: "Nenhuma aula informada para agendamento." };
+    }
+
+    const [turmaList, todasTurmas, todosProfessores, todosAlunos] = await Promise.all([
+      turmaRepository.listar(),
+      turmaRepository.listar(),
+      professorRepository.listar(),
+      alunoRepository.listar(),
+    ]);
+
+    const turmaMap = new Map(turmaList.map((t) => [t.id, t]));
+    const list = loadFromStorage();
+    const currentList = [...list];
+    const aulasGeradas: Aula[] = [];
+
+    // Pre-validate all candidate classes for conflicts before saving any
+    for (let i = 0; i < aulas.length; i++) {
+      const item = aulas[i];
+      const turma = turmaMap.get(item.turmaId);
+      if (!turma) {
+        return { success: false, error: `Turma #${item.turmaId} não encontrada.` };
+      }
+
+      const profId = item.professorId || turma.professorId;
+      const duracao = item.duracaoMinutos || 50;
+
+      const conflitos = checkConflitosHorario(
+        {
+          turmaId: item.turmaId,
+          professorId: profId,
+          data: item.data,
+          horario: item.horario,
+          duracaoMinutos: duracao,
+          status: item.status || "agendada",
+        },
+        currentList,
+        todasTurmas,
+        todosProfessores,
+        todosAlunos
+      );
+
+      if (conflitos.length > 0) {
+        return {
+          success: false,
+          error: `Conflito de horário detectado na aula #${i + 1} ("${item.titulo}" em ${new Date(
+            `${item.data}T00:00:00`
+          ).toLocaleDateString("pt-BR")} às ${item.horario}).`,
+          conflitos,
+        };
+      }
+
+      const initialPresencas: Record<string, RegistroPresencaItem> = {};
+      for (const aId of turma.alunoIds) {
+        initialPresencas[aId] = item.presencas?.[aId] || { status: "nao_registrado" };
+      }
+
+      const zoomUrl = item.linkZoom || item.meetingUrl;
+      const novaAula: Aula = {
+        id: generateAulaId(currentList),
+        turmaId: item.turmaId,
+        professorId: profId,
+        titulo: normalizeText(item.titulo),
+        tipo: item.tipo || (item.titulo?.toLowerCase().includes("reposi") ? "reposicao" : "regular"),
+        data: item.data,
+        horario: item.horario,
+        duracaoMinutos: duracao,
+        meetingUrl: zoomUrl ? zoomUrl.trim() : undefined,
+        linkZoom: zoomUrl ? zoomUrl.trim() : undefined,
+        status: item.status || "agendada",
+        observacoes: item.observacoes ? normalizeText(item.observacoes) : undefined,
+        presencas: initialPresencas,
+        dataCadastro: new Date().toISOString(),
+      };
+
+      currentList.push(novaAula);
+      aulasGeradas.push(novaAula);
+    }
+
+    const saved = saveToStorage(currentList);
+    if (!saved && isBrowser()) {
+      return { success: false, error: "Falha ao gravar aulas no armazenamento local." };
     }
 
     return { success: true, data: aulasGeradas };
