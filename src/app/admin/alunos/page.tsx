@@ -17,8 +17,9 @@ import {
   Database,
   AlertTriangle,
 } from "lucide-react";
-import { Aluno, NivelAluno, StatusCadastro } from "@/types";
+import { Aluno, NivelAluno, StatusCadastro, Turma } from "@/types";
 import { alunoRepository } from "@/data/alunoRepository";
+import { turmaRepository } from "@/data/turmaRepository";
 import { getCoreUsersDataSource } from "@/data/repositoryFactory";
 import { NivelBadge } from "@/components/common/NivelBadge";
 import { StatusBadge } from "@/components/common/StatusBadge";
@@ -28,12 +29,14 @@ import { executeWithTimeout } from "@/lib/asyncUtils";
 
 export default function AdminAlunosPage() {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
+  const [turmas, setTurmas] = useState<Turma[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Filters State
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<StatusCadastro | "todos">("todos");
   const [filtroNivel, setFiltroNivel] = useState<NivelAluno | "todos">("todos");
+  const [filtroMatricula, setFiltroMatricula] = useState<"todos" | "matriculado" | "sem_turma">("todos");
 
   // Modals State
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -90,10 +93,14 @@ export default function AdminAlunosPage() {
   const carregarAlunos = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await alunoRepository.listar();
-      setAlunos(data);
+      const [alunosData, turmasData] = await Promise.all([
+        alunoRepository.listar(),
+        turmaRepository.listar(),
+      ]);
+      setAlunos(alunosData);
+      setTurmas(turmasData);
     } catch (err) {
-      console.error("Erro ao carregar alunos:", err);
+      console.error("Erro ao carregar discentes e turmas:", err);
     } finally {
       setIsLoading(false);
     }
@@ -105,7 +112,11 @@ export default function AdminAlunosPage() {
     // Listen to storage events from other components/windows
     const handleStorageUpdate = (e: Event) => {
       const customEvent = e as CustomEvent<{ entity?: string }>;
-      if (!customEvent.detail || customEvent.detail.entity === "alunos") {
+      if (
+        !customEvent.detail ||
+        customEvent.detail.entity === "alunos" ||
+        customEvent.detail.entity === "turmas"
+      ) {
         carregarAlunos();
       }
     };
@@ -117,6 +128,20 @@ export default function AdminAlunosPage() {
       window.removeEventListener("mtd_core_users_updated", handleStorageUpdate);
     };
   }, [carregarAlunos]);
+
+  // Mapa de Turmas por Aluno (apenas turmas não encerradas)
+  const alunoTurmasMap = useMemo(() => {
+    const map = new Map<string, Turma[]>();
+    for (const turma of turmas) {
+      if (turma.status === "encerrada") continue;
+      for (const aId of turma.alunoIds || []) {
+        const existing = map.get(aId) || [];
+        existing.push(turma);
+        map.set(aId, existing);
+      }
+    }
+    return map;
+  }, [turmas]);
 
   // Filtered List
   const alunosFiltrados = useMemo(() => {
@@ -139,9 +164,17 @@ export default function AdminAlunosPage() {
         return false;
       }
 
+      // Matrícula em Turma
+      if (filtroMatricula !== "todos") {
+        const turmasDoAluno = alunoTurmasMap.get(aluno.id) || [];
+        const estaMatriculado = turmasDoAluno.length > 0;
+        if (filtroMatricula === "matriculado" && !estaMatriculado) return false;
+        if (filtroMatricula === "sem_turma" && estaMatriculado) return false;
+      }
+
       return true;
     });
-  }, [alunos, busca, filtroStatus, filtroNivel]);
+  }, [alunos, busca, filtroStatus, filtroNivel, filtroMatricula, alunoTurmasMap]);
 
   const totalAtivos = useMemo(
     () => alunos.filter((a) => a.status === "ativo").length,
@@ -150,6 +183,14 @@ export default function AdminAlunosPage() {
   const totalInativos = useMemo(
     () => alunos.filter((a) => a.status === "inativo").length,
     [alunos]
+  );
+  const totalMatriculados = useMemo(
+    () => alunos.filter((a) => (alunoTurmasMap.get(a.id) || []).length > 0).length,
+    [alunos, alunoTurmasMap]
+  );
+  const totalSemTurma = useMemo(
+    () => alunos.filter((a) => (alunoTurmasMap.get(a.id) || []).length === 0).length,
+    [alunos, alunoTurmasMap]
   );
 
   // Actions
@@ -251,6 +292,7 @@ export default function AdminAlunosPage() {
     setBusca("");
     setFiltroStatus("todos");
     setFiltroNivel("todos");
+    setFiltroMatricula("todos");
   };
 
   return (
@@ -353,7 +395,7 @@ export default function AdminAlunosPage() {
         </div>
 
         <div
-          className={`flex items-center gap-4 text-xs font-semibold text-slate-700 bg-white/90 rounded-xl px-3.5 py-2 border shrink-0 ${
+          className={`flex items-center gap-3 sm:gap-4 text-xs font-semibold text-slate-700 bg-white/90 rounded-xl px-3.5 py-2 border shrink-0 overflow-x-auto ${
             isSupabaseActive ? "border-emerald-200/70" : "border-indigo-100/60"
           }`}
         >
@@ -371,6 +413,16 @@ export default function AdminAlunosPage() {
             <span className="text-slate-400 font-normal">Inativos: </span>
             <span className="text-slate-600 font-extrabold">{totalInativos}</span>
           </div>
+          <div className="h-3 w-px bg-slate-200" />
+          <div>
+            <span className="text-indigo-600 font-normal">Com Turma: </span>
+            <span className="text-indigo-700 font-extrabold">{totalMatriculados}</span>
+          </div>
+          <div className="h-3 w-px bg-slate-200" />
+          <div>
+            <span className="text-amber-600 font-normal">Sem Turma: </span>
+            <span className="text-amber-700 font-extrabold">{totalSemTurma}</span>
+          </div>
         </div>
       </div>
 
@@ -378,7 +430,7 @@ export default function AdminAlunosPage() {
       <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
           {/* Search Box */}
-          <div className="md:col-span-5 relative">
+          <div className="md:col-span-4 relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
@@ -400,31 +452,44 @@ export default function AdminAlunosPage() {
           </div>
 
           {/* Filter Status */}
-          <div className="md:col-span-3">
+          <div className="md:col-span-2">
             <select
               value={filtroStatus}
               onChange={(e) => setFiltroStatus(e.target.value as StatusCadastro | "todos")}
               className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
             >
               <option value="todos">Status: Todos</option>
-              <option value="ativo">Status: Somente Ativos</option>
-              <option value="inativo">Status: Somente Inativos</option>
+              <option value="ativo">Status: Ativos</option>
+              <option value="inativo">Status: Inativos</option>
+            </select>
+          </div>
+
+          {/* Filter Matricula */}
+          <div className="md:col-span-3">
+            <select
+              value={filtroMatricula}
+              onChange={(e) => setFiltroMatricula(e.target.value as "todos" | "matriculado" | "sem_turma")}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
+            >
+              <option value="todos">Matrícula: Todas</option>
+              <option value="matriculado">Com Turma (Matriculado)</option>
+              <option value="sem_turma">Sem Turma (Não Matriculado)</option>
             </select>
           </div>
 
           {/* Filter Nivel */}
-          <div className="md:col-span-3">
+          <div className="md:col-span-2">
             <select
               value={filtroNivel}
               onChange={(e) => setFiltroNivel(e.target.value as NivelAluno | "todos")}
               className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
             >
-              <option value="todos">Nível: Todos os níveis</option>
+              <option value="todos">Nível: Todos</option>
               <option value="nao_avaliado">Não avaliado</option>
               <option value="A1">Iniciante (A1)</option>
               <option value="A2">Básico (A2)</option>
               <option value="B1">Intermediário (B1)</option>
-              <option value="B2">Intermediário Superior (B2)</option>
+              <option value="B2">Intermediário Sup. (B2)</option>
               <option value="C1">Avançado (C1)</option>
               <option value="C2">Proficiente (C2)</option>
             </select>
@@ -432,7 +497,7 @@ export default function AdminAlunosPage() {
 
           {/* Clear Filters Button */}
           <div className="md:col-span-1 flex items-center justify-end">
-            {(busca || filtroStatus !== "todos" || filtroNivel !== "todos") && (
+            {(busca || filtroStatus !== "todos" || filtroNivel !== "todos" || filtroMatricula !== "todos") && (
               <button
                 type="button"
                 onClick={limparFiltros}
@@ -451,7 +516,7 @@ export default function AdminAlunosPage() {
             Exibindo <strong>{alunosFiltrados.length}</strong> de{" "}
             <strong>{alunos.length}</strong> alunos cadastrados
           </span>
-          {(busca || filtroStatus !== "todos" || filtroNivel !== "todos") && (
+          {(busca || filtroStatus !== "todos" || filtroNivel !== "todos" || filtroMatricula !== "todos") && (
             <span className="text-indigo-600 font-medium">
               Filtros ativos aplicados
             </span>
@@ -503,6 +568,7 @@ export default function AdminAlunosPage() {
                   <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     <th className="py-3 px-4">Aluno</th>
                     <th className="py-3 px-4">Telefone</th>
+                    <th className="py-3 px-4">Turma</th>
                     <th className="py-3 px-4">Nível Pedagógico</th>
                     <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4">Cadastro</th>
@@ -521,6 +587,8 @@ export default function AdminAlunosPage() {
                     const dataFormatada = new Date(aluno.dataCadastro).toLocaleDateString(
                       "pt-BR"
                     );
+
+                    const turmasDoAluno = alunoTurmasMap.get(aluno.id) || [];
 
                     return (
                       <tr
@@ -563,6 +631,37 @@ export default function AdminAlunosPage() {
                         <td className="py-3.5 px-4 text-slate-600 font-medium whitespace-nowrap">
                           {aluno.telefone || (
                             <span className="text-slate-400 italic">Não informado</span>
+                          )}
+                        </td>
+
+                        {/* Turma / Situação de Matrícula */}
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          {turmasDoAluno.length === 0 ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/80">
+                              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                              Não matriculado
+                            </span>
+                          ) : (
+                            <div className="flex flex-col gap-1 max-w-[200px]">
+                              {turmasDoAluno.slice(0, 2).map((t) => (
+                                <Link
+                                  key={t.id}
+                                  href={`/admin/turmas/${t.id}`}
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-[#5046E5] hover:bg-indigo-100 hover:text-indigo-800 border border-indigo-100 transition-colors truncate"
+                                  title={`Ver Turma: ${t.nome} (${t.modalidade === "individual" ? "Individual" : "Grupo"})`}
+                                >
+                                  <span className="truncate">{t.nome}</span>
+                                  <span className="text-[10px] uppercase font-bold text-indigo-400 shrink-0">
+                                    {t.modalidade === "individual" ? "VIP" : "GRP"}
+                                  </span>
+                                </Link>
+                              ))}
+                              {turmasDoAluno.length > 2 && (
+                                <span className="text-[10px] font-medium text-slate-500">
+                                  +{turmasDoAluno.length - 2} outra(s) turma(s)
+                                </span>
+                              )}
+                            </div>
                           )}
                         </td>
 
@@ -654,6 +753,8 @@ export default function AdminAlunosPage() {
                   "pt-BR"
                 );
 
+                const turmasDoAluno = alunoTurmasMap.get(aluno.id) || [];
+
                 return (
                   <div key={aluno.id} className="p-4 space-y-3">
                     <div className="flex items-start justify-between gap-2">
@@ -697,6 +798,34 @@ export default function AdminAlunosPage() {
                       <div className="text-[11px] text-slate-400">
                         Cadastrado em {dataFormatada}
                       </div>
+                    </div>
+
+                    {/* Situação de Matrícula (Mobile) */}
+                    <div className="flex items-center gap-2 text-xs pt-1 border-t border-slate-50">
+                      <span className="text-slate-400 text-[11px] font-medium shrink-0">
+                        Turma:
+                      </span>
+                      {turmasDoAluno.length === 0 ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                          Não matriculado
+                        </span>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {turmasDoAluno.map((t) => (
+                            <Link
+                              key={t.id}
+                              href={`/admin/turmas/${t.id}`}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 text-[#5046E5] border border-indigo-100 hover:bg-indigo-100"
+                            >
+                              <span>{t.nome}</span>
+                              <span className="text-[9px] uppercase font-bold text-indigo-400">
+                                ({t.modalidade === "individual" ? "VIP" : "Grupo"})
+                              </span>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {aluno.objetivoIngles && (

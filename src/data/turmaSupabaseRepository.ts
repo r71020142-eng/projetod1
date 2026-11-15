@@ -351,11 +351,17 @@ export const turmaSupabaseRepository: ITurmaRepository = {
     const capacidadeFinal =
       merged.modalidade === "individual" ? 1 : Number(merged.capacidade);
 
-    // 2. Se a capacidade foi alterada, valida via RPC ou atualiza direto se compatível
-    if (dados.capacidade !== undefined && dados.capacidade !== atual.capacidade) {
+    const mudouCapacidade =
+      dados.capacidade !== undefined && capacidadeFinal !== atual.capacidade;
+    const mudouModalidade =
+      dados.modalidade !== undefined && merged.modalidade !== atual.modalidade;
+
+    // 2. Se a capacidade ou modalidade foi alterada, valida via RPC
+    if (mudouCapacidade || mudouModalidade) {
       const { error: capError } = await supabase.rpc("alterar_capacidade_turma", {
         p_turma_id: id,
         p_nova_capacidade: capacidadeFinal,
+        p_nova_modalidade: merged.modalidade,
       });
 
       if (capError) {
@@ -396,6 +402,7 @@ export const turmaSupabaseRepository: ITurmaRepository = {
     const updatePayload: Record<string, string | number | string[] | null> = {
       nome: normalizeText(merged.nome),
       modalidade: merged.modalidade,
+      capacidade: capacidadeFinal,
       nivel: merged.nivel,
       objetivo_principal: normalizeText(merged.objetivoPrincipal),
       status: merged.status,
