@@ -1,5 +1,5 @@
 /**
- * Utilitários assíncronos e de controle de concorrência do DEMOSTRATIVO MTD.
+ * Utilitários assíncronos e de controle de concorrência da Juno Academy.
  *
  * Garante que operações de escrita em formulários:
  * 1. Não fiquem pendentes indefinidamente (timeout controlado configurável);

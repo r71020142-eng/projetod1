@@ -1,5 +1,5 @@
 /**
- * Matriz de Permissões e Regras de Controle de Acesso (RBAC) do DEMOSTRATIVO MTD.
+ * Matriz de Permissões e Regras de Controle de Acesso (RBAC) da Juno Academy.
  * Baseado estritamente em MATRIZ_DE_PERMISSOES.md.
  */
 

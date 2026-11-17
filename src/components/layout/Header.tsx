@@ -114,20 +114,22 @@ export function Header({
 
         {/* Logo: Displayed on mobile only when sidebar is closed/in drawer */}
         <div className="flex lg:hidden items-center gap-1.5 sm:gap-2">
-          <Image
-            src="/assets/mtd/mtd-logo-mark.svg"
-            alt="Símbolo DEMOSTRATIVO MTD"
-            width={24}
-            height={24}
-            className="w-5 h-5 sm:w-6 sm:h-6 object-contain shrink-0"
-            unoptimized
-          />
+          <div className="w-7 h-7 rounded-lg bg-[#080a19] border border-amber-400/20 p-0.5 flex items-center justify-center shadow-xs shrink-0">
+            <Image
+              src="/assets/logo/juno-logo.png"
+              alt="Juno Academy"
+              width={26}
+              height={26}
+              className="w-full h-full object-contain"
+              unoptimized
+            />
+          </div>
           <div className="flex items-center gap-1">
             <span className="font-extrabold tracking-tight text-[#07132E] text-sm sm:text-base">
-              DEMOSTRATIVO
+              JUNO
             </span>
             <span className="text-[#5B2FE8] font-extrabold text-sm sm:text-base">
-              MTD
+              ACADEMY
             </span>
           </div>
         </div>

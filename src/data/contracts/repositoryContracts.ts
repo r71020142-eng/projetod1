@@ -1,5 +1,5 @@
 /**
- * Contratos de Repositório do DEMOSTRATIVO MTD (Etapa 10.1).
+ * Contratos de Repositório da Juno Academy (Etapa 10.1).
  *
  * Define as interfaces formais desacopladas da camada de persistência.
  * Permite que a camada de UI consuma dados sem saber se a fonte é localStorage (demo)

@@ -29,7 +29,7 @@ import { comunidadeRepository } from "./comunidadeRepository";
 import { gamificacaoRepository } from "./gamificacaoRepository";
 
 /**
- * Camada de acesso a dados demonstrativos para a plataforma DEMOSTRATIVO MTD.
+ * Camada de acesso a dados para a plataforma Juno Academy.
  * Todas as funções são assíncronas para simular o comportamento de chamadas de API reais,
  * facilitando a migração futura para backend sem alterar os componentes da interface.
  */

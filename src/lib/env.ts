@@ -1,5 +1,5 @@
 /**
- * Configuração central e validação estrita de variáveis de ambiente do DEMOSTRATIVO MTD.
+ * Configuração central e validação estrita de variáveis de ambiente da Juno Academy.
  *
  * Regras da Etapa 10.2A:
  * - APP_MODE: 'demo' | 'production' (padrão: 'demo')

@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Home,
@@ -74,30 +75,30 @@ export function AdminSidebar({
   const navContent = (
     <div className="flex h-full flex-col justify-between p-4 text-white bg-[#0D0B2E]">
       <div className="space-y-6">
-        {/* Brand Header matching Image 2 */}
-        <div className="flex items-center justify-between px-3 pt-2">
-          <Link href="/admin" className="flex items-center gap-2.5">
-            {/* Logo icon matching Image 2: butterfly / abstract double wing icon */}
-            <svg
-              className="w-7 h-7 text-[#6366F1]"
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 3c-1.5 2-4 3.5-7 4 0 5 2.5 9 7 14 4.5-5 7-9 7-14-3-.5-5.5-2-7-4z" />
-              <path d="M12 7v8" />
-            </svg>
-            <div className="flex items-center gap-1.5">
-              <span className="font-extrabold tracking-tight text-white text-base">
-                MÉTODO PAULO
-              </span>
-              <span className="text-[#6366F1] font-extrabold text-base">
-                MTD
+        {/* Brand Header */}
+        <div className="flex items-center justify-between px-2 pt-2">
+          <Link href="/admin" className="flex items-center gap-2.5 group">
+            <div className="w-8 h-8 rounded-lg bg-[#080a19] border border-amber-400/20 p-0.5 flex items-center justify-center shadow-md shrink-0">
+              <Image
+                src="/assets/logo/juno-logo.png"
+                alt="Juno Academy"
+                width={30}
+                height={30}
+                className="w-full h-full object-contain transform transition-transform group-hover:scale-105"
+                priority
+              />
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1.5 leading-none">
+                <span className="font-extrabold tracking-tight text-white text-[15px]">
+                  JUNO
+                </span>
+                <span className="text-[#6366F1] font-extrabold text-[15px]">
+                  ACADEMY
+                </span>
+              </div>
+              <span className="text-[9px] font-semibold text-[#EDB84E] tracking-[0.2em] uppercase mt-0.5">
+                Management
               </span>
             </div>
           </Link>
@@ -159,36 +160,36 @@ export function AdminSidebar({
                 <>
                   Education <br />
                   that transforms <br />
-                  <span className="text-slate-400 font-normal">with Paulo Method.</span>
+                  <span className="text-slate-400 font-normal">with Juno Academy.</span>
                 </>
               ) : locale === "fr" ? (
                 <>
                   Une éducation <br />
                   qui transforme <br />
-                  <span className="text-slate-400 font-normal">avec la Méthode Paulo.</span>
+                  <span className="text-slate-400 font-normal">avec Juno Academy.</span>
                 </>
               ) : locale === "es" ? (
                 <>
                   Educación <br />
                   que transforma <br />
-                  <span className="text-slate-400 font-normal">con el Método Paulo.</span>
+                  <span className="text-slate-400 font-normal">con Juno Academy.</span>
                 </>
               ) : locale === "it" ? (
                 <>
                   Educazione <br />
                   che trasforma <br />
-                  <span className="text-slate-400 font-normal">con il Metodo Paulo.</span>
+                  <span className="text-slate-400 font-normal">con Juno Academy.</span>
                 </>
               ) : locale === "zh" ? (
                 <>
                   改变未来的教育 <br />
-                  <span className="text-slate-400 font-normal">保罗教学法</span>
+                  <span className="text-slate-400 font-normal">Juno Academy</span>
                 </>
               ) : (
                 <>
                   Educação <br />
                   que transforma <br />
-                  <span className="text-slate-400 font-normal">com o Método Paulo.</span>
+                  <span className="text-slate-400 font-normal">com a Juno Academy.</span>
                 </>
               )}
             </p>

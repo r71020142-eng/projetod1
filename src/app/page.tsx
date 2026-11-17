@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   UserCheck,
   ShieldAlert,
@@ -13,17 +14,33 @@ export default function RootPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-indigo-50/30 flex flex-col justify-between">
       {/* Top Navbar */}
-      <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-md px-6 lg:px-12 py-4">
+      <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-md px-6 lg:px-12 py-3.5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold tracking-tight text-slate-900 text-xl">
-            <span>MÉTODO PAULO</span>
-            <span className="text-indigo-600 font-extrabold">MTD</span>
-          </div>
+          <Link href="/" className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#080a19] border border-amber-400/20 p-1 flex items-center justify-center shadow-md">
+              <Image
+                src="/assets/logo/juno-logo.png"
+                alt="Juno Academy Logo"
+                width={36}
+                height={36}
+                className="w-full h-full object-contain"
+                priority
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-extrabold tracking-tight text-slate-900 text-lg leading-tight">
+                JUNO ACADEMY
+              </span>
+              <span className="text-[10px] font-semibold text-amber-600 tracking-wider uppercase">
+                Language Academy
+              </span>
+            </div>
+          </Link>
 
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 border border-indigo-100">
               <GraduationCap className="h-3.5 w-3.5 text-indigo-600" />
-              Etapa 1 Concluída
+              Plataforma Oficial
             </span>
           </div>
         </div>
@@ -34,19 +51,19 @@ export default function RootPage() {
         {/* Badge */}
         <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-1.5 text-xs font-medium text-slate-700 border border-slate-200 mb-6">
           <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>Escola Exclusiva de Inglês • Método Paulo</span>
+          <span>Plataforma Educacional Global de Idiomas</span>
         </div>
 
         {/* Headline */}
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.15]">
           Plataforma Educacional <br />
           <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            Método Paulo • MTD
+            Juno Academy
           </span>
         </h1>
 
         <p className="mt-5 text-base sm:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
-          Estrutura completa com identidade visual de alta fidelidade, navegação responsiva e dashboards demonstrativos para Alunos e Administradores.
+          Estrutura completa com identidade visual oficial, navegação responsiva e dashboards completos para Alunos, Professores e Coordenação.
         </p>
 
         {/* 2 Main Portals */}
@@ -191,7 +208,7 @@ export default function RootPage() {
       {/* Footer */}
       <footer className="border-t border-slate-200/80 bg-white py-6 text-center text-xs text-slate-500">
         <p className="max-w-7xl mx-auto px-6">
-          MÉTODO PAULO MTD • Plataforma Educacional de Inglês • Método Paulo
+          JUNO ACADEMY • Plataforma Educacional de Idiomas
         </p>
       </footer>
     </div>

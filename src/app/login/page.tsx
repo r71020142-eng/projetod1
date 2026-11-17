@@ -70,19 +70,19 @@ function LoginFormContent() {
         <div className="bg-[#161426]/90 border border-white/10 rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
           {/* Cabeçalho Institucional */}
           <div className="flex flex-col items-center text-center mb-6">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-[#1F1B38] border border-[#D4AF37]/30 flex items-center justify-center mb-3 sm:mb-4 shadow-inner">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#080a19] border border-[#EDB84E]/30 flex items-center justify-center mb-3 sm:mb-4 shadow-xl overflow-hidden p-1.5">
               <Image
-                src="/assets/mtd/mtd-logo-mark.svg"
-                alt="Logo Método Paulo"
-                width={28}
-                height={28}
-                className="w-7 h-7 sm:w-8 sm:h-8 object-contain"
+                src="/assets/logo/juno-logo.png"
+                alt="Logo Juno Academy"
+                width={76}
+                height={76}
+                className="w-full h-full object-contain"
                 priority
               />
             </div>
 
-            <span className="text-[10.5px] sm:text-[11px] font-semibold tracking-[0.2em] uppercase text-[#D4AF37] mb-1">
-              Escola Paulo • MTD
+            <span className="text-[11px] sm:text-[12px] font-bold tracking-[0.2em] uppercase text-[#EDB84E] mb-1">
+              Juno Academy
             </span>
 
             <h1 className="font-serif text-2xl sm:text-3xl text-white font-normal tracking-tight">
@@ -220,7 +220,7 @@ function LoginFormContent() {
       {/* Âncora institucional inferior fixa/estável */}
       <footer className="relative z-10 text-center py-2 shrink-0">
         <p className="text-[10px] tracking-wider uppercase text-slate-500 font-semibold">
-          Método Paulo • Language Academy
+          Juno Academy • Language Platform
         </p>
       </footer>
     </main>

@@ -26,9 +26,9 @@ export default function AdminConfiguracoesPage() {
 
   // Dados Institucionais
   const [dadosInstitucionais, setDadosInstitucionais] = useState({
-    nomeEscola: "DEMOSTRATIVO MTD — Método Paulo",
-    sigla: "MTD",
-    emailOficial: "contato@metodopaulo.com.br",
+    nomeEscola: "Juno Academy",
+    sigla: "JUNO",
+    emailOficial: "contato@junoacademy.com",
     telefoneSuporte: "+55 (11) 98765-4321",
     cidade: "São Paulo, SP — Brasil",
     fusoHorario: "America/Sao_Paulo (UTC-3)",

@@ -1,5 +1,5 @@
 /**
- * Configurações e utilitários do Modo Demonstrativo do DEMOSTRATIVO MTD (Etapa 9).
+ * Configurações e utilitários do Modo Demonstrativo da Juno Academy (Etapa 9).
  *
  * Controlado pela variável de ambiente NEXT_PUBLIC_DEMO_MODE.
  * Por padrão, se não configurado ou explicitamente diferente de "false", opera em modo demonstrativo.

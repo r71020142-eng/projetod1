@@ -61,7 +61,7 @@ export function InternalPagePlaceholder({
                 Módulo em Fase de Planejamento de Dados e Regras
               </h2>
               <p className="text-sm text-slate-600 leading-relaxed">
-                A rota <code className="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-mono text-indigo-600 font-medium">{title}</code> já possui navegação, URL dedicada e integração ao menu demonstrativo. As regras de negócio e a persistência definitiva serão integradas conforme o cronograma do projeto DEMOSTRATIVO MTD.
+                A rota <code className="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-mono text-indigo-600 font-medium">{title}</code> já possui navegação, URL dedicada e integração ao menu. As regras de negócio e a persistência definitiva serão integradas conforme o cronograma do projeto Juno Academy.
               </p>
             </div>
           </div>

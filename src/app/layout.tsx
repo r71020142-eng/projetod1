@@ -35,20 +35,20 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  themeColor: "#0F172A",
+  themeColor: "#080a19",
   viewportFit: "cover",
 };
 
 export const metadata: Metadata = {
-  title: "Método Paulo • Plataforma Educacional de Inglês",
+  title: "Juno Academy • Plataforma Educacional de Idiomas",
   description:
-    "Plataforma educacional exclusiva de inglês baseada no Método Paulo. Portal completo para Alunos, Professores e Coordenação.",
-  applicationName: "Método Paulo",
+    "Plataforma educacional de idiomas Juno Academy. Portal completo para Alunos, Professores e Coordenação.",
+  applicationName: "Juno Academy",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Método Paulo",
+    title: "Juno Academy",
     startupImage: [
       {
         url: "/icons/icon-512.png",

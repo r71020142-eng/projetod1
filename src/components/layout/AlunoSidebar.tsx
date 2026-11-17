@@ -71,15 +71,14 @@ export function AlunoSidebar({ isOpenMobile, onCloseMobile, isRealAuth = false }
         <div className="p-5 pb-3 shrink-0">
           <div className="flex items-center justify-between px-2 pt-1">
             <Link href="/aluno" className="flex items-center gap-3 group">
-              {/* Símbolo Dourado Oficial MTD */}
-              <div className="relative w-8 h-8 shrink-0 flex items-center justify-center">
+              {/* Símbolo Oficial Juno Academy */}
+              <div className="relative w-9 h-9 shrink-0 flex items-center justify-center rounded-xl bg-[#080a19] border border-amber-400/20 p-1 shadow-md">
                 <Image
-                  src="/assets/mtd/mtd-logo-mark.svg"
-                  alt="Símbolo DEMOSTRATIVO MTD"
-                  width={32}
-                  height={32}
-                  className="w-8 h-8 object-contain transform transition-transform group-hover:scale-105"
-                  unoptimized
+                  src="/assets/logo/juno-logo.png"
+                  alt="Logo Juno Academy"
+                  width={34}
+                  height={34}
+                  className="w-full h-full object-contain transform transition-transform group-hover:scale-105"
                   priority
                 />
               </div>
@@ -87,13 +86,13 @@ export function AlunoSidebar({ isOpenMobile, onCloseMobile, isRealAuth = false }
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5 leading-none">
                   <span className="font-extrabold tracking-tight text-white text-[15px]">
-                    MÉTODO PAULO
+                    JUNO
                   </span>
-                  <span className="font-extrabold text-[15px] text-white">
-                    MTD
+                  <span className="font-extrabold text-[15px] text-[#EDB84E]">
+                    ACADEMY
                   </span>
                 </div>
-                <span className="text-[9.5px] font-semibold text-[#EDB84E] tracking-[0.25em] uppercase mt-1">
+                <span className="text-[9.5px] font-semibold text-slate-300 tracking-[0.25em] uppercase mt-1">
                   Language Academy
                 </span>
               </div>

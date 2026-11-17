@@ -15,8 +15,8 @@ export function ModoProducaoAviso({ area = "aluno" }: ModoProducaoAvisoProps) {
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-950 to-indigo-950 text-white flex flex-col justify-between p-6 sm:p-12">
       <header className="max-w-4xl mx-auto w-full flex items-center justify-between border-b border-slate-800 pb-4">
         <div className="flex items-center gap-2 font-bold tracking-tight text-xl">
-          <span>DEMOSTRATIVO</span>
-          <span className="text-indigo-400 font-extrabold">MTD</span>
+          <span>JUNO</span>
+          <span className="text-indigo-400 font-extrabold">ACADEMY</span>
         </div>
         <span className="px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/30 inline-flex items-center gap-1.5">
           <Lock className="w-3.5 h-3.5" />
@@ -87,7 +87,7 @@ export function ModoProducaoAviso({ area = "aluno" }: ModoProducaoAvisoProps) {
       </main>
 
       <footer className="max-w-4xl mx-auto w-full border-t border-slate-800/80 pt-4 text-center text-xs text-slate-500">
-        DEMOSTRATIVO MTD • Arquitetura Segura &amp; Método Paulo
+        Juno Academy • Arquitetura Segura &amp; Plataforma de Idiomas
       </footer>
     </div>
   );

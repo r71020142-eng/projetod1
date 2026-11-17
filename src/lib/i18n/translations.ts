@@ -171,7 +171,7 @@ export const translations = {
 
     // Admin Alunos
     studentsTitle: "Gestão de Alunos",
-    studentsSubtitle: "Matrículas, progressão CEFR e dados pedagógicos do Método Paulo",
+    studentsSubtitle: "Matrículas, progressão CEFR e dados pedagógicos da Juno Academy",
     newStudent: "Novo Aluno",
     enrolledInTurma: "Matriculado",
     notEnrolledInTurma: "Não matriculado",
@@ -181,7 +181,7 @@ export const translations = {
     registrationDate: "Data de Cadastro",
     phoneInternational: "Telefone com Código de País",
     studentProfileTitle: "Ficha Cadastral do Aluno",
-    studentProfileSubtitle: "Dados pessoais, nível pedagógico do Método Paulo, turmas e histórico de presença",
+    studentProfileSubtitle: "Dados pessoais, nível pedagógico Juno Academy, turmas e histórico de presença",
     backToStudentsList: "Voltar para Listagem de Alunos",
     editRegistration: "Editar Cadastro",
     inactivateEnrollment: "Inativar Matrícula",
@@ -201,7 +201,7 @@ export const translations = {
     noPresentationsSubmitted: "Nenhuma apresentação submetida",
     noPresentationsSubmittedDesc: "O discente ainda não realizou o envio do vídeo de nivelamento oral ou reavaliação.",
     supabaseLinkNotice: "As matrículas e turmas deste discente são gerenciadas diretamente no banco de dados PostgreSQL com regras de capacidade e integridade relacional.",
-    sidebarFooterTagline: "Educação que transforma com o Método Paulo.",
+    sidebarFooterTagline: "Educação que transforma com a Juno Academy.",
     dismiss: "Dispensar",
   },
   en: {
@@ -356,7 +356,7 @@ export const translations = {
 
     // Admin Alunos
     studentsTitle: "Student Management",
-    studentsSubtitle: "Enrollments, CEFR level progression, and Paulo Method pedagogical profile",
+    studentsSubtitle: "Enrollments, CEFR level progression, and Juno Academy pedagogical profile",
     newStudent: "New Student",
     enrolledInTurma: "Enrolled",
     notEnrolledInTurma: "Not enrolled",
@@ -366,7 +366,7 @@ export const translations = {
     registrationDate: "Enrollment Date",
     phoneInternational: "Phone with Country Code",
     studentProfileTitle: "Student Profile & Record",
-    studentProfileSubtitle: "Personal details, Paulo Method level, class groups, and attendance history",
+    studentProfileSubtitle: "Personal details, Juno Academy level, class groups, and attendance history",
     backToStudentsList: "Back to Students List",
     editRegistration: "Edit Registration",
     inactivateEnrollment: "Deactivate Enrollment",
@@ -386,7 +386,7 @@ export const translations = {
     noPresentationsSubmitted: "No presentations submitted",
     noPresentationsSubmittedDesc: "The student has not yet submitted the oral leveling video or reassessment.",
     supabaseLinkNotice: "Enrollments and class groups for this student are managed directly in the PostgreSQL database with capacity rules and relational integrity.",
-    sidebarFooterTagline: "Education that transforms with the Paulo Method.",
+    sidebarFooterTagline: "Education that transforms with Juno Academy.",
     dismiss: "Dismiss",
   },
   fr: {
@@ -541,7 +541,7 @@ export const translations = {
 
     // Admin Alunos
     studentsTitle: "Gestion des Étudiants",
-    studentsSubtitle: "Inscriptions, progression du niveau CECRL et profil pédagogique Méthode Paulo",
+    studentsSubtitle: "Inscriptions, progression du niveau CECRL et profil pédagogique Juno Academy",
     newStudent: "Nouvel Étudiant",
     enrolledInTurma: "Inscrit",
     notEnrolledInTurma: "Non inscrit",
@@ -551,7 +551,7 @@ export const translations = {
     registrationDate: "Date d'Inscription",
     phoneInternational: "Téléphone avec Indicatif Pays",
     studentProfileTitle: "Dossier de l'Étudiant",
-    studentProfileSubtitle: "Données personnelles, niveau pédagogique Méthode Paulo, groupes et historique de présence",
+    studentProfileSubtitle: "Données personnelles, niveau pédagogique Juno Academy, groupes et historique de présence",
     backToStudentsList: "Retour à la Liste des Étudiants",
     editRegistration: "Modifier l'Inscription",
     inactivateEnrollment: "Désactiver l'Inscription",
@@ -571,7 +571,7 @@ export const translations = {
     noPresentationsSubmitted: "Aucune présentation soumise",
     noPresentationsSubmittedDesc: "L'étudiant n'a pas encore envoyé de vidéo d'évaluation orale ou de réévaluation.",
     supabaseLinkNotice: "Les inscriptions et groupes de cet étudiant sont gérés directement dans la base de données PostgreSQL avec règles de capacité et intégrité relationnelle.",
-    sidebarFooterTagline: "L'éducation qui transforme avec la Méthode Paulo.",
+    sidebarFooterTagline: "Une éducation qui transforme avec Juno Academy.",
     dismiss: "Ignorer",
   },
   es: {
@@ -726,7 +726,7 @@ export const translations = {
 
     // Admin Alunos
     studentsTitle: "Gestión de Estudiantes",
-    studentsSubtitle: "Inscripciones, progresión de nivel MCER y perfil pedagógico Método Paulo",
+    studentsSubtitle: "Inscripciones, progresión de nivel MCER y perfil pedagógico Juno Academy",
     newStudent: "Nuevo Estudiante",
     enrolledInTurma: "Inscrito",
     notEnrolledInTurma: "No inscrito",
@@ -736,7 +736,7 @@ export const translations = {
     registrationDate: "Fecha de Inscripción",
     phoneInternational: "Teléfono con Código de País",
     studentProfileTitle: "Ficha del Estudiante",
-    studentProfileSubtitle: "Datos personales, nivel pedagógico Método Paulo, grupos e historial de asistencia",
+    studentProfileSubtitle: "Datos personales, nivel pedagógico Juno Academy, grupos e historial de asistencia",
     backToStudentsList: "Volver a la Lista de Estudiantes",
     editRegistration: "Editar Registro",
     inactivateEnrollment: "Desactivar Matrícula",
@@ -756,7 +756,7 @@ export const translations = {
     noPresentationsSubmitted: "Ninguna presentación enviada",
     noPresentationsSubmittedDesc: "El estudiante aún no ha enviado el video de nivelación oral o reevaluación.",
     supabaseLinkNotice: "Las matrículas y grupos de este estudiante se gestionan directamente en la base de datos PostgreSQL con reglas de capacidad e integridad relacional.",
-    sidebarFooterTagline: "Educación que transforma con el Método Paulo.",
+    sidebarFooterTagline: "Educación que transforma con Juno Academy.",
     dismiss: "Descartar",
   },
   it: {
@@ -911,7 +911,7 @@ export const translations = {
 
     // Admin Alunos
     studentsTitle: "Gestione Studenti",
-    studentsSubtitle: "Iscrizioni, progressione di livello QCER e profilo pedagogico Metodo Paulo",
+    studentsSubtitle: "Iscrizioni, progressione di livello QCER e profilo pedagogico Juno Academy",
     newStudent: "Nuovo Studente",
     enrolledInTurma: "Iscritto",
     notEnrolledInTurma: "Non iscritto",
@@ -921,7 +921,7 @@ export const translations = {
     registrationDate: "Data di Registrazione",
     phoneInternational: "Telefono con Prefisso Internazionale",
     studentProfileTitle: "Scheda dello Studente",
-    studentProfileSubtitle: "Dati personali, livello pedagogico Metodo Paulo, gruppi e registro presenze",
+    studentProfileSubtitle: "Dati personali, livello pedagogico Juno Academy, gruppi e registro presenze",
     backToStudentsList: "Torna all'Elenco Studenti",
     editRegistration: "Modifica Iscrizione",
     inactivateEnrollment: "Disattiva Iscrizione",
@@ -941,7 +941,7 @@ export const translations = {
     noPresentationsSubmitted: "Nessuna presentazione inviata",
     noPresentationsSubmittedDesc: "Lo studente non ha ancora inviato il video di valutazione orale o di riesame.",
     supabaseLinkNotice: "Le iscrizioni e le classi di questo studente sono gestite direttamente nel database PostgreSQL con regole di capienza e integrità relazionale.",
-    sidebarFooterTagline: "L'educazione che trasforma con il Metodo Paulo.",
+    sidebarFooterTagline: "Un'educazione che trasforma con Juno Academy.",
     dismiss: "Chiudi",
   },
   zh: {
@@ -1096,7 +1096,7 @@ export const translations = {
 
     // Admin Alunos
     studentsTitle: "学员管理系统",
-    studentsSubtitle: "学员注册、CEFR 等级进阶及保罗方法教学管理",
+    studentsSubtitle: "学员注册、CEFR 等级进阶及 Juno Academy 教学管理",
     newStudent: "添加学员",
     enrolledInTurma: "已分班",
     notEnrolledInTurma: "未分班",
@@ -1106,7 +1106,7 @@ export const translations = {
     registrationDate: "注册日期",
     phoneInternational: "带国际区号的电话",
     studentProfileTitle: "学员学籍档案",
-    studentProfileSubtitle: "学员个人信息、保罗教学等级、所在班级及出勤记录",
+    studentProfileSubtitle: "学员个人信息、Juno Academy 等级、所在班级及出勤记录",
     backToStudentsList: "返回学员列表",
     editRegistration: "编辑学籍资料",
     inactivateEnrollment: "停用学籍",
@@ -1126,7 +1126,7 @@ export const translations = {
     noPresentationsSubmitted: "尚未提交任何视频介绍",
     noPresentationsSubmittedDesc: "学员尚未上传口语定级或重新评测的视频。",
     supabaseLinkNotice: "该学员的选课与班级归属直接在 PostgreSQL 数据库中管理，严格执行容量限制与关联完整性。",
-    sidebarFooterTagline: "用保罗方法改变生活的教育。",
+    sidebarFooterTagline: "用 Juno Academy 改变未来的教育。",
     dismiss: "忽略",
   },
 };

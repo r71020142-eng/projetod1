@@ -1,5 +1,5 @@
 /**
- * Fábrica Central de Repositórios do DEMOSTRATIVO MTD (Etapa 10.2B2).
+ * Fábrica Central de Repositórios da Juno Academy (Etapa 10.2B2).
  *
  * Gerencia a resolução da camada de dados de acordo com o APP_MODE e fontes granulares:
  * - DATA_SOURCE: 'local' | 'supabase' (fonte geral da aplicação)
