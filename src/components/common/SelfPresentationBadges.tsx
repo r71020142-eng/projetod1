@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { StatusSelfPresentation, TipoSelfPresentation } from "@/types";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { Locale } from "@/lib/i18n/translations";
 
 interface StatusSelfPresentationBadgeProps {
   status: StatusSelfPresentation;
@@ -23,6 +24,14 @@ export function StatusSelfPresentationBadge({
 }: StatusSelfPresentationBadgeProps) {
   const { locale } = useLanguage();
 
+  const labels: Record<StatusSelfPresentation, Record<Locale, string>> = {
+    rascunho: { pt: "Rascunho", en: "Draft", fr: "Brouillon", es: "Borrador", it: "Bozza", zh: "草稿" },
+    enviada: { pt: "Aguardando Avaliação", en: "Pending Evaluation", fr: "En attente d'évaluation", es: "Esperando evaluación", it: "In attesa di valutazione", zh: "等待评估" },
+    em_avaliacao: { pt: "Em Avaliação", en: "In Evaluation", fr: "En cours d'évaluation", es: "En evaluación", it: "In valutazione", zh: "评估中" },
+    reenvio_solicitado: { pt: "Reenvio Solicitado", en: "Resubmission Requested", fr: "Nouvelle soumission requise", es: "Reenvío solicitado", it: "Reinvio richiesto", zh: "需重新提交" },
+    avaliada: { pt: "Avaliação Concluída", en: "Evaluation Completed", fr: "Évaluation terminée", es: "Evaluación completada", it: "Valutazione completata", zh: "已完成评估" },
+  };
+
   switch (status) {
     case "rascunho":
       return (
@@ -30,7 +39,7 @@ export function StatusSelfPresentationBadge({
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200/80 ${className}`}
         >
           <FileText className="h-3.5 w-3.5 text-slate-500" />
-          <span>{locale === "en" ? "Draft" : "Rascunho"}</span>
+          <span>{labels.rascunho[locale] || labels.rascunho.pt}</span>
         </span>
       );
     case "enviada":
@@ -39,7 +48,7 @@ export function StatusSelfPresentationBadge({
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200/80 ${className}`}
         >
           <Clock className="h-3.5 w-3.5 text-amber-600" />
-          <span>{locale === "en" ? "Pending Evaluation" : "Aguardando Avaliação"}</span>
+          <span>{labels.enviada[locale] || labels.enviada.pt}</span>
         </span>
       );
     case "em_avaliacao":
@@ -48,7 +57,7 @@ export function StatusSelfPresentationBadge({
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 ${className}`}
         >
           <Clock className="h-3.5 w-3.5 text-indigo-600" />
-          <span>{locale === "en" ? "In Evaluation" : "Em Avaliação"}</span>
+          <span>{labels.em_avaliacao[locale] || labels.em_avaliacao.pt}</span>
         </span>
       );
     case "reenvio_solicitado":
@@ -57,7 +66,7 @@ export function StatusSelfPresentationBadge({
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 ${className}`}
         >
           <RotateCcw className="h-3.5 w-3.5 text-purple-600" />
-          <span>{locale === "en" ? "Resubmission Requested" : "Reenvio Solicitado"}</span>
+          <span>{labels.reenvio_solicitado[locale] || labels.reenvio_solicitado.pt}</span>
         </span>
       );
     case "avaliada":
@@ -66,18 +75,27 @@ export function StatusSelfPresentationBadge({
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/80 ${className}`}
         >
           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-          <span>{locale === "en" ? "Evaluation Completed" : "Avaliação Concluída"}</span>
+          <span>{labels.avaliada[locale] || labels.avaliada.pt}</span>
         </span>
       );
-    default:
+    default: {
+      const undefinedLabel: Record<Locale, string> = {
+        pt: "Status Indefinido",
+        en: "Undefined Status",
+        fr: "Statut indéfini",
+        es: "Estado indefinido",
+        it: "Stato non definito",
+        zh: "未定义状态",
+      };
       return (
         <span
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 ${className}`}
         >
           <AlertCircle className="h-3.5 w-3.5" />
-          <span>{locale === "en" ? "Undefined Status" : "Status Indefinido"}</span>
+          <span>{undefinedLabel[locale] || "Status Indefinido"}</span>
         </span>
       );
+    }
   }
 }
 
@@ -92,13 +110,32 @@ export function TipoSelfPresentationBadge({
 }: TipoSelfPresentationBadgeProps) {
   const { locale } = useLanguage();
 
+  const labels: Record<TipoSelfPresentation, Record<Locale, string>> = {
+    nivelamento_inicial: {
+      pt: "Nivelamento Inicial",
+      en: "Initial Leveling",
+      fr: "Test de niveau initial",
+      es: "Nivelación inicial",
+      it: "Livellamento iniziale",
+      zh: "初始定级",
+    },
+    reavaliacao: {
+      pt: "Reavaliação",
+      en: "Reassessment",
+      fr: "Réévaluation",
+      es: "Reevaluación",
+      it: "Rivalutazione",
+      zh: "重新评估",
+    },
+  };
+
   if (tipo === "nivelamento_inicial") {
     return (
       <span
         className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/60 ${className}`}
       >
         <Award className="h-3 w-3 text-indigo-600" />
-        <span>{locale === "en" ? "Initial Leveling" : "Nivelamento Inicial"}</span>
+        <span>{labels.nivelamento_inicial[locale] || labels.nivelamento_inicial.pt}</span>
       </span>
     );
   }
@@ -108,7 +145,7 @@ export function TipoSelfPresentationBadge({
       className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-cyan-50 text-cyan-800 border border-cyan-200/60 ${className}`}
     >
       <RotateCcw className="h-3 w-3 text-cyan-600" />
-      <span>{locale === "en" ? "Reassessment" : "Reavaliação"}</span>
+      <span>{labels.reavaliacao[locale] || labels.reavaliacao.pt}</span>
     </span>
   );
 }
@@ -118,19 +155,18 @@ interface ScorePillProps {
 }
 
 export function ScorePill({ score }: ScorePillProps) {
-  const colors: Record<number, string> = {
-    1: "bg-red-50 text-red-700 border-red-200",
-    2: "bg-amber-50 text-amber-700 border-amber-200",
-    3: "bg-yellow-50 text-yellow-800 border-yellow-200",
-    4: "bg-blue-50 text-blue-700 border-blue-200",
-    5: "bg-emerald-50 text-emerald-800 border-emerald-200",
-  };
-
-  const colorClass = colors[score] || "bg-slate-50 text-slate-700 border-slate-200";
+  const colors = [
+    "bg-rose-100 text-rose-800 border-rose-200",
+    "bg-amber-100 text-amber-800 border-amber-200",
+    "bg-yellow-100 text-yellow-800 border-yellow-200",
+    "bg-teal-100 text-teal-800 border-teal-200",
+    "bg-emerald-100 text-emerald-800 border-emerald-200",
+  ];
+  const color = colors[Math.min(Math.max(score - 1, 0), 4)];
 
   return (
     <span
-      className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md text-xs font-black border ${colorClass}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border ${color}`}
     >
       {score}/5
     </span>

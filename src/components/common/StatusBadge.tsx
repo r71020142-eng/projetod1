@@ -4,6 +4,7 @@ import React from "react";
 import { StatusCadastro } from "@/types";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { Locale } from "@/lib/i18n/translations";
 
 interface StatusBadgeProps {
   status: StatusCadastro;
@@ -13,6 +14,14 @@ interface StatusBadgeProps {
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const { locale } = useLanguage();
   const isAtivo = status === "ativo";
+
+  const labels: Record<"ativo" | "inativo", Record<Locale, string>> = {
+    ativo: { pt: "Ativo", en: "Active", fr: "Actif", es: "Activo", it: "Attivo", zh: "活跃" },
+    inativo: { pt: "Inativo", en: "Inactive", fr: "Inactif", es: "Inactivo", it: "Inattivo", zh: "停用" },
+  };
+
+  const key = isAtivo ? "ativo" : "inativo";
+  const label = labels[key][locale] || labels[key].pt;
 
   return (
     <span
@@ -30,15 +39,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
           isAtivo ? "bg-emerald-500" : "bg-slate-400"
         )}
       />
-      <span>
-        {locale === "en"
-          ? isAtivo
-            ? "Active"
-            : "Inactive"
-          : isAtivo
-          ? "Ativo"
-          : "Inativo"}
-      </span>
+      <span>{label}</span>
     </span>
   );
 }

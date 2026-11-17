@@ -5,34 +5,38 @@ import { ModalidadeTurma, StatusTurma, StatusAula, StatusPresenca } from "@/type
 import { cn } from "@/lib/utils";
 import { Users, User, Check, X, AlertTriangle, HelpCircle, RotateCcw } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { Locale } from "@/lib/i18n/translations";
 
 export function TurmaStatusBadge({ status, className }: { status: StatusTurma; className?: string }) {
   const { locale } = useLanguage();
 
-  const configsPt: Record<StatusTurma, { label: string; bg: string; text: string; dot: string; border: string }> = {
+  const labels: Record<StatusTurma, Record<Locale, string>> = {
+    formacao: { pt: "Em formação", en: "Forming", fr: "En formation", es: "En formación", it: "In formazione", zh: "组班中" },
+    ativa: { pt: "Ativa", en: "Active", fr: "Active", es: "Activa", it: "Attiva", zh: "活跃" },
+    pausada: { pt: "Pausada", en: "Paused", fr: "En pause", es: "Pausada", it: "In pausa", zh: "已暂停" },
+    encerrada: { pt: "Encerrada", en: "Closed", fr: "Terminée", es: "Cerrada", it: "Chiusa", zh: "已结课" },
+  };
+
+  const styleConfigs: Record<StatusTurma, { bg: string; text: string; dot: string; border: string }> = {
     formacao: {
-      label: "Em formação",
       bg: "bg-amber-50",
       text: "text-amber-800",
       dot: "bg-amber-500",
       border: "border-amber-200/80",
     },
     ativa: {
-      label: "Ativa",
       bg: "bg-emerald-50",
       text: "text-emerald-800",
       dot: "bg-emerald-500",
       border: "border-emerald-200/80",
     },
     pausada: {
-      label: "Pausada",
       bg: "bg-slate-100",
       text: "text-slate-700",
       dot: "bg-slate-400",
       border: "border-slate-200",
     },
     encerrada: {
-      label: "Encerrada",
       bg: "bg-rose-50",
       text: "text-rose-800",
       dot: "bg-rose-500",
@@ -40,39 +44,8 @@ export function TurmaStatusBadge({ status, className }: { status: StatusTurma; c
     },
   };
 
-  const configsEn: Record<StatusTurma, { label: string; bg: string; text: string; dot: string; border: string }> = {
-    formacao: {
-      label: "Forming",
-      bg: "bg-amber-50",
-      text: "text-amber-800",
-      dot: "bg-amber-500",
-      border: "border-amber-200/80",
-    },
-    ativa: {
-      label: "Active",
-      bg: "bg-emerald-50",
-      text: "text-emerald-800",
-      dot: "bg-emerald-500",
-      border: "border-emerald-200/80",
-    },
-    pausada: {
-      label: "Paused",
-      bg: "bg-slate-100",
-      text: "text-slate-700",
-      dot: "bg-slate-400",
-      border: "border-slate-200",
-    },
-    encerrada: {
-      label: "Closed",
-      bg: "bg-rose-50",
-      text: "text-rose-800",
-      dot: "bg-rose-500",
-      border: "border-rose-200/80",
-    },
-  };
-
-  const configs = locale === "en" ? configsEn : configsPt;
-  const c = configs[status] || configs.ativa;
+  const c = styleConfigs[status] || styleConfigs.ativa;
+  const label = labels[status]?.[locale] || labels[status]?.pt || status;
 
   return (
     <span
@@ -85,7 +58,7 @@ export function TurmaStatusBadge({ status, className }: { status: StatusTurma; c
       )}
     >
       <span className={cn("h-1.5 w-1.5 rounded-full", c.dot)} />
-      <span>{c.label}</span>
+      <span>{label}</span>
     </span>
   );
 }
@@ -93,6 +66,24 @@ export function TurmaStatusBadge({ status, className }: { status: StatusTurma; c
 export function ModalidadeBadge({ modalidade, className }: { modalidade: ModalidadeTurma; className?: string }) {
   const { locale } = useLanguage();
   const isIndividual = modalidade === "individual";
+
+  const labelsInd: Record<Locale, string> = {
+    pt: "Individual",
+    en: "Individual",
+    fr: "Individuel",
+    es: "Individual",
+    it: "Individuale",
+    zh: "一对一",
+  };
+
+  const labelsGrp: Record<Locale, string> = {
+    pt: "Em Grupo",
+    en: "Group",
+    fr: "En Groupe",
+    es: "En Grupo",
+    it: "Di Gruppo",
+    zh: "小组",
+  };
 
   return (
     <span
@@ -105,15 +96,7 @@ export function ModalidadeBadge({ modalidade, className }: { modalidade: Modalid
       )}
     >
       {isIndividual ? <User className="h-3 w-3" /> : <Users className="h-3 w-3" />}
-      <span>
-        {isIndividual
-          ? locale === "en"
-            ? "Individual"
-            : "Individual"
-          : locale === "en"
-          ? "Group"
-          : "Em Grupo"}
-      </span>
+      <span>{isIndividual ? labelsInd[locale] || "Individual" : labelsGrp[locale] || "Grupo"}</span>
     </span>
   );
 }
@@ -121,16 +104,35 @@ export function ModalidadeBadge({ modalidade, className }: { modalidade: Modalid
 export function AulaTipoBadge({ tipo, className }: { tipo?: "regular" | "reposicao" | string; className?: string }) {
   const { locale } = useLanguage();
   if (tipo !== "reposicao") return null;
+
+  const labels: Record<Locale, string> = {
+    pt: "Reposição",
+    en: "Makeup",
+    fr: "Rattrapage",
+    es: "Recuperación",
+    it: "Recupero",
+    zh: "补课",
+  };
+
+  const titles: Record<Locale, string> = {
+    pt: "Aula de reposição pedagógica",
+    en: "Makeup class session",
+    fr: "Cours de rattrapage pédagogique",
+    es: "Clase de recuperación pedagógica",
+    it: "Lezione di recupero pedagogico",
+    zh: "补课课时",
+  };
+
   return (
     <span
       className={cn(
         "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-xs",
         className
       )}
-      title={locale === "en" ? "Makeup class session" : "Aula de reposição pedagógica"}
+      title={titles[locale] || titles.pt}
     >
       <RotateCcw className="h-3 w-3 stroke-[2.5]" />
-      <span>{locale === "en" ? "Makeup" : "Reposição"}</span>
+      <span>{labels[locale] || "Reposição"}</span>
     </span>
   );
 }
@@ -138,50 +140,20 @@ export function AulaTipoBadge({ tipo, className }: { tipo?: "regular" | "reposic
 export function AulaStatusBadge({ status, className }: { status: StatusAula; className?: string }) {
   const { locale } = useLanguage();
 
-  const configsPt: Record<StatusAula, { label: string; bg: string; text: string; border: string }> = {
-    agendada: {
-      label: "Agendada",
-      bg: "bg-blue-50",
-      text: "text-blue-700",
-      border: "border-blue-200",
-    },
-    concluida: {
-      label: "Concluída",
-      bg: "bg-emerald-50",
-      text: "text-emerald-700",
-      border: "border-emerald-200",
-    },
-    cancelada: {
-      label: "Cancelada",
-      bg: "bg-slate-100",
-      text: "text-slate-500",
-      border: "border-slate-200",
-    },
+  const labels: Record<StatusAula, Record<Locale, string>> = {
+    agendada: { pt: "Agendada", en: "Scheduled", fr: "Programmée", es: "Programada", it: "Pianificata", zh: "已排期" },
+    concluida: { pt: "Concluída", en: "Completed", fr: "Terminée", es: "Completada", it: "Completata", zh: "已完成" },
+    cancelada: { pt: "Cancelada", en: "Canceled", fr: "Annulée", es: "Cancelada", it: "Annullata", zh: "已取消" },
   };
 
-  const configsEn: Record<StatusAula, { label: string; bg: string; text: string; border: string }> = {
-    agendada: {
-      label: "Scheduled",
-      bg: "bg-blue-50",
-      text: "text-blue-700",
-      border: "border-blue-200",
-    },
-    concluida: {
-      label: "Completed",
-      bg: "bg-emerald-50",
-      text: "text-emerald-700",
-      border: "border-emerald-200",
-    },
-    cancelada: {
-      label: "Canceled",
-      bg: "bg-slate-100",
-      text: "text-slate-500",
-      border: "border-slate-200",
-    },
+  const styles: Record<StatusAula, { bg: string; text: string; border: string }> = {
+    agendada: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+    concluida: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+    cancelada: { bg: "bg-slate-100", text: "text-slate-500", border: "border-slate-200" },
   };
 
-  const configs = locale === "en" ? configsEn : configsPt;
-  const c = configs[status] || configs.agendada;
+  const c = styles[status] || styles.agendada;
+  const label = labels[status]?.[locale] || labels[status]?.pt || status;
 
   return (
     <span
@@ -193,13 +165,20 @@ export function AulaStatusBadge({ status, className }: { status: StatusAula; cla
         className
       )}
     >
-      {c.label}
+      {label}
     </span>
   );
 }
 
 export function PresencaBadge({ status, className }: { status: StatusPresenca; className?: string }) {
   const { locale } = useLanguage();
+
+  const labels: Record<StatusPresenca, Record<Locale, string>> = {
+    presente: { pt: "Presente", en: "Present", fr: "Présent", es: "Presente", it: "Presente", zh: "出勤" },
+    ausente: { pt: "Ausente", en: "Absent", fr: "Absent", es: "Ausente", it: "Assente", zh: "缺勤" },
+    justificado: { pt: "Justificado", en: "Excused", fr: "Excusé", es: "Justificado", it: "Giustificato", zh: "已请假" },
+    nao_registrado: { pt: "Não registrado", en: "Not recorded", fr: "Non enregistré", es: "No registrado", it: "Non registrato", zh: "未记录" },
+  };
 
   switch (status) {
     case "presente":
@@ -211,7 +190,7 @@ export function PresencaBadge({ status, className }: { status: StatusPresenca; c
           )}
         >
           <Check className="h-3 w-3 stroke-[3]" />
-          <span>{locale === "en" ? "Present" : "Presente"}</span>
+          <span>{labels.presente[locale] || "Presente"}</span>
         </span>
       );
     case "ausente":
@@ -223,7 +202,7 @@ export function PresencaBadge({ status, className }: { status: StatusPresenca; c
           )}
         >
           <X className="h-3 w-3 stroke-[3]" />
-          <span>{locale === "en" ? "Absent" : "Ausente"}</span>
+          <span>{labels.ausente[locale] || "Ausente"}</span>
         </span>
       );
     case "justificado":
@@ -235,7 +214,7 @@ export function PresencaBadge({ status, className }: { status: StatusPresenca; c
           )}
         >
           <AlertTriangle className="h-3 w-3" />
-          <span>{locale === "en" ? "Excused" : "Justificado"}</span>
+          <span>{labels.justificado[locale] || "Justificado"}</span>
         </span>
       );
     case "nao_registrado":
@@ -248,7 +227,7 @@ export function PresencaBadge({ status, className }: { status: StatusPresenca; c
           )}
         >
           <HelpCircle className="h-3 w-3" />
-          <span>{locale === "en" ? "Not recorded" : "Não registrado"}</span>
+          <span>{labels.nao_registrado[locale] || "Não registrado"}</span>
         </span>
       );
   }

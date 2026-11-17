@@ -1,4 +1,4 @@
-// src/lib/i18n/dynamicTranslator.ts
+// src/lib/i18n/dynamicTranslator.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -10,7 +10,7 @@ import {
   translateTextoBackground,
 } from "./backgroundTranslator";
 
-const STORAGE_CACHE_KEY = "mtd_dynamic_translations_cache_v1";
+const STORAGE_CACHE_KEY = "mtd_dynamic_translations_cache_v2";
 
 // Cache em memória compartilhado
 const memoryCache = new Map<string, string>();
@@ -46,7 +46,7 @@ export function getImmediateTranslation(text?: string, targetLocale: Locale = "e
   if (targetLocale === "pt") return text;
 
   const trimmed = text.trim();
-  const cacheKey = `pt:en:${trimmed.toLowerCase()}`;
+  const cacheKey = `pt:${targetLocale}:${trimmed.toLowerCase()}`;
 
   // Verifica cache de memória
   if (memoryCache.has(cacheKey)) {
@@ -61,26 +61,26 @@ export function getImmediateTranslation(text?: string, targetLocale: Locale = "e
   }
 
   // Tenta dicionários específicos
-  const asNac = translateNacionalidade(trimmed, "en");
+  const asNac = translateNacionalidade(trimmed, targetLocale);
   if (asNac !== trimmed) {
     memoryCache.set(cacheKey, asNac);
     return asNac;
   }
 
-  const asProf = translateProfissao(trimmed, "en");
+  const asProf = translateProfissao(trimmed, targetLocale);
   if (asProf !== trimmed) {
     memoryCache.set(cacheKey, asProf);
     return asProf;
   }
 
-  const asNivel = translateNivelEscolar(trimmed, "en");
+  const asNivel = translateNivelEscolar(trimmed, targetLocale);
   if (asNivel !== trimmed) {
     memoryCache.set(cacheKey, asNivel);
     return asNivel;
   }
 
   // Dicionário de frases narrativas
-  const asText = translateTextoBackground(trimmed, "en");
+  const asText = translateTextoBackground(trimmed, targetLocale);
   if (asText !== trimmed) {
     memoryCache.set(cacheKey, asText);
     return asText;
@@ -100,7 +100,7 @@ export async function translateDynamicAsync(
   if (targetLocale === "pt") return text;
 
   const trimmed = text.trim();
-  const cacheKey = `pt:en:${trimmed.toLowerCase()}`;
+  const cacheKey = `pt:${targetLocale}:${trimmed.toLowerCase()}`;
 
   if (memoryCache.has(cacheKey)) {
     return memoryCache.get(cacheKey)!;
@@ -163,9 +163,9 @@ export function useDynamicTranslation(
     }
 
     const trimmed = text.trim();
-    const cacheKey = `pt:en:${trimmed.toLowerCase()}`;
+    const cacheKey = `pt:${targetLocale}:${trimmed.toLowerCase()}`;
 
-    // Se já estiver em cache, aplica na hora
+    // 1. Tenta retorno síncrono imediato de cache ou dicionário
     if (memoryCache.has(cacheKey)) {
       setTranslated(memoryCache.get(cacheKey)!);
       return;
@@ -178,43 +178,49 @@ export function useDynamicTranslation(
       return;
     }
 
-    // Se não estiver em cache, aplica o que temos imediatamente e busca a tradução completa da IA
     const immediate = getImmediateTranslation(trimmed, targetLocale);
-    setTranslated(immediate);
+    if (immediate !== trimmed) {
+      setTranslated(immediate);
+    }
 
-    if (lastTextRef.current === `${targetLocale}:${trimmed}`) return;
-    lastTextRef.current = `${targetLocale}:${trimmed}`;
+    // 2. Se for texto longo ou ainda não traduzido perfeitamente, busca na API de tradução em background
+    let isCancelled = false;
+    lastTextRef.current = trimmed;
 
-    let isMounted = true;
     translateDynamicAsync(trimmed, targetLocale).then((res) => {
-      if (isMounted && res) {
+      if (!isCancelled && res && lastTextRef.current === trimmed) {
         setTranslated(res);
       }
     });
 
     return () => {
-      isMounted = false;
+      isCancelled = true;
     };
   }, [text, targetLocale]);
 
-  return translated;
+  return translated || text || "";
 }
 
 /**
- * Componente JSX declarativo para renderizar texto traduzido dinamicamente.
+ * Componente declarativo que envolve qualquer texto salvo e o renderiza traduzido.
+ * Substitui automaticamente qualquer conteúdo dinâmico (biografia, interesses, observações, etc.)
  */
 export function DynamicText({
   text,
   targetLocale = "en",
-  fallback = "",
+  fallback,
+  className,
 }: {
   text?: string | null;
   targetLocale?: Locale;
   fallback?: string;
+  className?: string;
 }) {
   const translated = useDynamicTranslation(text, targetLocale);
-  if (!text || !text.trim()) {
-    return <>{fallback}</>;
+
+  if (!text && fallback) {
+    return <span className={className}>{fallback}</span>;
   }
-  return <>{translated || text}</>;
+
+  return <span className={className}>{translated || text || ""}</span>;
 }

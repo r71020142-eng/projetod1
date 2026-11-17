@@ -161,6 +161,29 @@ export function AdminSidebar({
                   that transforms <br />
                   <span className="text-slate-400 font-normal">with Paulo Method.</span>
                 </>
+              ) : locale === "fr" ? (
+                <>
+                  Une éducation <br />
+                  qui transforme <br />
+                  <span className="text-slate-400 font-normal">avec la Méthode Paulo.</span>
+                </>
+              ) : locale === "es" ? (
+                <>
+                  Educación <br />
+                  que transforma <br />
+                  <span className="text-slate-400 font-normal">con el Método Paulo.</span>
+                </>
+              ) : locale === "it" ? (
+                <>
+                  Educazione <br />
+                  che trasforma <br />
+                  <span className="text-slate-400 font-normal">con il Metodo Paulo.</span>
+                </>
+              ) : locale === "zh" ? (
+                <>
+                  改变未来的教育 <br />
+                  <span className="text-slate-400 font-normal">保罗教学法</span>
+                </>
               ) : (
                 <>
                   Educação <br />

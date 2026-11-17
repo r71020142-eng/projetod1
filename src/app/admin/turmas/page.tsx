@@ -33,7 +33,7 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
 export default function AdminTurmasPage() {
   const identity = useAdminIdentity();
   const isProfessor = identity?.role === "professor";
-  const { locale } = useLanguage();
+  const { locale, t } = useLanguage();
 
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [professores, setProfessores] = useState<Professor[]>([]);
@@ -335,18 +335,37 @@ export default function AdminTurmasPage() {
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-              {locale === "en" ? "Classes & Groups" : "Turmas"}
+              {{
+                pt: "Turmas",
+                en: "Classes & Groups",
+                fr: "Classes & Groupes",
+                es: "Grupos y Clases",
+                it: "Classi & Gruppi",
+                zh: "班级与课程组",
+              }[locale] || "Turmas"}
             </h1>
             {isProfessor && (
               <span className="rounded-full bg-purple-50 px-2.5 py-0.5 text-[11px] font-bold text-purple-700 border border-purple-100">
-                {locale === "en" ? "Teacher View" : "Visualização do Docente"}
+                {{
+                  pt: "Visualização do Docente",
+                  en: "Teacher View",
+                  fr: "Vue Enseignant",
+                  es: "Vista del Docente",
+                  it: "Vista Docente",
+                  zh: "教师视图",
+                }[locale] || "Visualização do Docente"}
               </span>
             )}
           </div>
           <p className="text-sm text-slate-500 mt-1">
-            {locale === "en"
-              ? "Organize cohort groups and private classes, monitoring capacity, enrolled students, and assigned instructors."
-              : "Organize coortes em grupo e aulas individuais, acompanhando ocupação e professor responsável."}
+            {{
+              pt: "Organize coortes em grupo e aulas individuais, acompanhando ocupação e professor responsável.",
+              en: "Organize cohort groups and private classes, monitoring capacity, enrolled students, and assigned instructors.",
+              fr: "Organisez les cohortes en groupe et cours individuels, en suivant l'occupation et les enseignants.",
+              es: "Organice grupos y clases individuales, monitoreando ocupación y profesores asignados.",
+              it: "Organizza coorti di gruppo e lezioni individuali, monitorando capienza e docenti.",
+              zh: "组织小组班级与一对一课程，实时监控班级容量、在读学员及任课教师。",
+            }[locale] || "Organize coortes em grupo e aulas individuais."}
           </p>
         </div>
 
@@ -357,7 +376,16 @@ export default function AdminTurmasPage() {
             className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-sm shadow-sm transition-all hover:shadow"
           >
             <Plus className="h-4 w-4" />
-            <span>{locale === "en" ? "New Class" : "Nova Turma"}</span>
+            <span>
+              {{
+                pt: "Nova Turma",
+                en: "New Class",
+                fr: "Nouvelle classe",
+                es: "Nuevo grupo",
+                it: "Nuova classe",
+                zh: "新建班级",
+              }[locale] || "Nova Turma"}
+            </span>
           </button>
         )}
       </div>
@@ -365,19 +393,55 @@ export default function AdminTurmasPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
-          <p className="text-xs font-semibold text-slate-500">{locale === "en" ? "Total Classes" : "Total de Turmas"}</p>
+          <p className="text-xs font-semibold text-slate-500">
+            {{
+              pt: "Total de Turmas",
+              en: "Total Classes",
+              fr: "Total des classes",
+              es: "Total de grupos",
+              it: "Totale classi",
+              zh: "班级总数",
+            }[locale] || "Total de Turmas"}
+          </p>
           <p className="text-2xl font-bold text-slate-900 mt-1">{stats.total}</p>
         </div>
         <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
-          <p className="text-xs font-semibold text-emerald-600">{locale === "en" ? "Active Classes" : "Turmas Ativas"}</p>
+          <p className="text-xs font-semibold text-emerald-600">
+            {{
+              pt: "Turmas Ativas",
+              en: "Active Classes",
+              fr: "Classes actives",
+              es: "Grupos activos",
+              it: "Classi attive",
+              zh: "活跃班级",
+            }[locale] || "Turmas Ativas"}
+          </p>
           <p className="text-2xl font-bold text-emerald-700 mt-1">{stats.ativas}</p>
         </div>
         <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
-          <p className="text-xs font-semibold text-amber-600">{locale === "en" ? "Forming" : "Em Formação"}</p>
+          <p className="text-xs font-semibold text-amber-600">
+            {{
+              pt: "Em Formação",
+              en: "Forming",
+              fr: "En formation",
+              es: "En formación",
+              it: "In formazione",
+              zh: "组班中",
+            }[locale] || "Em Formação"}
+          </p>
           <p className="text-2xl font-bold text-amber-700 mt-1">{stats.formacao}</p>
         </div>
         <div className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
-          <p className="text-xs font-semibold text-purple-600">{locale === "en" ? "Enrolled Students" : "Alunos Matriculados"}</p>
+          <p className="text-xs font-semibold text-purple-600">
+            {{
+              pt: "Alunos Matriculados",
+              en: "Enrolled Students",
+              fr: "Élèves inscrits",
+              es: "Alumnos matriculados",
+              it: "Studenti iscritti",
+              zh: "在读学员",
+            }[locale] || "Alunos Matriculados"}
+          </p>
           <p className="text-2xl font-bold text-purple-700 mt-1">{stats.totalMatriculas}</p>
         </div>
       </div>
@@ -390,7 +454,16 @@ export default function AdminTurmasPage() {
             <Search className="h-4 w-4 text-slate-400 absolute left-3.5 top-3" />
             <input
               type="text"
-              placeholder={locale === "en" ? "Search by class name or teacher..." : "Buscar por nome da turma ou professor..."}
+              placeholder={
+                {
+                  pt: "Buscar por nome da turma ou professor...",
+                  en: "Search by class name or teacher...",
+                  fr: "Rechercher par nom de classe ou enseignant...",
+                  es: "Buscar por nombre de grupo o profesor...",
+                  it: "Cerca per nome della classe o docente...",
+                  zh: "按班级名称或教师搜索...",
+                }[locale] || "Buscar..."
+              }
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               className="w-full pl-9 pr-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-200"
@@ -405,11 +478,21 @@ export default function AdminTurmasPage() {
               onChange={(e) => setFiltroStatus(e.target.value)}
               className="px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white font-medium text-slate-700 focus:outline-none focus:border-purple-500"
             >
-              <option value="todos">{locale === "en" ? "Status: All" : "Status: Todos"}</option>
-              <option value="formacao">{locale === "en" ? "Forming" : "Em formação"}</option>
-              <option value="ativa">{locale === "en" ? "Active" : "Ativa"}</option>
-              <option value="pausada">{locale === "en" ? "Paused" : "Pausada"}</option>
-              <option value="encerrada">{locale === "en" ? "Closed" : "Encerrada"}</option>
+              <option value="todos">
+                {{ pt: "Status: Todos", en: "Status: All", fr: "Statut : Tous", es: "Estado: Todos", it: "Stato: Tutti", zh: "状态：全部" }[locale] || "Status: Todos"}
+              </option>
+              <option value="formacao">
+                {{ pt: "Em formação", en: "Forming", fr: "En formation", es: "En formación", it: "In formazione", zh: "组班中" }[locale] || "Em formação"}
+              </option>
+              <option value="ativa">
+                {{ pt: "Ativa", en: "Active", fr: "Active", es: "Activa", it: "Attiva", zh: "活跃" }[locale] || "Ativa"}
+              </option>
+              <option value="pausada">
+                {{ pt: "Pausada", en: "Paused", fr: "En pause", es: "Pausada", it: "In pausa", zh: "已暂停" }[locale] || "Pausada"}
+              </option>
+              <option value="encerrada">
+                {{ pt: "Encerrada", en: "Closed", fr: "Terminée", es: "Cerrada", it: "Chiusa", zh: "已结课" }[locale] || "Encerrada"}
+              </option>
             </select>
 
             {/* Modalidade */}
@@ -418,9 +501,15 @@ export default function AdminTurmasPage() {
               onChange={(e) => setFiltroModalidade(e.target.value)}
               className="px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white font-medium text-slate-700 focus:outline-none focus:border-purple-500"
             >
-              <option value="todos">{locale === "en" ? "Modality: All" : "Modalidade: Todas"}</option>
-              <option value="grupo">{locale === "en" ? "Group" : "Em Grupo"}</option>
-              <option value="individual">{locale === "en" ? "Individual" : "Individual"}</option>
+              <option value="todos">
+                {{ pt: "Modalidade: Todas", en: "Modality: All", fr: "Modalité : Toutes", es: "Modalidad: Todas", it: "Modalità: Tutte", zh: "模式：全部" }[locale] || "Modalidade: Todas"}
+              </option>
+              <option value="grupo">
+                {{ pt: "Em Grupo", en: "Group", fr: "En Groupe", es: "En Grupo", it: "Di Gruppo", zh: "小组" }[locale] || "Em Grupo"}
+              </option>
+              <option value="individual">
+                {{ pt: "Individual", en: "Individual", fr: "Individuel", es: "Individual", it: "Individuale", zh: "一对一" }[locale] || "Individual"}
+              </option>
             </select>
 
             {/* Nível */}
@@ -429,8 +518,12 @@ export default function AdminTurmasPage() {
               onChange={(e) => setFiltroNivel(e.target.value)}
               className="px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white font-medium text-slate-700 focus:outline-none focus:border-purple-500"
             >
-              <option value="todos">{locale === "en" ? "Level: All" : "Nível: Todos"}</option>
-              <option value="nao_definido">{locale === "en" ? "Undefined" : "Não definido"}</option>
+              <option value="todos">
+                {{ pt: "Nível: Todos", en: "Level: All", fr: "Niveau : Tous", es: "Nivel: Todos", it: "Livello: Tutti", zh: "级别：全部" }[locale] || "Nível: Todos"}
+              </option>
+              <option value="nao_definido">
+                {{ pt: "Não definido", en: "Undefined", fr: "Non défini", es: "No definido", it: "Non definito", zh: "未定义" }[locale] || "Não definido"}
+              </option>
               <option value="A1">A1</option>
               <option value="A2">A2</option>
               <option value="B1">B1</option>
@@ -523,15 +616,15 @@ export default function AdminTurmasPage() {
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50/70 text-slate-500 text-xs font-semibold uppercase tracking-wider border-b border-slate-100">
                 <tr>
-                  <th className="px-5 py-3.5">{locale === "en" ? "Class" : "Turma"}</th>
-                  <th className="px-4 py-3.5">{locale === "en" ? "Modality" : "Modalidade"}</th>
-                  <th className="px-4 py-3.5">{locale === "en" ? "Level" : "Nível"}</th>
-                  <th className="px-4 py-3.5">{locale === "en" ? "Teacher" : "Professor"}</th>
-                  <th className="px-4 py-3.5">{locale === "en" ? "Students" : "Alunos"}</th>
-                  <th className="px-4 py-3.5">{locale === "en" ? "Capacity" : "Ocupação"}</th>
-                  <th className="px-4 py-3.5">{locale === "en" ? "Status" : "Status"}</th>
-                  <th className="px-4 py-3.5">{locale === "en" ? "Next Session" : "Próxima Aula"}</th>
-                  <th className="px-5 py-3.5 text-right">{locale === "en" ? "Actions" : "Ações"}</th>
+                  <th className="px-5 py-3.5">{{ pt: "Turma", en: "Class", fr: "Classe", es: "Grupo", it: "Classe", zh: "班级" }[locale] || "Turma"}</th>
+                  <th className="px-4 py-3.5">{{ pt: "Modalidade", en: "Modality", fr: "Modalité", es: "Modalidad", it: "Modalità", zh: "模式" }[locale] || "Modalidade"}</th>
+                  <th className="px-4 py-3.5">{{ pt: "Nível", en: "Level", fr: "Niveau", es: "Nivel", it: "Livello", zh: "级别" }[locale] || "Nível"}</th>
+                  <th className="px-4 py-3.5">{{ pt: "Professor", en: "Teacher", fr: "Professeur", es: "Profesor", it: "Docente", zh: "教师" }[locale] || "Professor"}</th>
+                  <th className="px-4 py-3.5">{{ pt: "Alunos", en: "Students", fr: "Élèves", es: "Alumnos", it: "Studenti", zh: "学员" }[locale] || "Alunos"}</th>
+                  <th className="px-4 py-3.5">{{ pt: "Ocupação", en: "Capacity", fr: "Capacité", es: "Capacidad", it: "Capienza", zh: "容量" }[locale] || "Ocupação"}</th>
+                  <th className="px-4 py-3.5">{{ pt: "Status", en: "Status", fr: "Statut", es: "Estado", it: "Stato", zh: "状态" }[locale] || "Status"}</th>
+                  <th className="px-4 py-3.5">{{ pt: "Próxima Aula", en: "Next Session", fr: "Prochain cours", es: "Próxima clase", it: "Prossima lezione", zh: "下节课" }[locale] || "Próxima Aula"}</th>
+                  <th className="px-5 py-3.5 text-right">{{ pt: "Ações", en: "Actions", fr: "Actions", es: "Acciones", it: "Azioni", zh: "操作" }[locale] || "Ações"}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -936,26 +1029,34 @@ export default function AdminTurmasPage() {
               </div>
               <div>
                 <h3 className="text-base font-bold text-slate-900">
-                  {locale === "en" ? "Delete Class" : "Excluir Turma"}
+                  {{ pt: "Excluir Turma", en: "Delete Class", fr: "Supprimer la classe", es: "Eliminar grupo", it: "Elimina classe", zh: "删除班级" }[locale] || "Excluir Turma"}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  {locale === "en" ? "Irreversible administrative action" : "Ação irreversível de exclusão administrativa"}
+                  {{
+                    pt: "Ação irreversível de exclusão administrativa",
+                    en: "Irreversible administrative action",
+                    fr: "Action irréversible de suppression administrative",
+                    es: "Acción irreversible de eliminación administrativa",
+                    it: "Azione irreversibile di cancellazione amministrativa",
+                    zh: "不可逆的管理删除操作",
+                  }[locale] || "Ação irreversível"}
                 </p>
               </div>
             </div>
 
             <div className="p-3.5 bg-rose-50/50 rounded-xl border border-rose-100 text-xs text-slate-700 space-y-1.5">
               <p className="font-semibold text-rose-900">
-                {locale === "en" ? (
-                  <>You are about to delete the class &ldquo;{turmaParaExcluir.nome}&rdquo; ({turmaParaExcluir.id}).</>
-                ) : (
-                  <>Você está prestes a excluir a turma &ldquo;{turmaParaExcluir.nome}&rdquo; ({turmaParaExcluir.id}).</>
-                )}
+                &ldquo;{turmaParaExcluir.nome}&rdquo; ({turmaParaExcluir.id})
               </p>
               <p className="text-rose-700">
-                {locale === "en"
-                  ? "All scheduled sessions and enrollments associated with this class will be removed from the system."
-                  : "Todas as aulas agendadas e matrículas associadas a esta turma serão removidas do sistema."}
+                {{
+                  pt: "Todas as aulas agendadas e matrículas associadas a esta turma serão removidas do sistema.",
+                  en: "All scheduled sessions and enrollments associated with this class will be removed from the system.",
+                  fr: "Tous les cours programmés et inscriptions associés à cette classe seront supprimés du système.",
+                  es: "Todas las clases programadas y matrículas asociadas a este grupo serán eliminadas del sistema.",
+                  it: "Tutte le lezioni programmate e le iscrizioni associate a questa classe verranno rimosse dal sistema.",
+                  zh: "与该班级关联的所有排课课时和学员学籍都将从系统中移除。",
+                }[locale] || "Todas as aulas agendadas e matrículas associadas a esta turma serão removidas do sistema."}
               </p>
             </div>
 
@@ -975,7 +1076,7 @@ export default function AdminTurmasPage() {
                 disabled={isExcluindo}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition disabled:opacity-50"
               >
-                {locale === "en" ? "Cancel" : "Cancelar"}
+                {t("cancel", "Cancelar")}
               </button>
               <button
                 type="button"
@@ -986,12 +1087,12 @@ export default function AdminTurmasPage() {
                 {isExcluindo ? (
                   <>
                     <span className="h-3.5 w-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    <span>{locale === "en" ? "Deleting..." : "Excluindo..."}</span>
+                    <span>{t("deleting", "Excluindo...")}</span>
                   </>
                 ) : (
                   <>
                     <Trash2 className="h-3.5 w-3.5" />
-                    <span>{locale === "en" ? "Delete Class" : "Excluir Turma"}</span>
+                    <span>{{ pt: "Excluir Turma", en: "Delete Class", fr: "Supprimer la classe", es: "Eliminar grupo", it: "Elimina classe", zh: "删除班级" }[locale] || "Excluir Turma"}</span>
                   </>
                 )}
               </button>

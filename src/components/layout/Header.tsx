@@ -41,11 +41,19 @@ export function Header({
   const [unreadCount, setUnreadCount] = useState(0);
 
   const getTranslatedRole = (role?: string) => {
-    if (!role) return variant === "admin" ? (locale === "en" ? "Administrator" : "Administrador") : (locale === "en" ? "Student" : "Aluno");
-    if (locale !== "en") return role;
-    if (role.toLowerCase().includes("admin")) return "Administrator";
-    if (role.toLowerCase().includes("profess")) return "Teacher";
-    if (role.toLowerCase().includes("alun")) return "Student";
+    const roles = {
+      admin: { pt: "Administrador", en: "Administrator", fr: "Administrateur", es: "Administrador", it: "Amministratore", zh: "管理员" },
+      teacher: { pt: "Professor", en: "Teacher", fr: "Professeur", es: "Profesor", it: "Insegnante", zh: "教师" },
+      student: { pt: "Aluno", en: "Student", fr: "Étudiant", es: "Estudiante", it: "Studente", zh: "学员" },
+    };
+
+    if (!role) {
+      return variant === "admin" ? roles.admin[locale] || "Administrador" : roles.student[locale] || "Aluno";
+    }
+    const r = role.toLowerCase();
+    if (r.includes("admin")) return roles.admin[locale] || "Administrator";
+    if (r.includes("profess") || r.includes("teach")) return roles.teacher[locale] || "Teacher";
+    if (r.includes("alun") || r.includes("student")) return roles.student[locale] || "Student";
     return role;
   };
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { X, AlertCircle, Info, CheckCircle2, Key, Eye, EyeOff, GraduationCap } from "lucide-react";
+import { X, AlertCircle, CheckCircle2, Key, Eye, EyeOff, GraduationCap } from "lucide-react";
 import { Aluno, NivelAluno, StatusCadastro } from "@/types";
 import { alunoRepository } from "@/data/alunoRepository";
 import { FormPersistenceNotice } from "@/components/common/FormPersistenceNotice";
@@ -23,7 +23,7 @@ export function AlunoFormModal({
   onSuccess,
 }: AlunoFormModalProps) {
   const isEditing = !!alunoParaEditar;
-  const { locale } = useLanguage();
+  const { locale, t, translateNivel, translateStatus } = useLanguage();
 
   const [formData, setFormData] = useState({
     nomeCompleto: "",
@@ -111,169 +111,453 @@ export function AlunoFormModal({
         });
       }
     }
-  }, [alunoParaEditar, isOpen]);
-
-  const handleClose = () => {
-    activeRequestIdRef.current += 1;
-    setIsSubmitting(false);
-    onClose();
-  };
+  }, [isOpen, alunoParaEditar]);
 
   if (!isOpen) return null;
 
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.nomeCompleto.trim()) {
+      newErrors.nomeCompleto = locale === "en" ? "Full name is required." : "Nome completo é obrigatório.";
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = locale === "en" ? "Email is required." : "E-mail é obrigatório.";
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        newErrors.email = locale === "en" ? "Enter a valid email address." : "Informe um e-mail válido.";
+      }
+    }
+
+    if (!formData.objetivoIngles.trim()) {
+      newErrors.objetivoIngles = locale === "en" ? "English learning goal is required." : "Objetivo com o inglês é obrigatório.";
+    }
+
+    // Validação de senha: obrigatória no cadastro, opcional na edição
+    if (!isEditing) {
+      if (!senha) {
+        newErrors.senha = locale === "en" ? "Password is required for registration." : "A senha de acesso é obrigatória no cadastro.";
+      } else if (senha.length < 6) {
+        newErrors.senha = locale === "en" ? "Password must be at least 6 characters long." : "A senha deve ter pelo menos 6 caracteres.";
+      }
+
+      if (senha && senha !== confirmarSenha) {
+        newErrors.confirmarSenha = locale === "en" ? "Passwords do not match." : "As senhas não coincidem.";
+      }
+    } else {
+      // Se preencheu nova senha ao editar
+      if (senha) {
+        if (senha.length < 6) {
+          newErrors.senha = locale === "en" ? "New password must be at least 6 characters long." : "A nova senha deve ter pelo menos 6 caracteres.";
+        }
+        if (senha !== confirmarSenha) {
+          newErrors.confirmarSenha = locale === "en" ? "Passwords do not match." : "As senhas não coincidem.";
+        }
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleChange = (
     field: string,
-    value: string
+    value: string | NivelAluno | StatusCadastro
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear field-specific error as user types
     if (errors[field]) {
       setErrors((prev) => {
-        const next = { ...prev };
-        delete next[field];
-        return next;
+        const updated = { ...prev };
+        delete updated[field];
+        return updated;
       });
     }
-    setGeneralError(null);
+    if (generalError) {
+      setGeneralError(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmitting) return;
-
-    // Validações locais prévias de senha
-    const localErrors: Record<string, string> = {};
-    if (!isEditing) {
-      if (!senha.trim()) {
-        localErrors.senha = "A senha de acesso à plataforma é obrigatória para cadastrar o aluno.";
-      } else if (senha.length < 6) {
-        localErrors.senha = "A senha deve conter no mínimo 6 caracteres.";
-      }
-      if (senha && senha !== confirmarSenha) {
-        localErrors.confirmarSenha = "A confirmação da senha não coincide com a senha digitada.";
-      }
-    } else {
-      if (senha.trim().length > 0) {
-        if (senha.length < 6) {
-          localErrors.senha = "A nova senha deve conter no mínimo 6 caracteres.";
-        }
-        if (senha !== confirmarSenha) {
-          localErrors.confirmarSenha = "A confirmação da nova senha não coincide.";
-        }
-      }
-    }
-
-    if (Object.keys(localErrors).length > 0) {
-      setErrors((prev) => ({ ...prev, ...localErrors }));
-      setGeneralError("Por favor, corrija os erros de validação antes de continuar.");
-      return;
-    }
-
-    activeRequestIdRef.current += 1;
-    const currentRequestId = activeRequestIdRef.current;
+    if (!validate()) return;
 
     setIsSubmitting(true);
     setGeneralError(null);
-
-    const parsedIdade = formData.idade.trim() ? parseInt(formData.idade.trim(), 10) : undefined;
-    const cleanIdade = parsedIdade !== undefined && !isNaN(parsedIdade) ? parsedIdade : undefined;
+    const requestId = ++activeRequestIdRef.current;
 
     try {
       if (isEditing && alunoParaEditar) {
+        const payloadAtualizacao = {
+          nomeCompleto: formData.nomeCompleto.trim(),
+          email: formData.email.trim(),
+          telefone: formData.telefone.trim(),
+          objetivoIngles: formData.objetivoIngles.trim(),
+          nivel: formData.nivel,
+          status: formData.status,
+          observacoesPedagogicas: formData.observacoesPedagogicas.trim(),
+          idade: formData.idade ? parseInt(formData.idade, 10) : undefined,
+          dataNascimento: formData.dataNascimento || undefined,
+          nivelEscolar: formData.nivelEscolar.trim() || undefined,
+          profissao: formData.profissao.trim() || undefined,
+          nacionalidade: formData.nacionalidade.trim() || undefined,
+          sobreAluno: formData.sobreAluno.trim() || undefined,
+          interesses: formData.interesses.trim() || undefined,
+          biografia: formData.biografia.trim() || undefined,
+          senha: senha ? senha : undefined,
+        };
+
         const res = await executeWithTimeout(
-          alunoRepository.atualizar(alunoParaEditar.id, {
-            nomeCompleto: formData.nomeCompleto,
-            email: formData.email,
-            telefone: formData.telefone || undefined,
-            objetivoIngles: formData.objetivoIngles,
-            nivel: formData.nivel,
-            status: formData.status,
-            observacoesPedagogicas: formData.observacoesPedagogicas || undefined,
-            senha: senha.trim() || undefined,
-            idade: cleanIdade,
-            dataNascimento: formData.dataNascimento.trim() || undefined,
-            nivelEscolar: formData.nivelEscolar.trim() || undefined,
-            profissao: formData.profissao.trim() || undefined,
-            nacionalidade: formData.nacionalidade.trim() || undefined,
-            sobreAluno: formData.sobreAluno.trim() || undefined,
-            interesses: formData.interesses.trim() || undefined,
-            biografia: formData.biografia.trim() || undefined,
-          })
+          alunoRepository.atualizar(alunoParaEditar.id, payloadAtualizacao),
+          15000,
+          locale === "en" ? "Timeout updating student. Please try again." : "Tempo limite excedido ao atualizar discente. Tente novamente."
         );
 
-        if (!isMountedRef.current || currentRequestId !== activeRequestIdRef.current) {
-          return;
-        }
+        if (!isMountedRef.current || requestId !== activeRequestIdRef.current) return;
 
-        if (!res.success) {
-          if (res.fieldErrors) {
-            setErrors(res.fieldErrors);
-          }
-          setGeneralError(
-            res.error || "Erro ao salvar alterações do aluno. Verifique os campos e tente novamente."
-          );
-          return;
+        if (res.success && res.data) {
+          onSuccess(res.data, false);
+          onClose();
+        } else {
+          setGeneralError(res.error || (locale === "en" ? "Error updating student." : "Erro ao atualizar dados do discente."));
         }
-
-        onSuccess(res.data!, false);
       } else {
+        const novoDiscenteData = {
+          nomeCompleto: formData.nomeCompleto.trim(),
+          email: formData.email.trim(),
+          telefone: formData.telefone.trim(),
+          objetivoIngles: formData.objetivoIngles.trim(),
+          nivel: formData.nivel,
+          status: formData.status,
+          observacoesPedagogicas: formData.observacoesPedagogicas.trim(),
+          idade: formData.idade ? parseInt(formData.idade, 10) : undefined,
+          dataNascimento: formData.dataNascimento || undefined,
+          nivelEscolar: formData.nivelEscolar.trim() || undefined,
+          profissao: formData.profissao.trim() || undefined,
+          nacionalidade: formData.nacionalidade.trim() || undefined,
+          sobreAluno: formData.sobreAluno.trim() || undefined,
+          interesses: formData.interesses.trim() || undefined,
+          biografia: formData.biografia.trim() || undefined,
+          senha: senha,
+        };
+
         const res = await executeWithTimeout(
-          alunoRepository.criar({
-            nomeCompleto: formData.nomeCompleto,
-            email: formData.email,
-            telefone: formData.telefone || undefined,
-            objetivoIngles: formData.objetivoIngles,
-            nivel: formData.nivel,
-            status: formData.status,
-            observacoesPedagogicas: formData.observacoesPedagogicas || undefined,
-            senha: senha.trim() || undefined,
-            idade: cleanIdade,
-            dataNascimento: formData.dataNascimento.trim() || undefined,
-            nivelEscolar: formData.nivelEscolar.trim() || undefined,
-            profissao: formData.profissao.trim() || undefined,
-            nacionalidade: formData.nacionalidade.trim() || undefined,
-            sobreAluno: formData.sobreAluno.trim() || undefined,
-            interesses: formData.interesses.trim() || undefined,
-            biografia: formData.biografia.trim() || undefined,
-          })
+          alunoRepository.criar(novoDiscenteData),
+          15000,
+          locale === "en" ? "Timeout creating student. Please try again." : "Tempo limite excedido ao cadastrar discente. Tente novamente."
         );
 
-        if (!isMountedRef.current || currentRequestId !== activeRequestIdRef.current) {
-          return;
-        }
+        if (!isMountedRef.current || requestId !== activeRequestIdRef.current) return;
 
-        if (!res.success) {
-          if (res.fieldErrors) {
-            setErrors(res.fieldErrors);
-          }
-          setGeneralError(
-            res.error || "Erro ao cadastrar novo aluno. Verifique os campos e tente novamente."
-          );
-          return;
+        if (res.success && res.data) {
+          onSuccess(res.data, true);
+          onClose();
+        } else {
+          setGeneralError(res.error || (locale === "en" ? "Error creating student." : "Erro ao cadastrar novo discente."));
         }
-
-        onSuccess(res.data!, true);
       }
     } catch (err: unknown) {
-      if (!isMountedRef.current || currentRequestId !== activeRequestIdRef.current) {
-        return;
-      }
-      console.error("[AlunoFormModal] Erro ao salvar:", err);
-      const msg =
-        err instanceof Error
-          ? err.message
-          : "Ocorreu um erro inesperado ao processar os dados. Por favor, tente novamente.";
+      if (!isMountedRef.current || requestId !== activeRequestIdRef.current) return;
+      const msg = err instanceof Error ? err.message : (locale === "en" ? "Unexpected error processing request." : "Erro inesperado ao processar requisição.");
       setGeneralError(msg);
     } finally {
-      if (isMountedRef.current && currentRequestId === activeRequestIdRef.current) {
+      if (isMountedRef.current && requestId === activeRequestIdRef.current) {
         setIsSubmitting(false);
       }
     }
   };
 
+  const handleClose = () => {
+    if (isSubmitting) return;
+    onClose();
+  };
+
+  // Textos traduzidos para todos os 6 idiomas
+  const tModal = {
+    title: isEditing
+      ? {
+          pt: "Editar Aluno",
+          en: "Edit Student",
+          fr: "Modifier l'élève",
+          es: "Editar alumno",
+          it: "Modifica studente",
+          zh: "编辑学员",
+        }[locale] || "Editar Aluno"
+      : {
+          pt: "Cadastrar Novo Aluno",
+          en: "Register New Student",
+          fr: "Inscrire un nouvel élève",
+          es: "Registrar nuevo alumno",
+          it: "Registra nuovo studente",
+          zh: "注册新学员",
+        }[locale] || "Cadastrar Novo Aluno",
+
+    subtitle: isEditing
+      ? {
+          pt: `Atualize os dados cadastrais do discente (${alunoParaEditar?.id}).`,
+          en: `Update registration records for student (${alunoParaEditar?.id}).`,
+          fr: `Mettez à jour les données de l'élève (${alunoParaEditar?.id}).`,
+          es: `Actualice los datos del alumno (${alunoParaEditar?.id}).`,
+          it: `Aggiorna i dati dello studente (${alunoParaEditar?.id}).`,
+          zh: `更新学员档案 (${alunoParaEditar?.id})。`,
+        }[locale] || `Editar discente`
+      : {
+          pt: "Preencha as informações para registrar o aluno no Método Paulo.",
+          en: "Fill in the information to register the student in Paulo Method.",
+          fr: "Remplissez les informations pour inscrire l'élève à la Méthode Paulo.",
+          es: "Complete la información para registrar al alumno en el Método Paulo.",
+          it: "Inserisci le informazioni per registrare lo studente nel Metodo Paulo.",
+          zh: "填写信息以在保罗教学法中注册新学员。",
+        }[locale] || "Registrar aluno",
+
+    fullName: {
+      pt: "Nome Completo",
+      en: "Full Name",
+      fr: "Nom complet",
+      es: "Nombre completo",
+      it: "Nome completo",
+      zh: "全名",
+    }[locale] || "Nome Completo",
+
+    email: {
+      pt: "E-mail",
+      en: "Email Address",
+      fr: "Adresse e-mail",
+      es: "Correo electrónico",
+      it: "Indirizzo e-mail",
+      zh: "电子邮箱",
+    }[locale] || "E-mail",
+
+    phone: {
+      pt: "Telefone com Código de País",
+      en: "Phone with Country Code",
+      fr: "Téléphone avec indicatif",
+      es: "Teléfono con código de país",
+      it: "Telefono con prefisso",
+      zh: "带国家代码的电话号码",
+    }[locale] || "Telefone com Código de País",
+
+    accessHeader: isEditing
+      ? {
+          pt: "Acesso à Plataforma (Redefinição Opcional de Senha)",
+          en: "Platform Access (Optional Password Reset)",
+          fr: "Accès à la plateforme (Réinitialisation facultative du mot de passe)",
+          es: "Acceso a la plataforma (Restablecimiento opcional de contraseña)",
+          it: "Accesso alla piattaforma (Reimpostazione facoltativa della password)",
+          zh: "平台访问 (可选重置密码)",
+        }[locale] || "Acesso à Plataforma"
+      : {
+          pt: "Credenciais de Acesso à Plataforma",
+          en: "Platform Access Credentials",
+          fr: "Identifiants d'accès à la plateforme",
+          es: "Credenciales de acceso a la plataforma",
+          it: "Credenziali di accesso alla piattaforma",
+          zh: "平台访问凭据",
+        }[locale] || "Credenciais de Acesso",
+
+    accessSubtitle: isEditing
+      ? {
+          pt: "Preencha apenas se desejar redefinir a senha do discente.",
+          en: "Fill only if you wish to reset the student's password.",
+          fr: "Remplissez uniquement si vous souhaitez réinitialiser le mot de passe.",
+          es: "Complete solo si desea restablecer la contraseña del alumno.",
+          it: "Compila solo se desideri reimpostare la password dello studente.",
+          zh: "仅在需要重置学员密码时填写。",
+        }[locale] || "Redefinição de senha"
+      : {
+          pt: "A senha será utilizada pelo discente para entrar na área do aluno.",
+          en: "This password will be used by the student to access the student portal.",
+          fr: "Ce mot de passe sera utilisé par l'élève pour accéder au portail étudiant.",
+          es: "Esta contraseña será utilizada por el alumno para ingresar al portal del estudiante.",
+          it: "Questa password sarà utilizzata dallo studente per accedere all'area studenti.",
+          zh: "该密码用于学员登录学员端系统。",
+        }[locale] || "Credenciais de acesso",
+
+    password: isEditing
+      ? {
+          pt: "Nova Senha",
+          en: "New Password",
+          fr: "Nouveau mot de passe",
+          es: "Nueva contraseña",
+          it: "Nuova password",
+          zh: "新密码",
+        }[locale] || "Nova Senha"
+      : {
+          pt: "Senha de Acesso",
+          en: "Access Password",
+          fr: "Mot de passe d'accès",
+          es: "Contraseña de acceso",
+          it: "Password di accesso",
+          zh: "访问密码",
+        }[locale] || "Senha de Acesso",
+
+    confirmPassword: {
+      pt: "Confirmar Senha",
+      en: "Confirm Password",
+      fr: "Confirmer le mot de passe",
+      es: "Confirmar contraseña",
+      it: "Conferma password",
+      zh: "确认密码",
+    }[locale] || "Confirmar Senha",
+
+    pedagogicalLevel: {
+      pt: "Nível Pedagógico",
+      en: "Pedagogical Level",
+      fr: "Niveau pédagogique",
+      es: "Nivel pedagógico",
+      it: "Livello pedagogico",
+      zh: "教学级别",
+    }[locale] || "Nível Pedagógico",
+
+    enrollmentStatus: {
+      pt: "Status de Matrícula",
+      en: "Enrollment Status",
+      fr: "Statut de l'inscription",
+      es: "Estado de la matrícula",
+      it: "Stato dell'iscrizione",
+      zh: "学籍状态",
+    }[locale] || "Status de Matrícula",
+
+    goal: {
+      pt: "Objetivo com o Inglês",
+      en: "English Learning Goal",
+      fr: "Objectif d'apprentissage de l'anglais",
+      es: "Objetivo con el inglés",
+      it: "Obiettivo con l'inglese",
+      zh: "英语学习目标",
+    }[locale] || "Objetivo com o Inglês",
+
+    notes: {
+      pt: "Observações Pedagógicas",
+      en: "Pedagogical Notes",
+      fr: "Notes pédagogiques",
+      es: "Observaciones pedagógicas",
+      it: "Note pedagogiche",
+      zh: "教学备注",
+    }[locale] || "Observações Pedagógicas",
+
+    bgTitle: {
+      pt: "Background do Aluno",
+      en: "Student Background",
+      fr: "Parcours de l'élève",
+      es: "Antecedentes del alumno",
+      it: "Background dello studente",
+      zh: "学员背景",
+    }[locale] || "Background do Aluno",
+
+    bgOptional: {
+      pt: "(Campos Opcionais)",
+      en: "(Optional Fields)",
+      fr: "(Champs optionnels)",
+      es: "(Campos opcionales)",
+      it: "(Campi facoltativi)",
+      zh: "(选填字段)",
+    }[locale] || "(Campos Opcionais)",
+
+    bgDesc: {
+      pt: "Informações contextuais que ficarão visíveis para os professores para personalizar as aulas.",
+      en: "Contextual information visible to teachers to personalize classes.",
+      fr: "Informations contextuelles visibles par les professeurs pour personnaliser les cours.",
+      es: "Información contextual visible para los profesores para personalizar las clases.",
+      it: "Informazioni contestuali visibili ai docenti per personalizzare le lezioni.",
+      zh: "供授课教师查阅的背景信息，以便进行个性化教学。",
+    }[locale] || "",
+
+    age: {
+      pt: "Idade",
+      en: "Age",
+      fr: "Âge",
+      es: "Edad",
+      it: "Età",
+      zh: "年龄",
+    }[locale] || "Idade",
+
+    dob: {
+      pt: "Data de Nascimento",
+      en: "Date of Birth",
+      fr: "Date de naissance",
+      es: "Fecha de nacimiento",
+      it: "Data di nascita",
+      zh: "出生日期",
+    }[locale] || "Data de Nascimento",
+
+    nationality: {
+      pt: "Nacionalidade",
+      en: "Nationality",
+      fr: "Nationalité",
+      es: "Nacionalidad",
+      it: "Nazionalità",
+      zh: "国籍",
+    }[locale] || "Nacionalidade",
+
+    profession: {
+      pt: "Profissão",
+      en: "Profession",
+      fr: "Profession",
+      es: "Profesión",
+      it: "Professione",
+      zh: "职业",
+    }[locale] || "Profissão",
+
+    educationLevel: {
+      pt: "Nível Escolar",
+      en: "Education Level",
+      fr: "Niveau d'études",
+      es: "Nivel educativo",
+      it: "Livello di istruzione",
+      zh: "文化程度",
+    }[locale] || "Nível Escolar",
+
+    aboutStudent: {
+      pt: "Sobre o Aluno",
+      en: "About the Student",
+      fr: "À propos de l'élève",
+      es: "Sobre el alumno",
+      it: "Informazioni sullo studente",
+      zh: "关于学员",
+    }[locale] || "Sobre o Aluno",
+
+    interests: {
+      pt: "Interesses do Aluno",
+      en: "Student's Interests",
+      fr: "Centres d'intérêt de l'élève",
+      es: "Intereses del alumno",
+      it: "Interessi dello studente",
+      zh: "学员兴趣",
+    }[locale] || "Interesses do Aluno",
+
+    biography: {
+      pt: "Biografia",
+      en: "Biography",
+      fr: "Biographie",
+      es: "Biografía",
+      it: "Biografia",
+      zh: "个人传记",
+    }[locale] || "Biografia",
+
+    saveBtn: isEditing
+      ? {
+          pt: "Salvar Alterações",
+          en: "Save Changes",
+          fr: "Enregistrer les modifications",
+          es: "Guardar cambios",
+          it: "Salva modifiche",
+          zh: "保存修改",
+        }[locale] || "Salvar Alterações"
+      : {
+          pt: "Concluir Cadastro",
+          en: "Complete Registration",
+          fr: "Finaliser l'inscription",
+          es: "Completar registro",
+          it: "Completa registrazione",
+          zh: "完成注册",
+        }[locale] || "Concluir Cadastro",
+  };
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto"
       role="dialog"
       aria-modal="true"
     >
@@ -282,18 +566,10 @@ export function AlunoFormModal({
         <div className="flex items-center justify-between pb-4 border-b border-slate-100">
           <div>
             <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
-              {isEditing
-                ? (locale === "en" ? "Edit Student" : "Editar Aluno")
-                : (locale === "en" ? "Register New Student" : "Cadastrar Novo Aluno")}
+              {tModal.title}
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              {isEditing
-                ? (locale === "en"
-                    ? `Update registration records for student (${alunoParaEditar?.id}).`
-                    : `Atualize os dados cadastrais do discente (${alunoParaEditar?.id}).`)
-                : (locale === "en"
-                    ? "Fill in the information to register the student in Paulo Method."
-                    : "Preencha as informações para registrar o aluno no Método Paulo.")}
+              {tModal.subtitle}
             </p>
           </div>
           <button
@@ -330,7 +606,7 @@ export function AlunoFormModal({
             {isEditing && (
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  {locale === "en" ? "Student ID" : "ID do Aluno"}
+                  ID
                 </label>
                 <input
                   type="text"
@@ -346,12 +622,12 @@ export function AlunoFormModal({
                 htmlFor="nomeCompleto"
                 className="block text-xs font-semibold text-slate-700 mb-1"
               >
-                {locale === "en" ? "Full Name" : "Nome Completo"} <span className="text-rose-500">*</span>
+                {tModal.fullName} <span className="text-rose-500">*</span>
               </label>
               <input
                 id="nomeCompleto"
                 type="text"
-                placeholder={locale === "en" ? "e.g.: Mariana Oliveira" : "Ex.: Mariana Oliveira"}
+                placeholder="Ex.: Mariana Oliveira"
                 value={formData.nomeCompleto}
                 onChange={(e) => handleChange("nomeCompleto", e.target.value)}
                 className={`w-full rounded-xl border px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5] ${
@@ -368,19 +644,19 @@ export function AlunoFormModal({
             </div>
           </div>
 
-          {/* Row 2: E-mail & Telefone */}
+          {/* Row 2: E-mail & Telefone Internacional */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label
                 htmlFor="email"
                 className="block text-xs font-semibold text-slate-700 mb-1"
               >
-                {locale === "en" ? "Email Address" : "E-mail"} <span className="text-rose-500">*</span>
+                {tModal.email} <span className="text-rose-500">*</span>
               </label>
               <input
                 id="email"
                 type="email"
-                placeholder="user@domain.com"
+                placeholder="mariana@exemplo.com"
                 value={formData.email}
                 onChange={(e) => handleChange("email", e.target.value)}
                 className={`w-full rounded-xl border px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5] ${
@@ -398,36 +674,27 @@ export function AlunoFormModal({
 
             <div>
               <InternationalPhoneInput
-                id="telefone"
-                label={locale === "en" ? "Phone with Country Code" : "Telefone com Código de País"}
                 value={formData.telefone}
                 onChange={(val) => handleChange("telefone", val)}
+                label={tModal.phone}
+                placeholder="Ex: +55 11 98765-4321"
                 error={errors.telefone}
-                disabled={isSubmitting}
               />
             </div>
           </div>
 
-          {/* Seção: Credenciais de Acesso à Plataforma */}
-          <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4 space-y-3">
+          {/* Seção de Credenciais de Acesso (Senha) */}
+          <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4 sm:p-5 space-y-3.5">
             <div className="flex items-center gap-2">
               <div className="rounded-lg bg-indigo-600 p-1.5 text-white shadow-xs">
                 <Key className="h-4 w-4" />
               </div>
               <div>
                 <h3 className="text-xs font-bold text-slate-900">
-                  {isEditing
-                    ? (locale === "en" ? "Platform Access (Optional Password Reset)" : "Acesso à Plataforma (Redefinição Opcional de Senha)")
-                    : (locale === "en" ? "Platform Access Credentials" : "Credenciais de Acesso à Plataforma")}
+                  {tModal.accessHeader}
                 </h3>
                 <p className="text-[11px] text-slate-500">
-                  {isEditing
-                    ? (locale === "en"
-                        ? "Fill in only if you wish to reset this student's login password."
-                        : "Preencha apenas se desejar redefinir a senha de login deste aluno.")
-                    : (locale === "en"
-                        ? "Set the password the student will use to log in at /login with their email."
-                        : "Defina a senha que o aluno usará para logar em /login com seu e-mail.")}
+                  {tModal.accessSubtitle}
                 </p>
               </div>
             </div>
@@ -435,89 +702,90 @@ export function AlunoFormModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label htmlFor="senha" className="block text-xs font-semibold text-slate-700">
-                    {isEditing
-                      ? (locale === "en" ? "New Password" : "Nova Senha")
-                      : (locale === "en" ? "Access Password" : "Senha de Acesso")}{" "}
-                    {!isEditing && <span className="text-rose-500">*</span>}
+                  <label
+                    htmlFor="senha"
+                    className="block text-[11px] font-semibold text-slate-700"
+                  >
+                    {tModal.password} {!isEditing && <span className="text-rose-500">*</span>}
                   </label>
                   <button
                     type="button"
-                    onClick={() => setMostrarSenha(!mostrarSenha)}
-                    className="inline-flex items-center gap-1 text-[11px] text-indigo-600 hover:text-indigo-800 transition-colors"
+                    onClick={() => setMostrarSenha((prev) => !prev)}
+                    className="text-[10px] font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
                   >
                     {mostrarSenha ? (
                       <>
                         <EyeOff className="h-3 w-3" />
-                        <span>{locale === "en" ? "Hide" : "Ocultar"}</span>
+                        <span>{t("cancel", "Ocultar")}</span>
                       </>
                     ) : (
                       <>
                         <Eye className="h-3 w-3" />
-                        <span>{locale === "en" ? "Show" : "Ver"}</span>
+                        <span>{t("details", "Ver")}</span>
                       </>
                     )}
                   </button>
                 </div>
-                <div className="relative">
-                  <input
-                    id="senha"
-                    type={mostrarSenha ? "text" : "password"}
-                    placeholder={
-                      isEditing
-                        ? (locale === "en" ? "Leave blank to keep current" : "Deixe em branco para manter")
-                        : (locale === "en" ? "Minimum 6 characters" : "Mínimo 6 caracteres")
+                <input
+                  id="senha"
+                  type={mostrarSenha ? "text" : "password"}
+                  placeholder={isEditing ? "Deixe em branco para manter" : "Mínimo 6 caracteres"}
+                  value={senha}
+                  onChange={(e) => {
+                    setSenha(e.target.value);
+                    if (errors.senha) {
+                      setErrors((prev) => {
+                        const copy = { ...prev };
+                        delete copy.senha;
+                        return copy;
+                      });
                     }
-                    value={senha}
-                    onChange={(e) => {
-                      setSenha(e.target.value);
-                      if (errors.senha) {
-                        setErrors((prev) => {
-                          const n = { ...prev };
-                          delete n.senha;
-                          return n;
-                        });
-                      }
-                    }}
-                    className={`w-full rounded-xl border px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5] ${
-                      errors.senha ? "border-rose-400 bg-rose-50/30" : "border-slate-200 bg-white"
-                    }`}
-                  />
-                </div>
+                  }}
+                  className={`w-full rounded-xl border px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5] ${
+                    errors.senha
+                      ? "border-rose-400 bg-rose-50/30"
+                      : "border-slate-200 bg-white"
+                  }`}
+                />
                 {errors.senha && (
-                  <p className="mt-1 text-[11px] font-medium text-rose-600">{errors.senha}</p>
+                  <p className="mt-1 text-[11px] font-medium text-rose-600">
+                    {errors.senha}
+                  </p>
                 )}
               </div>
 
               <div>
-                <label htmlFor="confirmarSenha" className="block text-xs font-semibold text-slate-700 mb-1">
-                  {locale === "en" ? "Confirm Password" : "Confirmar Senha"} {!isEditing && <span className="text-rose-500">*</span>}
+                <label
+                  htmlFor="confirmarSenha"
+                  className="block text-[11px] font-semibold text-slate-700 mb-1"
+                >
+                  {tModal.confirmPassword} {!isEditing && <span className="text-rose-500">*</span>}
                 </label>
                 <input
                   id="confirmarSenha"
                   type={mostrarSenha ? "text" : "password"}
-                  placeholder={
-                    isEditing
-                      ? (locale === "en" ? "Confirm if changing" : "Confirme se for alterar")
-                      : (locale === "en" ? "Repeat password" : "Repita a senha")
-                  }
+                  placeholder={isEditing ? "Confirme se for alterar" : "Repita a senha"}
                   value={confirmarSenha}
                   onChange={(e) => {
                     setConfirmarSenha(e.target.value);
                     if (errors.confirmarSenha) {
                       setErrors((prev) => {
-                        const n = { ...prev };
-                        delete n.confirmarSenha;
-                        return n;
+                        const copy = { ...prev };
+                        delete copy.confirmarSenha;
+                        return copy;
                       });
                     }
                   }}
-                  className={`w-full rounded-xl border px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5] ${
-                    errors.confirmarSenha ? "border-rose-400 bg-rose-50/30" : "border-slate-200 bg-white"
+                  className={`w-full rounded-xl border px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5] ${
+                    errors.confirmarSenha
+                      ? "border-rose-400 bg-rose-50/30"
+                      : "border-slate-200 bg-white"
                   }`}
                 />
                 {errors.confirmarSenha && (
-                  <p className="mt-1 text-[11px] font-medium text-rose-600">{errors.confirmarSenha}</p>
+                  <p className="mt-1 text-[11px] font-medium text-rose-600">
+                    {errors.confirmarSenha}
+                  </p>
                 )}
               </div>
             </div>
@@ -530,23 +798,21 @@ export function AlunoFormModal({
                 htmlFor="nivel"
                 className="block text-xs font-semibold text-slate-700 mb-1"
               >
-                {locale === "en" ? "Pedagogical Level" : "Nível Pedagógico"} <span className="text-rose-500">*</span>
+                {tModal.pedagogicalLevel} <span className="text-rose-500">*</span>
               </label>
               <select
                 id="nivel"
                 value={formData.nivel}
-                onChange={(e) => handleChange("nivel", e.target.value)}
+                onChange={(e) => handleChange("nivel", e.target.value as NivelAluno)}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
               >
-                <option value="nao_avaliado">
-                  {locale === "en" ? "Not evaluated (Initial standard)" : "Não avaliado (Padrão inicial)"}
-                </option>
-                <option value="A1">{locale === "en" ? "Beginner (A1)" : "Iniciante (A1)"}</option>
-                <option value="A2">{locale === "en" ? "Elementary (A2)" : "Básico (A2)"}</option>
-                <option value="B1">{locale === "en" ? "Intermediate (B1)" : "Intermediário (B1)"}</option>
-                <option value="B2">{locale === "en" ? "Upper Intermediate (B2)" : "Intermediário Superior (B2)"}</option>
-                <option value="C1">{locale === "en" ? "Advanced (C1)" : "Avançado (C1)"}</option>
-                <option value="C2">{locale === "en" ? "Proficient (C2)" : "Proficiente (C2)"}</option>
+                <option value="nao_avaliado">{translateNivel("nao_avaliado")}</option>
+                <option value="A1">A1 - Iniciante</option>
+                <option value="A2">A2 - Básico</option>
+                <option value="B1">B1 - Intermediário</option>
+                <option value="B2">B2 - Intermediário Superior</option>
+                <option value="C1">C1 - Avançado</option>
+                <option value="C2">C2 - Proficiente</option>
               </select>
               {errors.nivel && (
                 <p className="mt-1 text-[11px] font-medium text-rose-600">
@@ -560,20 +826,16 @@ export function AlunoFormModal({
                 htmlFor="status"
                 className="block text-xs font-semibold text-slate-700 mb-1"
               >
-                {locale === "en" ? "Enrollment Status" : "Status de Matrícula"} <span className="text-rose-500">*</span>
+                {tModal.enrollmentStatus} <span className="text-rose-500">*</span>
               </label>
               <select
                 id="status"
                 value={formData.status}
-                onChange={(e) => handleChange("status", e.target.value)}
+                onChange={(e) => handleChange("status", e.target.value as StatusCadastro)}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
               >
-                <option value="ativo">
-                  {locale === "en" ? "Active (Attending classes & activities)" : "Ativo (Participando de aulas e atividades)"}
-                </option>
-                <option value="inativo">
-                  {locale === "en" ? "Inactive (Suspended or locked access)" : "Inativo (Acesso suspenso ou trancado)"}
-                </option>
+                <option value="ativo">{translateStatus("ativo")}</option>
+                <option value="inativo">{translateStatus("inativo")}</option>
               </select>
               {errors.status && (
                 <p className="mt-1 text-[11px] font-medium text-rose-600">
@@ -583,29 +845,18 @@ export function AlunoFormModal({
             </div>
           </div>
 
-          {/* CEFR Disclaimer Box */}
-          <div className="rounded-xl bg-indigo-50/60 p-3 border border-indigo-100 text-[11px] text-indigo-900 flex items-start gap-2">
-            <Info className="h-4 w-4 shrink-0 text-indigo-600 mt-0.5" />
-            <p>
-              <strong>{locale === "en" ? "Leveling Notice:" : "Aviso de Nivelamento:"}</strong>{" "}
-              {locale === "en"
-                ? "The initial level of all new students is set to 'Not evaluated'. Manual assignment on this screen is an internal administrative parameter and does not represent formal CEFR certificate issuance."
-                : "O nível inicial de todo aluno novo é definido como 'Não avaliado'. A atribuição manual do nível nesta tela é um parâmetro interno da coordenação e não representa emissão de certificado formal CEFR."}
-            </p>
-          </div>
-
           {/* Row 4: Objetivo com o inglês */}
           <div>
             <label
               htmlFor="objetivoIngles"
               className="block text-xs font-semibold text-slate-700 mb-1"
             >
-              {locale === "en" ? "English Learning Goal" : "Objetivo com o Inglês"} <span className="text-rose-500">*</span>
+              {tModal.goal} <span className="text-rose-500">*</span>
             </label>
             <input
               id="objetivoIngles"
               type="text"
-              placeholder={locale === "en" ? "e.g.: Fluency for executive meetings and international travel" : "Ex.: Fluência para reuniões executivas e viagens internacionais"}
+              placeholder="Ex.: Fluência para reuniões executivas e viagens internacionais"
               value={formData.objetivoIngles}
               onChange={(e) => handleChange("objetivoIngles", e.target.value)}
               className={`w-full rounded-xl border px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5] ${
@@ -627,12 +878,12 @@ export function AlunoFormModal({
               htmlFor="observacoesPedagogicas"
               className="block text-xs font-semibold text-slate-700 mb-1"
             >
-              {locale === "en" ? "Pedagogical Notes" : "Observações Pedagógicas"} <span className="text-slate-400 font-normal">{locale === "en" ? "(optional)" : "(opcional)"}</span>
+              {tModal.notes} <span className="text-slate-400 font-normal">({t("optional", "opcional")})</span>
             </label>
             <textarea
               id="observacoesPedagogicas"
               rows={3}
-              placeholder={locale === "en" ? "Internal notes on learning style, attention points, or previous history." : "Anotações internas sobre perfil de aprendizado, pontos de atenção ou histórico prévio."}
+              placeholder="Anotações internas sobre perfil de aprendizado, pontos de atenção ou histórico prévio."
               value={formData.observacoesPedagogicas}
               onChange={(e) => handleChange("observacoesPedagogicas", e.target.value)}
               className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
@@ -647,15 +898,13 @@ export function AlunoFormModal({
               </div>
               <div>
                 <h3 className="text-xs font-bold text-slate-900">
-                  {locale === "en" ? "Student Background" : "Background do Aluno"}{" "}
+                  {tModal.bgTitle}{" "}
                   <span className="text-slate-400 font-normal text-[11px]">
-                    {locale === "en" ? "(Optional Fields)" : "(Campos Opcionais)"}
+                    {tModal.bgOptional}
                   </span>
                 </h3>
                 <p className="text-[11px] text-slate-500">
-                  {locale === "en"
-                    ? "Contextual information visible to teachers to personalize classes."
-                    : "Informações contextuais que ficarão visíveis para os professores para personalizar as aulas."}
+                  {tModal.bgDesc}
                 </p>
               </div>
             </div>
@@ -664,14 +913,14 @@ export function AlunoFormModal({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label htmlFor="idade" className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  {locale === "en" ? "Age" : "Idade"}
+                  {tModal.age}
                 </label>
                 <input
                   id="idade"
                   type="number"
                   min="1"
                   max="120"
-                  placeholder={locale === "en" ? "e.g.: 28" : "Ex.: 28"}
+                  placeholder="Ex.: 28"
                   value={formData.idade}
                   onChange={(e) => handleChange("idade", e.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
@@ -680,7 +929,7 @@ export function AlunoFormModal({
 
               <div>
                 <label htmlFor="dataNascimento" className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  {locale === "en" ? "Date of Birth" : "Data de Nascimento"}
+                  {tModal.dob}
                 </label>
                 <input
                   id="dataNascimento"
@@ -693,12 +942,12 @@ export function AlunoFormModal({
 
               <div>
                 <label htmlFor="nacionalidade" className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  {locale === "en" ? "Nationality" : "Nacionalidade"}
+                  {tModal.nationality}
                 </label>
                 <input
                   id="nacionalidade"
                   type="text"
-                  placeholder={locale === "en" ? "e.g.: Brazilian" : "Ex.: Brasileira"}
+                  placeholder="Ex.: Brasileira"
                   value={formData.nacionalidade}
                   onChange={(e) => handleChange("nacionalidade", e.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
@@ -710,12 +959,12 @@ export function AlunoFormModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label htmlFor="profissao" className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  {locale === "en" ? "Profession" : "Profissão"}
+                  {tModal.profession}
                 </label>
                 <input
                   id="profissao"
                   type="text"
-                  placeholder={locale === "en" ? "e.g.: Software Engineer, Doctor, Lawyer..." : "Ex.: Engenheiro de Software, Médico, Advogada..."}
+                  placeholder="Ex.: Engenheiro de Software, Médico..."
                   value={formData.profissao}
                   onChange={(e) => handleChange("profissao", e.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
@@ -724,12 +973,12 @@ export function AlunoFormModal({
 
               <div>
                 <label htmlFor="nivelEscolar" className="block text-[11px] font-semibold text-slate-700 mb-1">
-                  {locale === "en" ? "Education Level" : "Nível Escolar"}
+                  {tModal.educationLevel}
                 </label>
                 <input
                   id="nivelEscolar"
                   type="text"
-                  placeholder={locale === "en" ? "e.g.: Higher Education, Postgraduate, High School..." : "Ex.: Ensino Superior, Pós-graduação, Ensino Médio..."}
+                  placeholder="Ex.: Ensino Superior, Pós-graduação..."
                   value={formData.nivelEscolar}
                   onChange={(e) => handleChange("nivelEscolar", e.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
@@ -740,12 +989,12 @@ export function AlunoFormModal({
             {/* Sobre o Aluno */}
             <div>
               <label htmlFor="sobreAluno" className="block text-[11px] font-semibold text-slate-700 mb-1">
-                {locale === "en" ? "About the Student" : "Sobre o Aluno"}
+                {tModal.aboutStudent}
               </label>
               <textarea
                 id="sobreAluno"
                 rows={2}
-                placeholder={locale === "en" ? "General summary about life stage, study routine, or background." : "Resumo geral sobre o momento de vida, rotina de estudos ou histórico do aluno."}
+                placeholder="Resumo geral sobre o momento de vida, rotina de estudos ou histórico do aluno."
                 value={formData.sobreAluno}
                 onChange={(e) => handleChange("sobreAluno", e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
@@ -755,12 +1004,12 @@ export function AlunoFormModal({
             {/* Interesses do Aluno */}
             <div>
               <label htmlFor="interesses" className="block text-[11px] font-semibold text-slate-700 mb-1">
-                {locale === "en" ? "Student's Interests" : "Interesses do Aluno"}
+                {tModal.interests}
               </label>
               <input
                 id="interesses"
                 type="text"
-                placeholder={locale === "en" ? "e.g.: Travel, tech, music, business, cooking..." : "Ex.: Viagens, tecnologia, música, negócios, culinária..."}
+                placeholder="Ex.: Viagens, tecnologia, música, negócios, culinária..."
                 value={formData.interesses}
                 onChange={(e) => handleChange("interesses", e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
@@ -770,12 +1019,12 @@ export function AlunoFormModal({
             {/* Biografia */}
             <div>
               <label htmlFor="biografia" className="block text-[11px] font-semibold text-slate-700 mb-1">
-                {locale === "en" ? "Biography" : "Biografia"}
+                {tModal.biography}
               </label>
               <textarea
                 id="biografia"
                 rows={2}
-                placeholder={locale === "en" ? "Brief biography or personal story." : "Breve biografia ou trajetória pessoal do aluno."}
+                placeholder="Breve biografia ou trajetória pessoal do aluno."
                 value={formData.biografia}
                 onChange={(e) => handleChange("biografia", e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#5046E5]"
@@ -791,7 +1040,7 @@ export function AlunoFormModal({
               disabled={isSubmitting}
               className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
             >
-              {locale === "en" ? "Cancel" : "Cancelar"}
+              {t("cancel", "Cancelar")}
             </button>
             <button
               type="submit"
@@ -799,15 +1048,11 @@ export function AlunoFormModal({
               className="inline-flex items-center gap-1.5 rounded-xl bg-[#5046E5] px-5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition-colors disabled:opacity-50"
             >
               {isSubmitting ? (
-                <span>{locale === "en" ? "Saving..." : "Salvando..."}</span>
+                <span>{t("saving", "Salvando...")}</span>
               ) : (
                 <>
                   <CheckCircle2 className="h-4 w-4" />
-                  <span>
-                    {isEditing
-                      ? (locale === "en" ? "Save Changes" : "Salvar Alterações")
-                      : (locale === "en" ? "Complete Registration" : "Concluir Cadastro")}
-                  </span>
+                  <span>{tModal.saveBtn}</span>
                 </>
               )}
             </button>

@@ -99,11 +99,11 @@ export default function AdminAlunoDetalhesPage() {
   // Feedback Toast
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  // Acesso ao Sistema (Etapa 10.2C1)
+  // Acesso ao Sistema
   const [acesso, setAcesso] = useState<AcessoUsuario | null>(null);
 
   // i18n & Tradução de Background
-  const { locale: globalLocale, t, formatDate, formatTime } = useLanguage();
+  const { locale: globalLocale, t, formatDate, formatTime, translatePresenca } = useLanguage();
   const [backgroundLang, setBackgroundLang] = useState<Locale>(globalLocale);
 
   useEffect(() => {
@@ -142,7 +142,6 @@ export default function AdminAlunoDetalhesPage() {
         ]);
 
         setAcesso(acessoData);
-
         setTurmas(listTurmas);
         setAulasFuturas(listAulas.filter((a) => a.status === "agendada"));
         setAulasPassadas(listAulas.filter((a) => a.status === "concluida"));
@@ -271,30 +270,46 @@ export default function AdminAlunoDetalhesPage() {
   };
 
   if (isLoading) {
+    const loadingMsg: Record<Locale, string> = {
+      pt: "Carregando detalhes do aluno...",
+      en: "Loading student details...",
+      fr: "Chargement des détails de l'élève...",
+      es: "Cargando detalles del alumno...",
+      it: "Caricamento dettagli studente...",
+      zh: "正在加载学员详细信息...",
+    };
     return (
       <div className="p-12 text-center text-xs text-slate-400">
-        {globalLocale === "en" ? "Loading student details..." : "Carregando detalhes do aluno..."}
+        {loadingMsg[globalLocale] || loadingMsg.pt}
       </div>
     );
   }
 
   if (!aluno) {
+    const notFoundTitle: Record<Locale, string> = {
+      pt: "Aluno não encontrado",
+      en: "Student not found",
+      fr: "Élève introuvable",
+      es: "Alumno no encontrado",
+      it: "Studente non trovato",
+      zh: "未找到学员",
+    };
+    const notFoundDesc: Record<Locale, string> = {
+      pt: `O registro com ID ${alunoId} não existe no repositório.`,
+      en: `The record with ID ${alunoId} does not exist in the repository.`,
+      fr: `L'enregistrement avec l'ID ${alunoId} n'existe pas dans le référentiel.`,
+      es: `El registro con ID ${alunoId} no existe en el repositorio.`,
+      it: `Il record con ID ${alunoId} non esiste nel repository.`,
+      zh: `标识为 ${alunoId} 的记录不存在。`,
+    };
     return (
       <div className="rounded-2xl border border-slate-200/80 bg-white p-8 text-center space-y-3">
         <AlertCircle className="h-10 w-10 text-rose-500 mx-auto" />
         <h2 className="text-base font-bold text-slate-800">
-          {globalLocale === "en" ? "Student not found" : "Aluno não encontrado"}
+          {notFoundTitle[globalLocale] || notFoundTitle.pt}
         </h2>
         <p className="text-xs text-slate-500">
-          {globalLocale === "en" ? (
-            <>
-              The record with ID <span className="font-mono text-slate-700">{alunoId}</span> does not exist in the repository.
-            </>
-          ) : (
-            <>
-              O registro com ID <span className="font-mono text-slate-700">{alunoId}</span> não existe no repositório.
-            </>
-          )}
+          {notFoundDesc[globalLocale] || notFoundDesc.pt}
         </p>
         <div className="pt-2">
           <Link
@@ -302,21 +317,94 @@ export default function AdminAlunoDetalhesPage() {
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#5046E5] hover:underline"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            <span>{globalLocale === "en" ? "Return to students list" : "Retornar para a lista de alunos"}</span>
+            <span>{t("backToStudentsList", "Retornar para a lista de alunos")}</span>
           </Link>
         </div>
       </div>
     );
   }
 
-  const dataCadastroFormatada = new Date(aluno.dataCadastro).toLocaleDateString(
-    globalLocale === "en" ? "en-US" : "pt-BR",
-    {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    }
-  );
+  const dataCadastroFormatada = formatDate(aluno.dataCadastro, {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  // Textos para o Box de Diretrizes Pedagógicas
+  const guidelineTexts = {
+    title: {
+      pt: "Diretriz de Nivelamento Pedagógico (Método Paulo):",
+      en: "Pedagogical Leveling Guideline (Paulo Method):",
+      fr: "Directives de nivellement pédagogique (Méthode Paulo) :",
+      es: "Directriz de nivelación pedagógica (Método Paulo):",
+      it: "Linee guida di livellamento pedagogico (Metodo Paulo):",
+      zh: "教学定级指引 (保罗教学法)：",
+    }[globalLocale] || "Diretriz de Nivelamento Pedagógico:",
+    desc: {
+      pt: `O nível atribuído ao aluno (atualmente ${aluno.nivel}) é uma métrica operacional para alocação em turmas compatíveis e trilha de vocabulário. A definição manual não substitui nem representa emissão de certificado formal CEFR.`,
+      en: `The level assigned to the student (currently ${aluno.nivel}) is an operational metric for compatible class group placement and vocabulary roadmap. Manual setting does not replace or constitute formal CEFR certification.`,
+      fr: `Le niveau attribué à l'élève (actuellement ${aluno.nivel}) est une métrique opérationnelle pour l'affectation dans des groupes compatibles et le parcours de vocabulaire. Cela ne remplace pas une certification officielle CECRL.`,
+      es: `El nivel asignado al alumno (actualmente ${aluno.nivel}) es una métrica operativa para la asignación en grupos compatibles y ruta de vocabulario. No reemplaza un certificado formal del MCER.`,
+      it: `Il livello assegnato allo studente (attualmente ${aluno.nivel}) è una metrica operativa per l'assegnazione a gruppi compatibili e il percorso del vocabolario. Non sostituisce la certificazione formale QCER.`,
+      zh: `分配给学员的级别 (当前为 ${aluno.nivel}) 是用于匹配适合班级和词汇进阶的操作性指标。手动设定不替代正式的 CEFR 证书。`,
+    }[globalLocale] || "",
+  };
+
+  // Textos do Modal de Inativação
+  const inactivateModalTexts = {
+    title: {
+      pt: "Confirmar Inativação do Aluno",
+      en: "Confirm Student Inactivation",
+      fr: "Confirmer la désactivation de l'élève",
+      es: "Confirmar inactivación del alumno",
+      it: "Conferma disattivazione studente",
+      zh: "确认停用学员",
+    }[globalLocale] || "Confirmar Inativação",
+    desc: {
+      pt: `Tem certeza que deseja inativar a matrícula de "${aluno.nomeCompleto}"? O discente não terá acesso às salas de aula e atividades até que seja reativado pela coordenação.`,
+      en: `Are you sure you want to inactivate the enrollment of "${aluno.nomeCompleto}"? The student will not have access to classrooms and activities until reactivated by the administration.`,
+      fr: `Êtes-vous sûr de vouloir désactiver l'inscription de "${aluno.nomeCompleto}" ? L'élève n'aura plus accès aux cours jusqu'à sa réactivation.`,
+      es: `¿Está seguro de que desea inactivar la matrícula de "${aluno.nomeCompleto}"? El alumno no tendrá acceso a clases ni actividades hasta que sea reactivado.`,
+      it: `Sei sicuro di voler disattivare l'iscrizione di "${aluno.nomeCompleto}"? Lo studente non avrà accesso alle lezioni fino alla riattivazione.`,
+      zh: `您确定要停用 "${aluno.nomeCompleto}" 的学籍吗？在被重新激活前，该学员将无法进入课堂和参与活动。`,
+    }[globalLocale] || "",
+    confirm: {
+      pt: "Sim, Inativar Matrícula",
+      en: "Yes, Inactivate Enrollment",
+      fr: "Oui, désactiver l'inscription",
+      es: "Sí, inactivar matrícula",
+      it: "Sì, disattiva iscrizione",
+      zh: "确认停用学籍",
+    }[globalLocale] || "Sim, Inativar",
+  };
+
+  // Textos do Modal de Exclusão
+  const deleteModalTexts = {
+    title: {
+      pt: "Excluir Aluno",
+      en: "Delete Student",
+      fr: "Supprimer l'élève",
+      es: "Eliminar alumno",
+      it: "Elimina studente",
+      zh: "删除学员",
+    }[globalLocale] || "Excluir Aluno",
+    subtitle: {
+      pt: "Exclusão administrativa permanente",
+      en: "Permanent administrative deletion",
+      fr: "Suppression administrative définitive",
+      es: "Eliminación administrativa definitiva",
+      it: "Cancellazione amministrativa definitiva",
+      zh: "永久性管理删除",
+    }[globalLocale] || "Exclusão permanente",
+    warnDesc: {
+      pt: "Todas as matrículas em turmas, presenças registradas, histórico pedagógico e credenciais de login serão removidos permanentemente do banco de dados.",
+      en: "All class enrollments, recorded attendance, pedagogical history, and system access credentials will be permanently removed from the database.",
+      fr: "Toutes les inscriptions, présences enregistrées, l'historique pédagogique et les identifiants seront définitivement supprimés.",
+      es: "Todas las matrículas, asistencias registradas, historial pedagógico y credenciales de acceso serán eliminadas permanentemente.",
+      it: "Tutte le iscrizioni, le presenze, la storia pedagogica e le credenziali di accesso saranno rimosse definitivamente.",
+      zh: "所有班级注册、考勤记录、教学履历和系统登录凭据都将从数据库中永久清除。",
+    }[globalLocale] || "",
+  };
 
   return (
     <div className="space-y-6">
@@ -459,7 +547,7 @@ export default function AdminAlunoDetalhesPage() {
               <div className="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
                 <span className="text-slate-400 block text-[11px] font-medium">{t("phoneWhatsapp", "Telefone / WhatsApp")}</span>
                 <span className="font-bold text-slate-900 mt-0.5 block">
-                  {aluno.telefone || (globalLocale === "en" ? "Not informed" : "Não informado")}
+                  {aluno.telefone || t("notInformed", "Não informado")}
                 </span>
               </div>
 
@@ -476,8 +564,8 @@ export default function AdminAlunoDetalhesPage() {
                 <span>{t("pedagogicalGoal", "Objetivo com o Inglês")}</span>
               </div>
               <p className="text-xs text-slate-700 leading-relaxed pt-1">
-                {globalLocale === "en" ? (
-                  <DynamicText text={aluno.objetivoIngles} targetLocale="en" />
+                {globalLocale !== "pt" ? (
+                  <DynamicText text={aluno.objetivoIngles} targetLocale={globalLocale} />
                 ) : (
                   aluno.objetivoIngles
                 )}
@@ -492,21 +580,23 @@ export default function AdminAlunoDetalhesPage() {
               </div>
               <p className="text-xs text-slate-600 leading-relaxed pt-1 whitespace-pre-wrap">
                 {aluno.observacoesPedagogicas ? (
-                  globalLocale === "en" ? (
-                    <DynamicText text={aluno.observacoesPedagogicas} targetLocale="en" />
+                  globalLocale !== "pt" ? (
+                    <DynamicText text={aluno.observacoesPedagogicas} targetLocale={globalLocale} />
                   ) : (
                     aluno.observacoesPedagogicas
                   )
                 ) : (
-                  t("noPedagogicalNotes", "Nenhuma anotação pedagógica adicional cadastrada para este aluno.")
+                  <span className="text-slate-400 italic">
+                    {t("noPedagogicalNotes", "Nenhuma anotação pedagógica adicional cadastrada para este aluno.")}
+                  </span>
                 )}
               </p>
             </div>
           </div>
 
-          {/* Card: Background do Aluno (Visível para Professores e Coordenação - Suporte a Tradução PT/EN) */}
-          <div className="rounded-2xl border border-indigo-100 bg-white p-5 sm:p-6 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          {/* Student Background Card */}
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div className="flex items-center gap-2.5">
                 <div className="rounded-xl bg-indigo-50 p-2 text-indigo-600">
                   <GraduationCap className="h-5 w-5" />
@@ -514,16 +604,14 @@ export default function AdminAlunoDetalhesPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm sm:text-base font-bold text-slate-900">
-                      {backgroundLang === "en" ? "Student Background" : "Background do Aluno"}
+                      {t("studentBackgroundTitle", "Background do Aluno")}
                     </h3>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                      {backgroundLang === "en" ? "EN Active" : "PT Ativo"}
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase">
+                      {backgroundLang} {backgroundLang === "pt" ? "Original" : "Active"}
                     </span>
                   </div>
                   <p className="text-xs text-slate-500">
-                    {backgroundLang === "en"
-                      ? "Contextual profile, personal and professional history visible to teachers."
-                      : "Informações contextuais, histórico pessoal e profissional visíveis para os professores."}
+                    {t("studentBackgroundSubtitle", "Informações contextuais, histórico pessoal e profissional visíveis para os professores.")}
                   </p>
                 </div>
               </div>
@@ -532,13 +620,23 @@ export default function AdminAlunoDetalhesPage() {
                 {/* Botão de Tradução Específico do Background */}
                 <button
                   type="button"
-                  onClick={() => setBackgroundLang((prev) => (prev === "pt" ? "en" : "pt"))}
+                  onClick={() =>
+                    setBackgroundLang((prev) =>
+                      prev === "pt" ? (globalLocale !== "pt" ? globalLocale : "en") : "pt"
+                    )
+                  }
                   className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50/70 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 transition-all active:scale-[0.98]"
-                  title={backgroundLang === "pt" ? "Traduzir background para Inglês" : "Ver background em Português"}
+                  title={
+                    backgroundLang === "pt"
+                      ? `Traduzir background para ${globalLocale !== "pt" ? globalLocale.toUpperCase() : "EN"}`
+                      : "Ver background em Português"
+                  }
                 >
                   <Languages className="h-3.5 w-3.5 text-indigo-600" />
                   <span>
-                    {backgroundLang === "pt" ? "Traduzir para Inglês (EN)" : "Ver em Português (PT)"}
+                    {backgroundLang === "pt"
+                      ? `${t("language", "Traduzir")} (${globalLocale !== "pt" ? globalLocale.toUpperCase() : "EN"})`
+                      : "Ver em Português (PT)"}
                   </span>
                 </button>
 
@@ -548,7 +646,7 @@ export default function AdminAlunoDetalhesPage() {
                   className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                 >
                   <Edit2 className="h-3.5 w-3.5 text-slate-500" />
-                  <span>{backgroundLang === "en" ? "Edit Background" : "Editar Background"}</span>
+                  <span>{t("editBackground", "Editar Background")}</span>
                 </button>
               </div>
             </div>
@@ -557,75 +655,73 @@ export default function AdminAlunoDetalhesPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-xs">
               <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100">
                 <span className="text-slate-400 block text-[11px] font-medium">
-                  {backgroundLang === "en" ? "Age" : "Idade"}
+                  {t("age", "Idade")}
                 </span>
                 <span className="font-bold text-slate-900 mt-0.5 block">
                   {aluno.idade
-                    ? (backgroundLang === "en" ? `${aluno.idade} years old` : `${aluno.idade} anos`)
-                    : (backgroundLang === "en" ? "Not provided" : "Não informada")}
+                    ? `${aluno.idade} ${t("yearsOld", "anos")}`
+                    : t("notInformed", "Não informada")}
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100">
                 <span className="text-slate-400 block text-[11px] font-medium">
-                  {backgroundLang === "en" ? "Date of Birth" : "Data de Nascimento"}
+                  {t("dateOfBirth", "Data de Nascimento")}
                 </span>
                 <span className="font-bold text-slate-900 mt-0.5 block">
                   {aluno.dataNascimento
-                    ? (backgroundLang === "en"
-                        ? new Date(aluno.dataNascimento + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-                        : new Date(aluno.dataNascimento + "T00:00:00").toLocaleDateString("pt-BR"))
-                    : (backgroundLang === "en" ? "Not provided" : "Não informada")}
+                    ? formatDate(aluno.dataNascimento, { month: "short", day: "numeric", year: "numeric" })
+                    : t("notInformed", "Não informada")}
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100">
                 <span className="text-slate-400 block text-[11px] font-medium">
-                  {backgroundLang === "en" ? "Nationality" : "Nacionalidade"}
+                  {t("nationality", "Nacionalidade")}
                 </span>
                 <span className="font-bold text-slate-900 mt-0.5 block">
                   {aluno.nacionalidade ? (
-                    backgroundLang === "en" ? (
-                      <DynamicText text={aluno.nacionalidade} targetLocale="en" />
+                    backgroundLang !== "pt" ? (
+                      <DynamicText text={aluno.nacionalidade} targetLocale={backgroundLang} />
                     ) : (
                       aluno.nacionalidade
                     )
                   ) : (
-                    backgroundLang === "en" ? "Not provided" : "Não informada"
+                    t("notInformed", "Não informada")
                   )}
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100">
                 <span className="text-slate-400 block text-[11px] font-medium">
-                  {backgroundLang === "en" ? "Profession" : "Profissão"}
+                  {t("profession", "Profissão")}
                 </span>
                 <span className="font-bold text-slate-900 mt-0.5 block">
                   {aluno.profissao ? (
-                    backgroundLang === "en" ? (
-                      <DynamicText text={aluno.profissao} targetLocale="en" />
+                    backgroundLang !== "pt" ? (
+                      <DynamicText text={aluno.profissao} targetLocale={backgroundLang} />
                     ) : (
                       aluno.profissao
                     )
                   ) : (
-                    backgroundLang === "en" ? "Not provided" : "Não informada"
+                    t("notInformed", "Não informada")
                   )}
                 </span>
               </div>
 
               <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100 col-span-2 sm:col-span-1">
                 <span className="text-slate-400 block text-[11px] font-medium">
-                  {backgroundLang === "en" ? "Education Level" : "Nível Escolar"}
+                  {t("schoolLevel", "Nível Escolar")}
                 </span>
                 <span className="font-bold text-slate-900 mt-0.5 block">
                   {aluno.nivelEscolar ? (
-                    backgroundLang === "en" ? (
-                      <DynamicText text={aluno.nivelEscolar} targetLocale="en" />
+                    backgroundLang !== "pt" ? (
+                      <DynamicText text={aluno.nivelEscolar} targetLocale={backgroundLang} />
                     ) : (
                       aluno.nivelEscolar
                     )
                   ) : (
-                    backgroundLang === "en" ? "Not provided" : "Não informado"
+                    t("notInformed", "Não informado")
                   )}
                 </span>
               </div>
@@ -637,19 +733,19 @@ export default function AdminAlunoDetalhesPage() {
               <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
                   <UserCheck className="h-4 w-4 text-indigo-600" />
-                  <span>{backgroundLang === "en" ? "About the Student" : "Sobre o Aluno"}</span>
+                  <span>{t("aboutStudent", "Sobre o Aluno")}</span>
                 </div>
                 <p className="text-xs text-slate-700 leading-relaxed pt-0.5 whitespace-pre-wrap">
                   {aluno.sobreAluno ? (
-                    backgroundLang === "en" ? (
-                      <DynamicText text={aluno.sobreAluno} targetLocale="en" />
+                    backgroundLang !== "pt" ? (
+                      <DynamicText text={aluno.sobreAluno} targetLocale={backgroundLang} />
                     ) : (
                       aluno.sobreAluno
                     )
                   ) : (
-                    backgroundLang === "en"
-                      ? "No additional details provided."
-                      : "Nenhum detalhe adicional sobre a rotina ou perfil do aluno informado."
+                    <span className="text-slate-400 italic">
+                      {t("noAdditionalDetails", "Nenhum detalhe adicional informado.")}
+                    </span>
                   )}
                 </p>
               </div>
@@ -658,17 +754,19 @@ export default function AdminAlunoDetalhesPage() {
               <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
                   <Sparkles className="h-4 w-4 text-amber-500" />
-                  <span>{backgroundLang === "en" ? "Student's Interests" : "Interesses do Aluno"}</span>
+                  <span>{t("studentInterests", "Interesses do Aluno")}</span>
                 </div>
                 <p className="text-xs text-slate-700 leading-relaxed pt-0.5">
                   {aluno.interesses ? (
-                    backgroundLang === "en" ? (
-                      <DynamicText text={aluno.interesses} targetLocale="en" />
+                    backgroundLang !== "pt" ? (
+                      <DynamicText text={aluno.interesses} targetLocale={backgroundLang} />
                     ) : (
                       aluno.interesses
                     )
                   ) : (
-                    backgroundLang === "en" ? "No interests provided." : "Nenhum interesse informado."
+                    <span className="text-slate-400 italic">
+                      {t("noInterestsInformed", "Nenhum interesse informado.")}
+                    </span>
                   )}
                 </p>
               </div>
@@ -677,17 +775,19 @@ export default function AdminAlunoDetalhesPage() {
               <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-100 space-y-1">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
                   <BookOpen className="h-4 w-4 text-purple-600" />
-                  <span>{backgroundLang === "en" ? "Biography" : "Biografia"}</span>
+                  <span>{t("biography", "Biografia")}</span>
                 </div>
                 <p className="text-xs text-slate-700 leading-relaxed pt-0.5 whitespace-pre-wrap">
                   {aluno.biografia ? (
-                    backgroundLang === "en" ? (
-                      <DynamicText text={aluno.biografia} targetLocale="en" />
+                    backgroundLang !== "pt" ? (
+                      <DynamicText text={aluno.biografia} targetLocale={backgroundLang} />
                     ) : (
                       aluno.biografia
                     )
                   ) : (
-                    backgroundLang === "en" ? "No biography provided." : "Nenhuma biografia informada."
+                    <span className="text-slate-400 italic">
+                      {t("noBiographyInformed", "Nenhuma biografia informada.")}
+                    </span>
                   )}
                 </p>
               </div>
@@ -699,20 +799,10 @@ export default function AdminAlunoDetalhesPage() {
             <Info className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
             <div>
               <p className="font-bold text-amber-800">
-                {globalLocale === "en"
-                  ? "Pedagogical Leveling Guideline (Paulo Method):"
-                  : "Diretriz de Nivelamento Pedagógico (Método Paulo):"}
+                {guidelineTexts.title}
               </p>
               <p className="mt-0.5 text-amber-900/90 leading-relaxed text-[11px]">
-                {globalLocale === "en" ? (
-                  <>
-                    The level assigned to the student (currently <strong>{aluno.nivel}</strong>) is an operational metric for compatible class group placement and vocabulary roadmap. Manual setting <strong>does not replace or constitute formal CEFR certification</strong>.
-                  </>
-                ) : (
-                  <>
-                    O nível atribuído ao aluno (atualmente <strong>{aluno.nivel}</strong>) é uma métrica operacional para alocação em turmas compatíveis e trilha de vocabulário. A definição manual <strong>não substitui nem representa emissão de certificado formal CEFR</strong>.
-                  </>
-                )}
+                {guidelineTexts.desc}
               </p>
             </div>
           </div>
@@ -720,7 +810,7 @@ export default function AdminAlunoDetalhesPage() {
 
         {/* Right 1 Col: Live Turmas, Agenda & Frequência */}
         <div className="space-y-6">
-          {/* Card Acesso ao Sistema (Etapa 10.2C1) */}
+          {/* Card Acesso ao Sistema */}
           <CardAcessoSistema
             tipo="aluno"
             entidadeId={aluno.id}
@@ -737,7 +827,7 @@ export default function AdminAlunoDetalhesPage() {
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                 <BookOpen className="h-4 w-4 text-purple-600" />
-                <span>{globalLocale === "en" ? "Current Classes" : "Turmas Atuais"} ({turmas.length})</span>
+                <span>{t("currentClasses", "Turmas Atuais")} ({turmas.length})</span>
               </h3>
             </div>
 
@@ -756,60 +846,37 @@ export default function AdminAlunoDetalhesPage() {
                 }`}
               />
               <p>
-                {getAcademicCoreDataSource() === "supabase" ? (
-                  globalLocale === "en" ? (
-                    <>
-                      <strong>Supabase Link:</strong> This student&apos;s enrollments and classes are managed directly in the PostgreSQL database with capacity rules and relational integrity.
-                    </>
-                  ) : (
-                    <>
-                      <strong>Vínculo no Supabase:</strong> As matrículas e turmas deste discente são gerenciadas diretamente no banco de dados PostgreSQL com regras de capacidade e integridade relacional.
-                    </>
-                  )
-                ) : (
-                  globalLocale === "en" ? (
-                    <>
-                      <strong>Modular Isolation:</strong> Student cadastral and pedagogical data are managed in Supabase. Links to classes, sessions, and attendance remain in local storage.
-                    </>
-                  ) : (
-                    <>
-                      <strong>Isolamento Modular:</strong> Os dados cadastrais e pedagógicos deste discente são gerenciados no Supabase. Os vínculos com turmas, aulas e frequência permanecem em armazenamento local e serão migrados nas etapas seguintes.
-                    </>
-                  )
-                )}
+                {getAcademicCoreDataSource() === "supabase"
+                  ? t("supabaseLinkNotice", "As matrículas e turmas deste discente são gerenciadas diretamente no banco de dados PostgreSQL com regras de capacidade e integridade relacional.")
+                  : "Os dados cadastrais e pedagógicos deste discente são gerenciados no Supabase."}
               </p>
             </div>
 
             {turmas.length === 0 ? (
               <div className="rounded-xl bg-slate-50 p-3.5 border border-slate-200/60 text-xs text-slate-500 space-y-1">
                 <p className="font-semibold text-slate-700">
-                  {globalLocale === "en" ? "No class groups assigned" : "Nenhuma turma atribuída"}
-                </p>
-                <p className="text-[11px] leading-relaxed">
-                  {globalLocale === "en"
-                    ? "This student has not yet been enrolled in any class groups. Access the classes module to enroll them."
-                    : "Este discente ainda não foi matriculado em turmas. Acesse o módulo de turmas para realizar a matrícula."}
+                  {t("noTurmasEnrolled", "Nenhuma turma vinculada a este aluno.")}
                 </p>
               </div>
             ) : (
               <div className="space-y-2.5">
-                {turmas.map((t) => (
+                {turmas.map((tr) => (
                   <div
-                    key={t.id}
+                    key={tr.id}
                     className="p-3 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-white hover:border-purple-200 transition-all space-y-1"
                   >
                     <div className="flex items-center justify-between">
                       <Link
-                        href={`/admin/turmas/${t.id}`}
+                        href={`/admin/turmas/${tr.id}`}
                         className="font-bold text-xs text-slate-900 hover:text-purple-600 transition-colors truncate block"
                       >
-                        {t.nome}
+                        {tr.nome}
                       </Link>
-                      <ModalidadeBadge modalidade={t.modalidade} />
+                      <ModalidadeBadge modalidade={tr.modalidade} />
                     </div>
                     <div className="flex items-center justify-between text-[11px] text-slate-500">
-                      <span>{globalLocale === "en" ? "Level" : "Nível"}: {t.nivel}</span>
-                      <TurmaStatusBadge status={t.status} />
+                      <span>{t("operationalLevel", "Nível")}: {tr.nivel}</span>
+                      <TurmaStatusBadge status={tr.status} />
                     </div>
                   </div>
                 ))}
@@ -822,13 +889,13 @@ export default function AdminAlunoDetalhesPage() {
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                 <Calendar className="h-4 w-4 text-purple-600" />
-                <span>{globalLocale === "en" ? "Upcoming Sessions" : "Horários Futuros"} ({aulasFuturas.length})</span>
+                <span>{t("upcomingSessions", "Horários Futuros")} ({aulasFuturas.length})</span>
               </h3>
             </div>
 
             {aulasFuturas.length === 0 ? (
               <div className="rounded-xl bg-slate-50 p-3.5 border border-slate-200/60 text-xs text-slate-500">
-                {globalLocale === "en" ? "No upcoming sessions scheduled for this student." : "Nenhuma aula futura agendada para este aluno."}
+                {t("noUpcomingClassesStudent", "Nenhuma aula futura agendada para este aluno.")}
               </div>
             ) : (
               <div className="space-y-2">
@@ -838,8 +905,8 @@ export default function AdminAlunoDetalhesPage() {
                     className="p-2.5 rounded-xl border border-slate-100 bg-slate-50/40 text-xs space-y-0.5"
                   >
                     <p className="font-bold text-slate-800 truncate">
-                      {globalLocale === "en" ? (
-                        <DynamicText text={a.titulo} targetLocale="en" />
+                      {globalLocale !== "pt" ? (
+                        <DynamicText text={a.titulo} targetLocale={globalLocale} />
                       ) : (
                         a.titulo
                       )}
@@ -862,7 +929,7 @@ export default function AdminAlunoDetalhesPage() {
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                 <Clock className="h-4 w-4 text-purple-600" />
-                <span>{globalLocale === "en" ? "Attendance History" : "Histórico de Presença"}</span>
+                <span>{t("attendanceHistory", "Histórico de Presença")}</span>
               </h3>
               <span className="text-xs font-extrabold text-purple-700">
                 {frequencia?.porcentagem !== null ? `${frequencia?.porcentagem}%` : "100%"}
@@ -872,7 +939,7 @@ export default function AdminAlunoDetalhesPage() {
             <div className="grid grid-cols-3 gap-2 text-center text-xs">
               <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-100">
                 <span className="text-[10px] text-emerald-700 block font-semibold">
-                  {globalLocale === "en" ? "Present" : "Presente"}
+                  {translatePresenca("presente")}
                 </span>
                 <span className="font-bold text-emerald-800 text-sm">
                   {frequencia?.totalPresentes || 0}
@@ -880,7 +947,7 @@ export default function AdminAlunoDetalhesPage() {
               </div>
               <div className="p-2 rounded-lg bg-rose-50 border border-rose-100">
                 <span className="text-[10px] text-rose-700 block font-semibold">
-                  {globalLocale === "en" ? "Absent" : "Ausente"}
+                  {translatePresenca("ausente")}
                 </span>
                 <span className="font-bold text-rose-800 text-sm">
                   {frequencia?.totalAusentes || 0}
@@ -888,7 +955,7 @@ export default function AdminAlunoDetalhesPage() {
               </div>
               <div className="p-2 rounded-lg bg-amber-50 border border-amber-100">
                 <span className="text-[10px] text-amber-700 block font-semibold">
-                  {globalLocale === "en" ? "Excused" : "Justif."}
+                  {translatePresenca("justificado")}
                 </span>
                 <span className="font-bold text-amber-800 text-sm">
                   {frequencia?.totalJustificados || 0}
@@ -906,8 +973,8 @@ export default function AdminAlunoDetalhesPage() {
                       className="flex items-center justify-between p-2 rounded-lg bg-slate-50/60"
                     >
                       <span className="font-medium text-slate-700 truncate max-w-[150px]">
-                        {globalLocale === "en" ? (
-                          <DynamicText text={aula.titulo} targetLocale="en" />
+                        {globalLocale !== "pt" ? (
+                          <DynamicText text={aula.titulo} targetLocale={globalLocale} />
                         ) : (
                           aula.titulo
                         )}
@@ -925,13 +992,13 @@ export default function AdminAlunoDetalhesPage() {
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                 <Mic className="h-4 w-4 text-purple-600" />
-                <span>{globalLocale === "en" ? "Self Presentations & Leveling" : "Self Presentations & Nivelamento"}</span>
+                <span>{t("selfPresentationsAndLeveling", "Self Presentations & Nivelamento")}</span>
               </h3>
               <Link
                 href="/admin/self-presentation"
                 className="text-xs font-semibold text-purple-600 hover:text-purple-700 hover:underline inline-flex items-center gap-1"
               >
-                {globalLocale === "en" ? "Evaluation Queue" : "Fila de Avaliação"}
+                {t("evaluationQueue", "Fila de Avaliação")}
                 <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
@@ -939,12 +1006,10 @@ export default function AdminAlunoDetalhesPage() {
             {selfPresentations.length === 0 ? (
               <div className="rounded-xl bg-slate-50 p-4 border border-slate-200/60 text-xs text-slate-500 text-center space-y-1">
                 <p className="font-semibold text-slate-700">
-                  {globalLocale === "en" ? "No presentations submitted" : "Nenhuma apresentação submetida"}
+                  {t("noPresentationsSubmitted", "Nenhuma apresentação submetida")}
                 </p>
                 <p className="text-[11px] leading-relaxed">
-                  {globalLocale === "en"
-                    ? "The student has not yet submitted an oral leveling or reassessment video."
-                    : "O discente ainda não realizou o envio do vídeo de nivelamento oral ou reavaliação."}
+                  {t("noPresentationsSubmittedDesc", "O discente ainda não realizou o envio do vídeo de nivelamento oral ou reavaliação.")}
                 </p>
               </div>
             ) : (
@@ -960,8 +1025,8 @@ export default function AdminAlunoDetalhesPage() {
                           href={`/admin/self-presentation/${sp.id}`}
                           className="text-xs font-bold text-slate-900 hover:text-purple-600 truncate block"
                         >
-                          {globalLocale === "en" ? (
-                            <DynamicText text={sp.titulo} targetLocale="en" />
+                          {globalLocale !== "pt" ? (
+                            <DynamicText text={sp.titulo} targetLocale={globalLocale} />
                           ) : (
                             sp.titulo
                           )}
@@ -976,21 +1041,20 @@ export default function AdminAlunoDetalhesPage() {
 
                     {sp.avaliacao && sp.avaliacao.nivelDefinido && sp.avaliacao.nivelDefinido !== "nao_avaliado" && (
                       <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[11px]">
-                        <span className="text-slate-500">{globalLocale === "en" ? "Assigned level:" : "Nível atribuído:"}</span>
+                        <span className="text-slate-500">{t("operationalLevel", "Nível atribuído")}:</span>
                         <NivelBadge nivel={sp.avaliacao.nivelDefinido} />
                       </div>
                     )}
 
                     <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
                       <span>
-                        {globalLocale === "en" ? "Recorded on: " : "Gravado em: "}
-                        {new Date(sp.dataGravacao).toLocaleDateString(globalLocale === "en" ? "en-US" : "pt-BR")}
+                        {formatDate(sp.dataGravacao)}
                       </span>
                       <Link
                         href={`/admin/self-presentation/${sp.id}`}
                         className="font-semibold text-purple-600 hover:underline"
                       >
-                        {globalLocale === "en" ? "View details →" : "Ver detalhes →"}
+                        {t("details", "Ver detalhes")} →
                       </Link>
                     </div>
                   </div>
@@ -1004,22 +1068,43 @@ export default function AdminAlunoDetalhesPage() {
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                 <TrendingUp className="h-4 w-4 text-emerald-600" />
-                <span>{globalLocale === "en" ? "CEFR Level Progression" : "Evolução de Nível CEFR"}</span>
+                <span>
+                  {{
+                    pt: "Evolução de Nível CEFR",
+                    en: "CEFR Level Progression",
+                    fr: "Progression du niveau CECRL",
+                    es: "Evolución de nivel MCER",
+                    it: "Evoluzione del livello QCER",
+                    zh: "CEFR 级别进阶",
+                  }[globalLocale] || "Evolução de Nível CEFR"}
+                </span>
               </h3>
               <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-                {historicoNiveis.length} {globalLocale === "en" ? "records" : "registros"}
+                {historicoNiveis.length}
               </span>
             </div>
 
             {historicoNiveis.length === 0 ? (
               <div className="rounded-xl bg-slate-50 p-4 border border-slate-200/60 text-xs text-slate-500 text-center space-y-1">
                 <p className="font-semibold text-slate-700">
-                  {globalLocale === "en" ? "No level changes recorded" : "Sem alterações de nível registradas"}
+                  {{
+                    pt: "Sem alterações de nível registradas",
+                    en: "No level changes recorded",
+                    fr: "Aucun changement de niveau enregistré",
+                    es: "Sin cambios de nivel registrados",
+                    it: "Nessun cambio di livello registrato",
+                    zh: "尚无级别变动记录",
+                  }[globalLocale] || "Sem alterações de nível registradas"}
                 </p>
                 <p className="text-[11px] leading-relaxed">
-                  {globalLocale === "en"
-                    ? `The student maintains the initial placement level (${aluno.nivel ? aluno.nivel.toUpperCase() : "Not evaluated"}).`
-                    : `O discente mantém o nível inicial de cadastro (${aluno.nivel ? aluno.nivel.toUpperCase() : "Não avaliado"}).`}
+                  {{
+                    pt: `O discente mantém o nível inicial de cadastro (${aluno.nivel ? aluno.nivel.toUpperCase() : "Não avaliado"}).`,
+                    en: `The student maintains the initial placement level (${aluno.nivel ? aluno.nivel.toUpperCase() : "Not evaluated"}).`,
+                    fr: `L'élève conserve le niveau de placement initial (${aluno.nivel ? aluno.nivel.toUpperCase() : "Non évalué"}).`,
+                    es: `El alumno mantiene el nivel inicial (${aluno.nivel ? aluno.nivel.toUpperCase() : "No evaluado"}).`,
+                    it: `Lo studente mantiene il livello iniziale (${aluno.nivel ? aluno.nivel.toUpperCase() : "Non valutato"}).`,
+                    zh: `该学员保持初始注册级别 (${aluno.nivel ? aluno.nivel.toUpperCase() : "未评估"})。`,
+                  }[globalLocale] || ""}
                 </p>
               </div>
             ) : (
@@ -1036,13 +1121,13 @@ export default function AdminAlunoDetalhesPage() {
                         <NivelBadge nivel={hn.novoNivel} />
                       </div>
                       <span className="text-[10px] text-slate-400 font-medium">
-                        {new Date(hn.dataAlteracao).toLocaleDateString(globalLocale === "en" ? "en-US" : "pt-BR")}
+                        {formatDate(hn.dataAlteracao)}
                       </span>
                     </div>
 
                     <p className="text-[11px] text-slate-600 leading-snug line-clamp-2">
-                      {globalLocale === "en" ? (
-                        <DynamicText text={hn.justificativa} targetLocale="en" />
+                      {globalLocale !== "pt" ? (
+                        <DynamicText text={hn.justificativa} targetLocale={globalLocale} />
                       ) : (
                         hn.justificativa
                       )}
@@ -1050,7 +1135,6 @@ export default function AdminAlunoDetalhesPage() {
 
                     <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[10px] text-slate-400">
                       <span>
-                        {globalLocale === "en" ? "By: " : "Por: "}
                         {hn.professorNome || (globalLocale === "en" ? "Academic Team" : "Equipe Pedagógica")}
                       </span>
                       <span className="capitalize">{hn.origem.replace("_", " ")}</span>
@@ -1061,18 +1145,27 @@ export default function AdminAlunoDetalhesPage() {
             )}
           </div>
 
-          {/* Jornada no Método Paulo & Avaliações (Etapa 7) */}
+          {/* Jornada no Método Paulo & Avaliações */}
           <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                 <BookOpen className="h-4 w-4 text-indigo-600" />
-                <span>{globalLocale === "en" ? "Paulo Method Journey & Assessments" : "Jornada no Método Paulo & Avaliações"}</span>
+                <span>
+                  {{
+                    pt: "Jornada no Método Paulo & Avaliações",
+                    en: "Paulo Method Journey & Assessments",
+                    fr: "Parcours Méthode Paulo & Évaluations",
+                    es: "Ruta Método Paulo y Evaluaciones",
+                    it: "Percorso Metodo Paulo & Valutazioni",
+                    zh: "保罗教学法进阶与测评",
+                  }[globalLocale] || "Jornada no Método Paulo"}
+                </span>
               </h3>
               <Link
                 href="/admin/avaliacoes"
                 className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:underline inline-flex items-center gap-1"
               >
-                {globalLocale === "en" ? "Manage Assessments" : "Gerenciar Avaliações"}
+                {t("navAvaliacoes", "Avaliações")}
                 <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
@@ -1080,12 +1173,24 @@ export default function AdminAlunoDetalhesPage() {
             {progressosModulos.length === 0 ? (
               <div className="rounded-xl bg-slate-50 p-4 border border-slate-200/60 text-xs text-slate-500 text-center space-y-1">
                 <p className="font-semibold text-slate-700">
-                  {globalLocale === "en" ? "No curriculum progress recorded" : "Sem progresso curricular registrado"}
+                  {{
+                    pt: "Sem progresso curricular registrado",
+                    en: "No curriculum progress recorded",
+                    fr: "Aucun progrès curriculaire enregistré",
+                    es: "Sin progreso curricular registrado",
+                    it: "Nessun progresso curricolare registrato",
+                    zh: "尚无课程进度记录",
+                  }[globalLocale] || "Sem progresso curricular registrado"}
                 </p>
                 <p className="text-[11px] leading-relaxed">
-                  {globalLocale === "en"
-                    ? "The student has not yet started any Paulo Method modules."
-                    : "O discente ainda não iniciou módulos do Método Paulo."}
+                  {{
+                    pt: "O discente ainda não iniciou módulos do Método Paulo.",
+                    en: "The student has not yet started any Paulo Method modules.",
+                    fr: "L'élève n'a pas encore commencé les modules de la Méthode Paulo.",
+                    es: "El alumno aún no ha iniciado los módulos del Método Paulo.",
+                    it: "Lo studente non ha ancora iniziato i moduli del Metodo Paulo.",
+                    zh: "学员尚未开始保罗教学法的模块学习。",
+                  }[globalLocale] || ""}
                 </p>
               </div>
             ) : (
@@ -1105,7 +1210,7 @@ export default function AdminAlunoDetalhesPage() {
                             {mod?.nome || prog.moduloId}
                           </span>
                           <span className="text-[11px] text-slate-500">
-                            {ind.criteriosCumpridos} {globalLocale === "en" ? "of" : "de"} {ind.totalCriteriosAplicaveis} {globalLocale === "en" ? "criteria" : "critérios"} (
+                            {ind.criteriosCumpridos} / {ind.totalCriteriosAplicaveis} (
                             {ind.percentualConclusao.toFixed(0)}%)
                           </span>
                         </div>
@@ -1123,25 +1228,32 @@ export default function AdminAlunoDetalhesPage() {
                       {tentativasAluno.length > 0 && (
                         <div className="pt-2 border-t border-slate-200/60 space-y-1">
                           <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                            {globalLocale === "en" ? "Assessments Taken:" : "Avaliações Realizadas:"}
+                            {{
+                              pt: "Avaliações Realizadas:",
+                              en: "Assessments Taken:",
+                              fr: "Évaluations passées :",
+                              es: "Evaluaciones realizadas:",
+                              it: "Valutazioni completate:",
+                              zh: "已完成测评：",
+                            }[globalLocale] || "Avaliações:"}
                           </span>
-                          {tentativasAluno.slice(0, 3).map((t) => {
-                            const aval = avaliacoes.find((a) => a.id === t.avaliacaoId);
+                          {tentativasAluno.slice(0, 3).map((tAtmpt) => {
+                            const aval = avaliacoes.find((a) => a.id === tAtmpt.avaliacaoId);
                             return (
                               <div
-                                key={t.id}
+                                key={tAtmpt.id}
                                 className="flex items-center justify-between text-[11px] py-0.5"
                               >
                                 <span className="font-medium text-slate-700 truncate max-w-[140px]">
-                                  {aval?.titulo || (globalLocale === "en" ? "Assessment" : "Avaliação")}
+                                  {aval?.titulo || "Avaliação"}
                                 </span>
                                 <div className="flex items-center gap-1.5">
-                                  {t.nota !== undefined && (
+                                  {tAtmpt.nota !== undefined && (
                                     <span className="font-bold text-slate-900">
-                                      {t.nota.toFixed(1)}
+                                      {tAtmpt.nota.toFixed(1)}
                                     </span>
                                   )}
-                                  <ResultadoBadge resultado={t.resultado} />
+                                  <ResultadoBadge resultado={tAtmpt.resultado} />
                                 </div>
                               </div>
                             );
@@ -1168,14 +1280,10 @@ export default function AdminAlunoDetalhesPage() {
       {/* Inactivation Modal */}
       <ConfirmModal
         isOpen={isConfirmInativarOpen}
-        title={globalLocale === "en" ? "Confirm Student Inactivation" : "Confirmar Inativação do Aluno"}
-        description={
-          globalLocale === "en"
-            ? `Are you sure you want to inactivate the enrollment of "${aluno.nomeCompleto}"? The student will not have access to classrooms and activities until reactivated by the administration.`
-            : `Tem certeza que deseja inativar a matrícula de "${aluno.nomeCompleto}"? O discente não terá acesso às salas de aula e atividades até que seja reativado pela coordenação.`
-        }
-        confirmLabel={globalLocale === "en" ? "Yes, Inactivate Enrollment" : "Sim, Inativar Matrícula"}
-        cancelLabel={globalLocale === "en" ? "Cancel" : "Cancelar"}
+        title={inactivateModalTexts.title}
+        description={inactivateModalTexts.desc}
+        confirmLabel={inactivateModalTexts.confirm}
+        cancelLabel={t("cancel", "Cancelar")}
         isDestructive={true}
         isLoading={isProcessing}
         showPersistenceNotice={true}
@@ -1197,26 +1305,20 @@ export default function AdminAlunoDetalhesPage() {
               </div>
               <div>
                 <h3 className="text-base font-bold text-slate-900">
-                  {globalLocale === "en" ? "Delete Student" : "Excluir Aluno"}
+                  {deleteModalTexts.title}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  {globalLocale === "en" ? "Permanent administrative deletion" : "Exclusão administrativa permanente"}
+                  {deleteModalTexts.subtitle}
                 </p>
               </div>
             </div>
 
             <div className="p-3.5 bg-rose-50/50 rounded-xl border border-rose-100 text-xs text-slate-700 space-y-1.5">
               <p className="font-semibold text-rose-900">
-                {globalLocale === "en" ? (
-                  <>You are about to permanently delete student &ldquo;{aluno.nomeCompleto}&rdquo; ({aluno.email}).</>
-                ) : (
-                  <>Você está prestes a excluir o aluno &ldquo;{aluno.nomeCompleto}&rdquo; ({aluno.email}).</>
-                )}
+                &ldquo;{aluno.nomeCompleto}&rdquo; ({aluno.email})
               </p>
               <p className="text-rose-700">
-                {globalLocale === "en"
-                  ? "All class enrollments, recorded attendance, pedagogical history, and system access credentials will be permanently removed from the database."
-                  : "Todas as matrículas em turmas, presenças registradas, histórico pedagógico e credenciais de login serão removidos permanentemente do banco de dados."}
+                {deleteModalTexts.warnDesc}
               </p>
             </div>
 
@@ -1236,7 +1338,7 @@ export default function AdminAlunoDetalhesPage() {
                 disabled={isExcluindo}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition disabled:opacity-50"
               >
-                {globalLocale === "en" ? "Cancel" : "Cancelar"}
+                {t("cancel", "Cancelar")}
               </button>
               <button
                 type="button"
@@ -1247,12 +1349,12 @@ export default function AdminAlunoDetalhesPage() {
                 {isExcluindo ? (
                   <>
                     <span className="h-3.5 w-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    <span>{globalLocale === "en" ? "Deleting..." : "Excluindo..."}</span>
+                    <span>{t("deleting", "Excluindo...")}</span>
                   </>
                 ) : (
                   <>
                     <Trash2 className="h-3.5 w-3.5" />
-                    <span>{globalLocale === "en" ? "Delete Student" : "Excluir Aluno"}</span>
+                    <span>{t("deleteStudent", "Excluir Aluno")}</span>
                   </>
                 )}
               </button>
