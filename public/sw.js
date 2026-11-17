@@ -8,7 +8,7 @@
  * - Garante total isolamento entre alunos e integridade dos dados em tempo real.
  */
 
-const CACHE_NAME = "mtd-pwa-static-v1";
+const CACHE_NAME = "mtd-pwa-static-v2";
 const OFFLINE_URL = "/offline.html";
 
 // Assets estáticos públicos pré-cacheados para o shell offline

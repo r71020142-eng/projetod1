@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Método Paulo",
-    short_name: "Método Paulo",
-    description: "Plataforma educacional exclusiva de inglês baseada no Método Paulo.",
+    name: "Juno Academy",
+    short_name: "Juno Academy",
+    description: "Juno Academy — Plataforma Educacional de Idiomas.",
     start_url: "/login",
     scope: "/",
     display: "standalone",
