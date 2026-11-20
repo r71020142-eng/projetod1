@@ -347,3 +347,34 @@ export function validarRubricaPratica(
     errors,
   };
 }
+
+/**
+ * Validação estrita de questão de exercício interativo (padrão Lingua.com):
+ * - Enunciado com no mínimo 5 caracteres
+ * - EXATAMENTE 4 alternativas (A, B, C, D)
+ * - Nenhuma alternativa vazia ou duplicada
+ * - Exatamente uma alternativa correta selecionada
+ * - Pontuação positiva maior que zero
+ */
+export function validarQuestaoExercicioInterativo(
+  questao: Partial<QuestaoObjetiva>
+): { isValid: boolean; errors: string[] } {
+  const base = validarQuestaoObjetiva(questao);
+  const errors = [...base.errors];
+
+  const alts = questao.alternativas || [];
+  if (alts.length !== 4) {
+    const filtered = errors.filter((e) => !e.includes("deve possuir entre"));
+    filtered.push(`A questão deve possuir exatamente 4 alternativas (atual: ${alts.length}).`);
+    return {
+      isValid: false,
+      errors: filtered,
+    };
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+}
+

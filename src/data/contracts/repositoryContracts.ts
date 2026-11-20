@@ -66,6 +66,9 @@ import {
   OperationResult,
   NivelAluno,
   OrigemAlteracaoNivel,
+  ExercicioInterativo,
+  ExercicioFilters,
+  TentativaExercicio,
 } from "@/types";
 
 export interface IAlunoRepository {
@@ -619,3 +622,38 @@ export interface IGamificacaoRepository {
   marcarTodasComoLidas(usuarioId: string): Promise<OperationResult<boolean>>;
   obterMetricasAdmin(): Promise<MetricasGamificacaoAdmin>;
 }
+
+export interface IExercicioRepository {
+  listar(filters?: ExercicioFilters): Promise<ExercicioInterativo[]>;
+  listarParaAluno(alunoId: string, nivelAluno?: string, turmaIds?: string[]): Promise<ExercicioInterativo[]>;
+  obterPorId(id: string): Promise<ExercicioInterativo | null>;
+  criar(dados: Omit<ExercicioInterativo, "id" | "criadoEm" | "atualizadoEm" | "versao">): Promise<OperationResult<ExercicioInterativo>>;
+  atualizar(id: string, dados: Partial<ExercicioInterativo>): Promise<OperationResult<ExercicioInterativo>>;
+  excluir(id: string): Promise<OperationResult<boolean>>;
+  duplicar(id: string, novoProfessorId?: string): Promise<OperationResult<ExercicioInterativo>>;
+}
+
+export interface ITentativaExercicioRepository {
+  iniciarTentativa(dados: {
+    exercicioId: string;
+    alunoId: string;
+    alunoNome?: string;
+  }): Promise<OperationResult<TentativaExercicio>>;
+  concluirTentativa(dados: {
+    tentativaId: string;
+    respostas: { questaoId: string; alternativaEscolhidaId?: string }[];
+    tempoGastoSegundos: number;
+  }): Promise<OperationResult<TentativaExercicio>>;
+  obterPorId(id: string): Promise<TentativaExercicio | null>;
+  listarPorAluno(alunoId: string, exercicioId?: string): Promise<TentativaExercicio[]>;
+  listarPorExercicio(exercicioId: string): Promise<TentativaExercicio[]>;
+  obterUltimaTentativa(alunoId: string, exercicioId: string): Promise<TentativaExercicio | null>;
+  obterResumoDesempenho(alunoId: string): Promise<{
+    totalConcluidos: number;
+    mediaNotas: number;
+    totalAcertos: number;
+    totalQuestoes: number;
+    percentualGeral: number;
+  }>;
+}
+

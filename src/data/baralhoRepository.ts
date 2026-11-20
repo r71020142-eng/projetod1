@@ -64,6 +64,8 @@ export const baralhoRepository = {
   getBaralhos,
   getBaralhosAluno,
   getBaralhoById,
+  listar: getBaralhos,
+  obterPorId: getBaralhoById,
   salvarBaralho,
   atualizarStatusBaralho,
   excluirBaralho,

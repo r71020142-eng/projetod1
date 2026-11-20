@@ -8,6 +8,7 @@ import {
   Search,
   ChevronRight,
   Info,
+  Sparkles,
 } from "lucide-react";
 import {
   Material,
@@ -144,6 +145,13 @@ export default function AlunoMateriaisPage() {
         >
           <BookOpen className="h-4 w-4" />
           <span>Biblioteca de Materiais ({materiais.length})</span>
+        </Link>
+        <Link
+          href="/aluno/exercicios"
+          className="flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 border-transparent text-purple-700 hover:text-purple-900 bg-purple-50/70 rounded-t-lg whitespace-nowrap transition-colors"
+        >
+          <Sparkles className="h-4 w-4 text-purple-600" />
+          <span>Exercícios Interativos</span>
         </Link>
       </div>
 

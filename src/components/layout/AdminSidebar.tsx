@@ -18,6 +18,7 @@ import {
   Award,
   Settings,
   X,
+  CheckSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isRouteAllowedForRole, type UserRole } from "@/lib/auth/permissions";
@@ -42,6 +43,7 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { title: "Agenda", href: "/admin/agenda", icon: Calendar, transKey: "navAgenda" },
   { title: "Materiais", href: "/admin/materiais", icon: FileText, transKey: "navMateriais" },
   { title: "Avaliações", href: "/admin/avaliacoes", icon: BarChart2, transKey: "navAvaliacoes" },
+  { title: "Exercícios", href: "/admin/exercicios", icon: CheckSquare, transKey: "navExercicios" },
   { title: "Self Presentation", href: "/admin/self-presentation", icon: Video, transKey: "navSelfPresentation" },
   { title: "Flashcards", href: "/admin/flashcards", icon: Layers, transKey: "navFlashcards" },
   { title: "Comunidade", href: "/admin/comunidade", icon: MessageSquare, transKey: "navComunidade" },

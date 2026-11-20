@@ -42,6 +42,10 @@ import { comunidadeLocalStorageRepository } from "./comunidadeLocalStorageReposi
 import { comunidadeSupabaseRepository } from "./comunidadeSupabaseRepository";
 import { gamificacaoLocalStorageRepository } from "./gamificacaoLocalStorageRepository";
 import { gamificacaoSupabaseRepository } from "./gamificacaoSupabaseRepository";
+import { exercicioLocalStorageRepository } from "./exercicioLocalStorageRepository";
+import { exercicioSupabaseRepository } from "./exercicioSupabaseRepository";
+import { tentativaExercicioLocalStorageRepository } from "./tentativaExercicioLocalStorageRepository";
+import { tentativaExercicioSupabaseRepository } from "./tentativaExercicioSupabaseRepository";
 import {
   IAlunoRepository,
   IProfessorRepository,
@@ -59,6 +63,8 @@ import {
   ITentativaAvaliacaoRepository,
   IComunidadeRepository,
   IGamificacaoRepository,
+  IExercicioRepository,
+  ITentativaExercicioRepository,
 } from "./contracts/repositoryContracts";
 
 export function isLocalDataSource(): boolean {
@@ -419,6 +425,33 @@ export function getGamificacaoRepository(): IGamificacaoRepository {
   return gamificacaoLocalStorageRepository;
 }
 
+/**
+ * Retorna a fonte de dados configurada para os Exercícios Interativos (Múltipla Escolha e Leitura com Áudio).
+ */
+export function getExerciciosDataSource(): DataSource {
+  return getAcademicEvaluationsDataSource();
+}
+
+/**
+ * Retorna o repositório de Exercícios Interativos ativo para o ambiente.
+ */
+export function getExercicioRepository(): IExercicioRepository {
+  if (getExerciciosDataSource() === "supabase") {
+    return exercicioSupabaseRepository;
+  }
+  return exercicioLocalStorageRepository;
+}
+
+/**
+ * Retorna o repositório de Tentativas de Exercícios ativo para o ambiente.
+ */
+export function getTentativaExercicioRepository(): ITentativaExercicioRepository {
+  if (getExerciciosDataSource() === "supabase") {
+    return tentativaExercicioSupabaseRepository;
+  }
+  return tentativaExercicioLocalStorageRepository;
+}
+
 export {
   aulaLocalStorageRepository,
   aulaSupabaseRepository,
@@ -445,4 +478,9 @@ export {
   comunidadeSupabaseRepository,
   gamificacaoLocalStorageRepository,
   gamificacaoSupabaseRepository,
+  exercicioLocalStorageRepository,
+  exercicioSupabaseRepository,
+  tentativaExercicioLocalStorageRepository,
+  tentativaExercicioSupabaseRepository,
 };
+

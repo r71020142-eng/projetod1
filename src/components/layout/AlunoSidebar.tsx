@@ -115,7 +115,9 @@ export function AlunoSidebar({ isOpenMobile, onCloseMobile, isRealAuth = false }
             {ALUNO_NAV_ITEMS.map((item) => {
               const active = item.exact
                 ? pathname === item.href
-                : pathname === item.href || (item.href !== "/aluno" && pathname.startsWith(item.href + "/"));
+                : pathname === item.href ||
+                  (item.href !== "/aluno" && pathname.startsWith(item.href + "/")) ||
+                  (item.href === "/aluno/atividades" && pathname.startsWith("/aluno/exercicios"));
               const Icon = item.icon;
 
               return (

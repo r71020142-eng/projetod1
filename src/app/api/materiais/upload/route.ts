@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
  *
  * Bucket: 'materiais' (público)
  * Limite de tamanho: 50MB
- * Extensões aceitas: PDF, áudio (MP3, WAV, AAC), vídeo (MP4, WEBM), documentos (DOCX, PPTX, TXT), imagens (PNG, JPG).
+ * Extensões aceitas: PDF, áudio (MP3, WAV, AAC, M4A, OGG), vídeo (MP4, WEBM), documentos (DOCX, PPTX, TXT), imagens (PNG, JPG).
  */
 export async function POST(req: NextRequest) {
   try {

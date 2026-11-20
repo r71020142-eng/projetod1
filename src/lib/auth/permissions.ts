@@ -12,6 +12,7 @@ export const PROFESSOR_PERMITTED_ROUTES: string[] = [
   "/admin/agenda",
   "/admin/materiais",
   "/admin/avaliacoes",
+  "/admin/exercicios",
   "/admin/self-presentation",
   "/admin/flashcards",
   "/admin/comunidade",

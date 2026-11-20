@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Info,
   AlertCircle,
+  Sparkles,
 } from "lucide-react";
 import {
   Atividade,
@@ -142,6 +143,36 @@ export default function AlunoAtividadesPage() {
         >
           <BookOpen className="h-4 w-4" />
           <span>Biblioteca de Materiais</span>
+        </Link>
+        <Link
+          href="/aluno/exercicios"
+          className="flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 border-transparent text-purple-700 hover:text-purple-900 bg-purple-50/70 rounded-t-lg whitespace-nowrap transition-colors"
+        >
+          <Sparkles className="h-4 w-4 text-purple-600" />
+          <span>Exercícios Interativos</span>
+        </Link>
+      </div>
+
+      {/* Banner de Exercícios Interativos */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-purple-900 to-indigo-900 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/30 border border-purple-400/40 text-purple-200 flex items-center gap-1">
+              <Sparkles className="h-3 w-3 text-amber-300" /> Nova Experiência Pedagógica
+            </span>
+          </div>
+          <h2 className="text-base sm:text-lg font-bold tracking-tight">
+            Pratique com Exercícios Interativos Lingua.com
+          </h2>
+          <p className="text-xs sm:text-sm text-purple-200 font-normal">
+            Treine interpretação de texto com áudio de narração e questionários de múltipla escolha com 4 alternativas e correção imediata.
+          </p>
+        </div>
+        <Link
+          href="/aluno/exercicios"
+          className="px-4 py-2.5 rounded-xl bg-white text-purple-900 hover:bg-purple-50 font-bold text-xs sm:text-sm shrink-0 flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-95"
+        >
+          Explorar Exercícios <ChevronRight className="h-4 w-4" />
         </Link>
       </div>
 

@@ -1632,4 +1632,88 @@ export interface ConviteAcessoResponse {
   acessoId?: string;
 }
 
+// ----------------------------------------------------------------------------
+// EXERCÍCIOS INTERATIVOS (Múltipla Escolha & Leitura com Áudio - Lingua.com)
+// ----------------------------------------------------------------------------
+
+export type TipoExercicioInterativo = "multipla_escolha" | "leitura_audio";
+export type StatusExercicio = "rascunho" | "publicado" | "arquivado";
+export type PoliticaGabaritoExercicio = "imediato" | "apos_tentativa";
+
+export interface ExercicioInterativo {
+  id: string;
+  titulo: string;
+  descricao: string;
+  instrucoes: string;
+  tipo: TipoExercicioInterativo;
+  nivel: NivelMaterial; // "A1" | "A2" | "B1" | "B2" | "C1" | "C2"
+  categoria: string;
+  textoConteudo?: string; // Texto completo em inglês formatado em parágrafos
+  audioUrl?: string; // URL pública no Supabase Storage (bucket materiais) ou externa
+  audioNome?: string;
+  audioDuracaoSegundos?: number;
+  questoes: QuestaoObjetiva[]; // Mínimo 1 questão, cada uma com exatamente 4 alternativas
+  baralhoVocabularioId?: string; // Vínculo com Baralho SRS de Flashcards existente
+  destinoTipo: DestinoTipo;
+  destinoTurmaId?: string;
+  destinoAlunoId?: string;
+  professorId: string;
+  professorNome?: string;
+  status: StatusExercicio;
+  notaMaxima: number;
+  notaMinimaAprovacao?: number;
+  politicaGabarito: PoliticaGabaritoExercicio;
+  tempoEstimadoMinutos?: number;
+  versao: number;
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
+export interface RespostaItemExercicio {
+  questaoId: string;
+  alternativaEscolhidaId?: string;
+  correta?: boolean;
+  pontosObtidos?: number;
+  respondidaEm?: string;
+}
+
+export interface TentativaExercicio {
+  id: string;
+  exercicioId: string;
+  exercicioTitulo: string;
+  exercicioTipo: TipoExercicioInterativo;
+  exercicioNivel: NivelMaterial;
+  versaoExercicio: number;
+  alunoId: string;
+  alunoNome?: string;
+  numeroTentativa: number;
+  iniciadaEm: string;
+  concluidaEm?: string;
+  tempoGastoSegundos: number;
+  status: "em_andamento" | "concluida";
+  respostas: RespostaItemExercicio[];
+  questoesSnapshot: QuestaoObjetiva[];
+  totalQuestoes: number;
+  totalAcertos: number;
+  totalErros: number;
+  pontosObtidos: number;
+  pontosTotais: number;
+  notaFinal: number;
+  percentualAproveitamento: number;
+  aprovado: boolean;
+  politicaGabarito: PoliticaGabaritoExercicio;
+}
+
+export interface ExercicioFilters {
+  busca?: string;
+  tipo?: TipoExercicioInterativo | "todos";
+  nivel?: NivelMaterial | "todos";
+  status?: StatusExercicio | "todos";
+  categoria?: string | "todas";
+  professorId?: string;
+  destinoTipo?: DestinoTipo | "todos";
+  destinoTurmaId?: string;
+}
+
+
 
