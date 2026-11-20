@@ -113,9 +113,11 @@ async function main() {
       nivel: "A2",
       categoria: "Reading & Listening",
       texto_conteudo: `Sunday mornings in London have a very distinctive rhythm. While weekdays are marked by the fast-paced rush of commuters heading toward the City and Canary Wharf, Sundays begin much more slowly.\n\nSarah lives in Greenwich, a historic neighborhood in South East London famous for the Royal Observatory and its expansive royal park. At around 8:30 AM, she walks down to the local bakery on Royal Hill to buy freshly baked sourdough bread and almond croissants.\n\nAfter breakfast, Sarah meets her friend Marcus at Greenwich Market. The market has been active since the 18th century and is celebrated for its independent artisan stalls, handcrafted jewelry, and global street food. Today, they decide to try Ethiopian coffee while browsing vintage books.\n\nBy early afternoon, clouds start to gather over the River Thames. Instead of taking the Underground, Sarah takes the Thames Clipper ferry back to central London, enjoying the panoramic view of Tower Bridge and St. Paul's Cathedral from the open deck.`,
-      audio_url: "https://actions.google.com/sounds/v1/ambiences/coffee_shop.ogg",
-      audio_nome: "sunday_in_london.ogg",
-      audio_duracao_segundos: 65,
+      audio_url: null,
+      audio_nome: "Narração pendente (áudio anterior ambiente desvinculado)",
+      audio_duracao_segundos: null,
+      audio_status: "pendente",
+      audio_is_ia: false,
       questoes: [
         {
           id: "q-rd-01",

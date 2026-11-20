@@ -18,6 +18,16 @@ interface ExercicioDbRow {
   audio_url: string | null;
   audio_nome: string | null;
   audio_duracao_segundos: number | null;
+  audio_texto_hash: string | null;
+  audio_status: string | null;
+  audio_provedor: string | null;
+  audio_voz_id: string | null;
+  audio_voz_nome: string | null;
+  audio_velocidade: number | null;
+  audio_gerado_em: string | null;
+  audio_is_ia: boolean | null;
+  conteudo_gerado_por_ia: boolean | null;
+  ia_prompt_meta: unknown;
   questoes: unknown;
   baralho_vocabulario_id: string | null;
   destino_tipo: string;
@@ -64,6 +74,16 @@ function mapRowToExercicio(row: ExercicioDbRow): ExercicioInterativo {
     audioUrl: row.audio_url || undefined,
     audioNome: row.audio_nome || undefined,
     audioDuracaoSegundos: row.audio_duracao_segundos !== null ? Number(row.audio_duracao_segundos) : undefined,
+    audioTextoHash: row.audio_texto_hash || undefined,
+    audioStatus: (row.audio_status as ExercicioInterativo["audioStatus"]) || undefined,
+    audioProvedor: (row.audio_provedor as ExercicioInterativo["audioProvedor"]) || undefined,
+    audioVozId: row.audio_voz_id || undefined,
+    audioVozNome: row.audio_voz_nome || undefined,
+    audioVelocidade: row.audio_velocidade !== null ? Number(row.audio_velocidade) : undefined,
+    audioGeradoEm: row.audio_gerado_em || undefined,
+    audioIsIa: Boolean(row.audio_is_ia),
+    conteudoGeradoPorIa: Boolean(row.conteudo_gerado_por_ia),
+    iaPromptMeta: (row.ia_prompt_meta as ExercicioInterativo["iaPromptMeta"]) || undefined,
     questoes: Array.isArray(row.questoes) ? row.questoes : [],
     baralhoVocabularioId: row.baralho_vocabulario_id || undefined,
     destinoTipo: row.destino_tipo as ExercicioInterativo["destinoTipo"],
@@ -196,6 +216,16 @@ export const exercicioSupabaseRepository = {
         audio_url: dados.audioUrl || null,
         audio_nome: dados.audioNome || null,
         audio_duracao_segundos: dados.audioDuracaoSegundos || null,
+        audio_texto_hash: dados.audioTextoHash || null,
+        audio_status: dados.audioStatus || "pendente",
+        audio_provedor: dados.audioProvedor || null,
+        audio_voz_id: dados.audioVozId || null,
+        audio_voz_nome: dados.audioVozNome || null,
+        audio_velocidade: dados.audioVelocidade || 1.0,
+        audio_gerado_em: dados.audioGeradoEm || null,
+        audio_is_ia: dados.audioIsIa || false,
+        conteudo_gerado_por_ia: dados.conteudoGeradoPorIa || false,
+        ia_prompt_meta: dados.iaPromptMeta || null,
         questoes: dados.questoes,
         baralho_vocabulario_id: dados.baralhoVocabularioId || null,
         destino_tipo: dados.destinoTipo,
@@ -254,6 +284,16 @@ export const exercicioSupabaseRepository = {
       if (dados.audioUrl !== undefined) payload.audio_url = dados.audioUrl;
       if (dados.audioNome !== undefined) payload.audio_nome = dados.audioNome;
       if (dados.audioDuracaoSegundos !== undefined) payload.audio_duracao_segundos = dados.audioDuracaoSegundos;
+      if (dados.audioTextoHash !== undefined) payload.audio_texto_hash = dados.audioTextoHash;
+      if (dados.audioStatus !== undefined) payload.audio_status = dados.audioStatus;
+      if (dados.audioProvedor !== undefined) payload.audio_provedor = dados.audioProvedor;
+      if (dados.audioVozId !== undefined) payload.audio_voz_id = dados.audioVozId;
+      if (dados.audioVozNome !== undefined) payload.audio_voz_nome = dados.audioVozNome;
+      if (dados.audioVelocidade !== undefined) payload.audio_velocidade = dados.audioVelocidade;
+      if (dados.audioGeradoEm !== undefined) payload.audio_gerado_em = dados.audioGeradoEm;
+      if (dados.audioIsIa !== undefined) payload.audio_is_ia = dados.audioIsIa;
+      if (dados.conteudoGeradoPorIa !== undefined) payload.conteudo_gerado_por_ia = dados.conteudoGeradoPorIa;
+      if (dados.iaPromptMeta !== undefined) payload.ia_prompt_meta = dados.iaPromptMeta;
       if (dados.questoes !== undefined) payload.questoes = dados.questoes;
       if (dados.baralhoVocabularioId !== undefined) payload.baralho_vocabulario_id = dados.baralhoVocabularioId;
       if (dados.destinoTipo !== undefined) payload.destino_tipo = dados.destinoTipo;

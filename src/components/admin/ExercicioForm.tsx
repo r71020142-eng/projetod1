@@ -17,6 +17,10 @@ import {
   MoveDown,
   Headphones,
   BookOpen,
+  Sparkles,
+  ShieldCheck,
+  ShieldAlert,
+  RotateCcw,
 } from "lucide-react";
 import {
   ExercicioInterativo,
@@ -26,12 +30,19 @@ import {
   QuestaoObjetiva,
   Baralho,
   Turma,
+  AudioStatusExercicio,
+  AudioProvedorIa,
+  IaPromptMetaExercicio,
 } from "@/types";
 import { exercicioRepository } from "@/data/exercicioRepository";
 import { baralhoRepository } from "@/data/baralhoRepository";
 import { turmaRepository } from "@/data/turmaRepository";
 import { validarQuestaoExercicioInterativo } from "@/data/pedagogicoCalculos";
 import { ExercicioPreviewModal } from "./ExercicioPreviewModal";
+import { ExercicioIaModal } from "./ExercicioIaModal";
+import { ExercicioAudioIaModal } from "./ExercicioAudioIaModal";
+import { computeTextHash, checkAudioFidelity } from "@/lib/audioFidelity";
+import { AudioIaResultado } from "@/lib/ai/ttsService";
 
 interface ExercicioFormProps {
   initialData?: ExercicioInterativo | null;
@@ -56,6 +67,36 @@ export function ExercicioForm({ initialData, isEditing = false }: ExercicioFormP
   const [textoConteudo, setTextoConteudo] = useState(initialData?.textoConteudo || "");
   const [audioUrl, setAudioUrl] = useState(initialData?.audioUrl || "");
   const [audioNome, setAudioNome] = useState(initialData?.audioNome || "");
+  const [audioDuracaoSegundos, setAudioDuracaoSegundos] = useState<number | undefined>(
+    initialData?.audioDuracaoSegundos
+  );
+  const [audioTextoHash, setAudioTextoHash] = useState<string>(
+    initialData?.audioTextoHash || ""
+  );
+  const [audioStatus, setAudioStatus] = useState<AudioStatusExercicio>(
+    initialData?.audioStatus || (initialData?.audioUrl ? "sincronizado" : "pendente")
+  );
+  const [audioProvedor, setAudioProvedor] = useState<AudioProvedorIa | undefined>(
+    initialData?.audioProvedor
+  );
+  const [audioVozId, setAudioVozId] = useState<string>(initialData?.audioVozId || "");
+  const [audioVozNome, setAudioVozNome] = useState<string>(initialData?.audioVozNome || "");
+  const [audioVelocidade, setAudioVelocidade] = useState<number>(
+    initialData?.audioVelocidade || 1.0
+  );
+  const [audioGeradoEm, setAudioGeradoEm] = useState<string>(
+    initialData?.audioGeradoEm || ""
+  );
+  const [audioIsIa, setAudioIsIa] = useState<boolean>(Boolean(initialData?.audioIsIa));
+  const [conteudoGeradoPorIa, setConteudoGeradoPorIa] = useState<boolean>(
+    Boolean(initialData?.conteudoGeradoPorIa)
+  );
+  const [iaPromptMeta, setIaPromptMeta] = useState<IaPromptMetaExercicio | undefined>(
+    initialData?.iaPromptMeta
+  );
+
+  const [showIaContentModal, setShowIaContentModal] = useState(false);
+  const [showIaAudioModal, setShowIaAudioModal] = useState(false);
   const [baralhoVocabularioId, setBaralhoVocabularioId] = useState(
     initialData?.baralhoVocabularioId || ""
   );
@@ -141,11 +182,86 @@ export function ExercicioForm({ initialData, isEditing = false }: ExercicioFormP
 
       setAudioUrl(data.url);
       setAudioNome(file.name);
+      setAudioStatus("manual");
+      setAudioIsIa(false);
+      setAudioTextoHash(computeTextHash(textoConteudo));
     } catch (err: unknown) {
       setUploadError((err as Error)?.message || "Erro no upload do áudio.");
     } finally {
       setUploadingAudio(false);
     }
+  };
+
+  // Monitoramento de alterações no texto da leitura para garantia de fidelidade do áudio
+  const handleTextoConteudoChange = (novoTexto: string) => {
+    setTextoConteudo(novoTexto);
+    if (audioUrl) {
+      const fidelity = checkAudioFidelity(novoTexto, audioTextoHash, true, audioIsIa);
+      setAudioStatus(fidelity.status);
+    }
+  };
+
+  // Integração de Conteúdo Gerado pela IA
+  const handleApplyIaContent = (dados: {
+    titulo: string;
+    descricao: string;
+    instrucoes: string;
+    categoria: string;
+    textoConteudo: string;
+    questoes: QuestaoObjetiva[];
+    nivel: NivelMaterial;
+    tipoConteudo: string;
+    varianteIngles: "american" | "british";
+    autoTriggerAudio?: boolean;
+  }) => {
+    setTitulo(dados.titulo);
+    setDescricao(dados.descricao);
+    setInstrucoes(dados.instrucoes);
+    setCategoria(dados.categoria);
+    setTextoConteudo(dados.textoConteudo);
+    setQuestoes(dados.questoes);
+    setNivel(dados.nivel);
+    setTipo("leitura_audio");
+    setConteudoGeradoPorIa(true);
+    setIaPromptMeta({
+      tema: dados.titulo,
+      nivel: dados.nivel,
+      tipoConteudo: dados.tipoConteudo,
+      varianteIngles: dados.varianteIngles,
+      geradoEm: new Date().toISOString(),
+      modelo: "gpt-4o-mini",
+    });
+
+    if (audioUrl) {
+      const fidelity = checkAudioFidelity(dados.textoConteudo, audioTextoHash, true, audioIsIa);
+      setAudioStatus(fidelity.status);
+    } else {
+      setAudioStatus("pendente");
+    }
+
+    setFormSuccess("✨ Conteúdo gerado com IA carregado para revisão pedagógica do professor!");
+
+    if (dados.autoTriggerAudio) {
+      setTimeout(() => {
+        setShowIaAudioModal(true);
+      }, 500);
+    }
+  };
+
+  // Integração de Narração em Áudio Gerada por TTS
+  const handleApplyIaAudio = (resultado: AudioIaResultado) => {
+    setAudioUrl(resultado.audioUrl);
+    setAudioNome(resultado.audioNome);
+    setAudioDuracaoSegundos(resultado.audioDuracaoSegundos);
+    setAudioTextoHash(resultado.audioTextoHash);
+    setAudioStatus("sincronizado");
+    setAudioProvedor(resultado.audioProvedor);
+    setAudioVozId(resultado.audioVozId);
+    setAudioVozNome(resultado.audioVozNome);
+    setAudioVelocidade(resultado.audioVelocidade);
+    setAudioGeradoEm(resultado.geradoEm);
+    setAudioIsIa(true);
+    setFormSuccess("🎙️ Narração de voz com IA vinculada com sucesso ao exercício!");
   };
 
   // Gerenciamento de Questões
@@ -268,6 +384,17 @@ export function ExercicioForm({ initialData, isEditing = false }: ExercicioFormP
         textoConteudo: tipo === "leitura_audio" ? textoConteudo.trim() : undefined,
         audioUrl: tipo === "leitura_audio" && audioUrl ? audioUrl : undefined,
         audioNome: tipo === "leitura_audio" && audioNome ? audioNome : undefined,
+        audioDuracaoSegundos: tipo === "leitura_audio" && audioDuracaoSegundos ? audioDuracaoSegundos : undefined,
+        audioTextoHash: tipo === "leitura_audio" && audioTextoHash ? audioTextoHash : undefined,
+        audioStatus: tipo === "leitura_audio" ? audioStatus : undefined,
+        audioProvedor: tipo === "leitura_audio" && audioProvedor ? audioProvedor : undefined,
+        audioVozId: tipo === "leitura_audio" && audioVozId ? audioVozId : undefined,
+        audioVozNome: tipo === "leitura_audio" && audioVozNome ? audioVozNome : undefined,
+        audioVelocidade: tipo === "leitura_audio" ? audioVelocidade : undefined,
+        audioGeradoEm: tipo === "leitura_audio" && audioGeradoEm ? audioGeradoEm : undefined,
+        audioIsIa: tipo === "leitura_audio" ? audioIsIa : false,
+        conteudoGeradoPorIa,
+        iaPromptMeta,
         questoes,
         baralhoVocabularioId: baralhoVocabularioId || undefined,
         destinoTipo,
@@ -319,6 +446,17 @@ export function ExercicioForm({ initialData, isEditing = false }: ExercicioFormP
     textoConteudo,
     audioUrl,
     audioNome,
+    audioDuracaoSegundos,
+    audioTextoHash,
+    audioStatus,
+    audioProvedor,
+    audioVozId,
+    audioVozNome,
+    audioVelocidade,
+    audioGeradoEm,
+    audioIsIa,
+    conteudoGeradoPorIa,
+    iaPromptMeta,
     questoes,
     baralhoVocabularioId,
     destinoTipo,
@@ -354,6 +492,13 @@ export function ExercicioForm({ initialData, isEditing = false }: ExercicioFormP
         </div>
 
         <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setShowIaContentModal(true)}
+            className="px-4 py-2.5 rounded-xl border border-purple-300 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs sm:text-sm font-bold flex items-center gap-2 transition-transform active:scale-95 shadow-md shadow-purple-600/20"
+          >
+            <Sparkles className="h-4 w-4" /> ✨ Gerar com IA
+          </button>
           <button
             type="button"
             onClick={() => setShowPreview(true)}
@@ -603,46 +748,144 @@ export function ExercicioForm({ initialData, isEditing = false }: ExercicioFormP
       {/* 3. Seção Específica para Leitura & Áudio */}
       {tipo === "leitura_audio" && (
         <div className="p-5 sm:p-6 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-5">
-          <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-            <Headphones className="h-5 w-5 text-purple-600" />
-            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-              Conteúdo de Leitura e Áudio
-            </h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2">
+              <Headphones className="h-5 w-5 text-purple-600" />
+              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                Conteúdo de Leitura e Áudio
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowIaAudioModal(true)}
+              className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-transform active:scale-95 self-start sm:self-auto"
+            >
+              <Sparkles className="h-3.5 w-3.5" /> 🎙️ Gerar narração com IA
+            </button>
           </div>
 
-          {/* Upload de Áudio */}
+          {/* Banner de Status de Fidelidade Texto-Áudio */}
+          <div
+            className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${
+              audioStatus === "sincronizado"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+                : audioStatus === "desatualizado"
+                ? "bg-amber-50 border-amber-300 text-amber-900"
+                : audioStatus === "manual"
+                ? "bg-blue-50 border-blue-200 text-blue-900"
+                : "bg-slate-50 border-slate-200 text-slate-700"
+            }`}
+          >
+            <div className="flex items-start gap-2.5">
+              {audioStatus === "sincronizado" ? (
+                <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+              ) : audioStatus === "desatualizado" ? (
+                <ShieldAlert className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              ) : (
+                <Headphones className="h-5 w-5 text-slate-500 shrink-0 mt-0.5" />
+              )}
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold">
+                    {audioStatus === "sincronizado"
+                      ? "🟢 Narração 100% Sincronizada"
+                      : audioStatus === "desatualizado"
+                      ? "🟡 Narração Desatualizada"
+                      : audioStatus === "manual"
+                      ? "🔵 Áudio Manual do Professor"
+                      : "⚪ Narração Pendente"}
+                  </span>
+                  {audioIsIa && (
+                    <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">
+                      Voz IA ({audioProvedor || "TTS"})
+                    </span>
+                  )}
+                </div>
+                <p className="mt-0.5 text-[11px] leading-relaxed">
+                  {audioStatus === "sincronizado"
+                    ? "O áudio cadastrado corresponde fielmente ao texto de leitura aprovado."
+                    : audioStatus === "desatualizado"
+                    ? "O texto de leitura foi alterado após a gravação deste áudio. Regere a narração para evitar discrepâncias entre o que o aluno lê e ouve."
+                    : audioStatus === "manual"
+                    ? "Arquivo enviado manualmente via upload ou URL externa."
+                    : "Nenhum arquivo de áudio vinculado. O texto pode ser lido sem áudio ou narrado por IA."}
+                </p>
+              </div>
+            </div>
+
+            {audioStatus === "desatualizado" && (
+              <button
+                type="button"
+                onClick={() => setShowIaAudioModal(true)}
+                className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shrink-0 flex items-center gap-1 shadow-sm transition-transform active:scale-95"
+              >
+                <RotateCcw className="h-3.5 w-3.5" /> Regerar Narração Agora
+              </button>
+            )}
+          </div>
+
+          {/* Player & Informações de Áudio Atual */}
           <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
             <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
-              Áudio de Narração (Opcional - MP3, WAV, AAC, M4A até 50MB)
+              Áudio de Narração do Exercício
             </label>
 
             {audioUrl ? (
-              <div className="p-3 bg-white rounded-lg border border-slate-200 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5 truncate">
-                  <FileAudio className="h-5 w-5 text-purple-600 shrink-0" />
-                  <div className="truncate">
-                    <p className="text-xs font-bold text-slate-900 truncate">
-                      {audioNome || "audio_gravado.mp3"}
-                    </p>
-                    <p className="text-[11px] text-slate-500 truncate">{audioUrl}</p>
+              <div className="p-3.5 bg-white rounded-xl border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 truncate">
+                    <FileAudio className="h-5 w-5 text-purple-600 shrink-0" />
+                    <div className="truncate">
+                      <p className="text-xs font-bold text-slate-900 truncate">
+                        {audioNome || "audio_narracao.mp3"}
+                      </p>
+                      <p className="text-[11px] text-slate-500 font-mono truncate">
+                        {audioVozNome ? `Voz: ${audioVozNome} • ` : ""}
+                        {audioVelocidade ? `Velocidade: ${audioVelocidade}x • ` : ""}
+                        {audioDuracaoSegundos ? `~${audioDuracaoSegundos}s • ` : ""}
+                        Hash: {audioTextoHash ? `${audioTextoHash.slice(0, 10)}...` : "não calculado"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowIaAudioModal(true)}
+                      className="text-xs font-bold text-purple-700 hover:text-purple-900 px-2.5 py-1 rounded-lg hover:bg-purple-50 transition-colors"
+                    >
+                      Ajustar Voz
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAudioUrl("");
+                        setAudioNome("");
+                        setAudioTextoHash("");
+                        setAudioStatus("pendente");
+                        setAudioIsIa(false);
+                      }}
+                      className="text-xs font-bold text-rose-600 hover:text-rose-800 px-2 py-1 rounded-lg hover:bg-rose-50 transition-colors"
+                    >
+                      Remover
+                    </button>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAudioUrl("");
-                    setAudioNome("");
-                  }}
-                  className="text-xs font-bold text-rose-600 hover:text-rose-800 px-2 py-1 rounded hover:bg-rose-50"
-                >
-                  Remover
-                </button>
+
+                {/* Player nativo para verificação do professor */}
+                <audio controls src={audioUrl} className="w-full h-8" preload="metadata" />
               </div>
             ) : (
               <div className="flex flex-col sm:flex-row items-center gap-3">
-                <label className="cursor-pointer px-4 py-2.5 rounded-xl bg-white border border-slate-300 hover:border-purple-400 text-xs sm:text-sm font-bold text-slate-700 flex items-center gap-2 shadow-sm transition-colors">
+                <button
+                  type="button"
+                  onClick={() => setShowIaAudioModal(true)}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-95"
+                >
+                  <Sparkles className="h-4 w-4" /> Sintetizar com IA
+                </button>
+                <label className="cursor-pointer px-4 py-2.5 rounded-xl bg-white border border-slate-300 hover:border-purple-400 text-xs sm:text-sm font-bold text-slate-700 flex items-center justify-center gap-2 shadow-sm transition-colors w-full sm:w-auto">
                   <UploadCloud className="h-4 w-4 text-purple-600" />
-                  {uploadingAudio ? "Enviando arquivo..." : "Fazer Upload de Áudio"}
+                  {uploadingAudio ? "Enviando arquivo..." : "Upload Manual"}
                   <input
                     type="file"
                     accept="audio/*, .mp3, .wav, .aac, .m4a, .ogg"
@@ -651,7 +894,7 @@ export function ExercicioForm({ initialData, isEditing = false }: ExercicioFormP
                     className="hidden"
                   />
                 </label>
-                <span className="text-xs text-slate-400">ou insira a URL direta:</span>
+                <span className="text-xs text-slate-400 hidden sm:inline">ou URL:</span>
                 <input
                   type="url"
                   placeholder="https://exemplo.com/audio.mp3"
@@ -659,8 +902,10 @@ export function ExercicioForm({ initialData, isEditing = false }: ExercicioFormP
                   onChange={(e) => {
                     setAudioUrl(e.target.value);
                     setAudioNome("audio_externo.mp3");
+                    setAudioStatus("manual");
+                    setAudioTextoHash(computeTextHash(textoConteudo));
                   }}
-                  className="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  className="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-purple-500 w-full"
                 />
               </div>
             )}
@@ -684,7 +929,7 @@ export function ExercicioForm({ initialData, isEditing = false }: ExercicioFormP
               rows={8}
               required={tipo === "leitura_audio"}
               value={textoConteudo}
-              onChange={(e) => setTextoConteudo(e.target.value)}
+              onChange={(e) => handleTextoConteudoChange(e.target.value)}
               placeholder="Paste or write the reading text here in clear paragraphs..."
               className="w-full p-4 rounded-xl border border-slate-300 text-sm text-slate-900 leading-relaxed font-normal focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
@@ -889,6 +1134,23 @@ export function ExercicioForm({ initialData, isEditing = false }: ExercicioFormP
         exercicio={exercicioParaPreview}
         isOpen={showPreview}
         onClose={() => setShowPreview(false)}
+      />
+
+      {/* Modal de Geração de Conteúdo com IA */}
+      <ExercicioIaModal
+        isOpen={showIaContentModal}
+        onClose={() => setShowIaContentModal(false)}
+        onSuccess={handleApplyIaContent}
+        initialNivel={nivel}
+      />
+
+      {/* Modal de Síntese de Narração com IA */}
+      <ExercicioAudioIaModal
+        isOpen={showIaAudioModal}
+        onClose={() => setShowIaAudioModal(false)}
+        textoConteudo={textoConteudo}
+        tituloExercicio={titulo}
+        onAudioSynthesized={handleApplyIaAudio}
       />
     </form>
   );

@@ -1639,6 +1639,18 @@ export interface ConviteAcessoResponse {
 export type TipoExercicioInterativo = "multipla_escolha" | "leitura_audio";
 export type StatusExercicio = "rascunho" | "publicado" | "arquivado";
 export type PoliticaGabaritoExercicio = "imediato" | "apos_tentativa";
+export type AudioStatusExercicio = "sincronizado" | "desatualizado" | "pendente" | "manual";
+export type AudioProvedorIa = "elevenlabs" | "openai" | "gemini" | "manual";
+
+export interface IaPromptMetaExercicio {
+  tema?: string;
+  nivel?: NivelMaterial;
+  tipoConteudo?: string;
+  extensao?: string;
+  varianteIngles?: "american" | "british";
+  geradoEm?: string;
+  modelo?: string;
+}
 
 export interface ExercicioInterativo {
   id: string;
@@ -1652,6 +1664,16 @@ export interface ExercicioInterativo {
   audioUrl?: string; // URL pública no Supabase Storage (bucket materiais) ou externa
   audioNome?: string;
   audioDuracaoSegundos?: number;
+  audioTextoHash?: string; // SHA-256 do texto oficial utilizado na narração
+  audioStatus?: AudioStatusExercicio; // sincronizado | desatualizado | pendente | manual
+  audioProvedor?: AudioProvedorIa;
+  audioVozId?: string;
+  audioVozNome?: string;
+  audioVelocidade?: number;
+  audioGeradoEm?: string;
+  audioIsIa?: boolean;
+  conteudoGeradoPorIa?: boolean;
+  iaPromptMeta?: IaPromptMetaExercicio;
   questoes: QuestaoObjetiva[]; // Mínimo 1 questão, cada uma com exatamente 4 alternativas
   baralhoVocabularioId?: string; // Vínculo com Baralho SRS de Flashcards existente
   destinoTipo: DestinoTipo;

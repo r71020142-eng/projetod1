@@ -21,6 +21,7 @@ import {
   Headphones,
   BookOpen,
   Award,
+  Sparkles,
 } from "lucide-react";
 import {
   ExercicioInterativo,
@@ -597,9 +598,17 @@ export default function ExecutarExercicioPage() {
                   </button>
 
                   <div>
-                    <p className="text-[11px] font-bold text-purple-300 uppercase tracking-wider">
-                      Narração em Inglês
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-[11px] font-bold text-purple-300 uppercase tracking-wider">
+                        Narração em Inglês
+                      </p>
+                      {exercicio.audioIsIa && (
+                        <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-200 border border-purple-400/30 text-[10px] font-semibold flex items-center gap-1">
+                          <Sparkles className="h-3 w-3 text-purple-300" />
+                          Narração de Voz com IA
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm font-semibold text-white truncate max-w-xs sm:max-w-md">
                       {exercicio.audioNome || "Audio Narration"}
                     </p>
