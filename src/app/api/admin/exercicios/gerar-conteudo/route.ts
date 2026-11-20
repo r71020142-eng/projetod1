@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
         {
           success: false,
           error: "O tema do exercício é obrigatório e deve conter pelo menos 3 caracteres.",
+          code: "INVALID_PARAM",
         },
         { status: 400 }
       );
@@ -37,11 +38,16 @@ export async function POST(req: NextRequest) {
     const niveisValidos = ["A1", "A2", "B1", "B2", "C1", "C2"];
     if (!niveisValidos.includes(nivel)) {
       return NextResponse.json(
-        { success: false, error: `Nível CEFR inválido: ${nivel}. Use A1, A2, B1, B2, C1 ou C2.` },
+        {
+          success: false,
+          error: `Nível CEFR inválido: ${nivel}. Use A1, A2, B1, B2, C1 ou C2.`,
+          code: "INVALID_PARAM",
+        },
         { status: 400 }
       );
     }
 
+    const tipoValido = tipoExercicio === "multipla_escolha" ? "multipla_escolha" : "leitura_audio";
     const qtd = Math.min(Math.max(Number(quantidadeQuestoes) || 4, 2), 5);
 
     const params: GerarExercicioIaParams = {
@@ -51,13 +57,13 @@ export async function POST(req: NextRequest) {
       extensao,
       quantidadeQuestoes: qtd,
       varianteIngles: varianteIngles === "british" ? "british" : "american",
-      tipoExercicio,
+      tipoExercicio: tipoValido,
     };
 
     const resultado = await gerarConteudoExercicioIa(params);
 
     if (!resultado.success) {
-      const statusCode = resultado.code === "AI_KEYS_NOT_CONFIGURED" ? 503 : 500;
+      const statusCode = resultado.status || 500;
       return NextResponse.json(resultado, { status: statusCode });
     }
 
@@ -68,6 +74,7 @@ export async function POST(req: NextRequest) {
       {
         success: false,
         error: (err as Error)?.message || "Erro inesperado ao gerar conteúdo do exercício.",
+        code: "INTERNAL_SERVER_ERROR",
       },
       { status: 500 }
     );

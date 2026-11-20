@@ -207,21 +207,21 @@ export function ExercicioForm({ initialData, isEditing = false }: ExercicioFormP
     descricao: string;
     instrucoes: string;
     categoria: string;
+    tipoExercicio: TipoExercicioInterativo;
     textoConteudo: string;
     questoes: QuestaoObjetiva[];
     nivel: NivelMaterial;
     tipoConteudo: string;
     varianteIngles: "american" | "british";
-    autoTriggerAudio?: boolean;
   }) => {
     setTitulo(dados.titulo);
     setDescricao(dados.descricao);
     setInstrucoes(dados.instrucoes);
     setCategoria(dados.categoria);
+    setTipo(dados.tipoExercicio);
     setTextoConteudo(dados.textoConteudo);
     setQuestoes(dados.questoes);
     setNivel(dados.nivel);
-    setTipo("leitura_audio");
     setConteudoGeradoPorIa(true);
     setIaPromptMeta({
       tema: dados.titulo,
@@ -232,20 +232,22 @@ export function ExercicioForm({ initialData, isEditing = false }: ExercicioFormP
       modelo: "gpt-4o-mini",
     });
 
-    if (audioUrl) {
-      const fidelity = checkAudioFidelity(dados.textoConteudo, audioTextoHash, true, audioIsIa);
-      setAudioStatus(fidelity.status);
+    if (dados.tipoExercicio === "leitura_audio") {
+      if (audioUrl) {
+        const fidelity = checkAudioFidelity(dados.textoConteudo, audioTextoHash, true, audioIsIa);
+        setAudioStatus(fidelity.status);
+      } else {
+        setAudioStatus("pendente");
+      }
     } else {
+      setAudioUrl("");
+      setAudioNome("");
+      setAudioTextoHash("");
       setAudioStatus("pendente");
+      setAudioIsIa(false);
     }
 
-    setFormSuccess("✨ Conteúdo gerado com IA carregado para revisão pedagógica do professor!");
-
-    if (dados.autoTriggerAudio) {
-      setTimeout(() => {
-        setShowIaAudioModal(true);
-      }, 500);
-    }
+    setFormSuccess("✨ Conteúdo gerado com IA carregado para revisão e edição do professor!");
   };
 
   // Integração de Narração em Áudio Gerada por TTS
@@ -470,7 +472,8 @@ export function ExercicioForm({ initialData, isEditing = false }: ExercicioFormP
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 max-w-5xl pb-16">
+    <>
+      <form onSubmit={handleSubmit} className="space-y-8 max-w-5xl pb-16">
       {/* Barra de Ações Superior */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div className="flex items-center gap-3">
@@ -1128,30 +1131,30 @@ export function ExercicioForm({ initialData, isEditing = false }: ExercicioFormP
           {saving ? "Salvando..." : isEditing ? "Salvar Alterações" : "Publicar Exercício"}
         </button>
       </div>
-
-      {/* Modal de Prévia */}
-      <ExercicioPreviewModal
-        exercicio={exercicioParaPreview}
-        isOpen={showPreview}
-        onClose={() => setShowPreview(false)}
-      />
-
-      {/* Modal de Geração de Conteúdo com IA */}
-      <ExercicioIaModal
-        isOpen={showIaContentModal}
-        onClose={() => setShowIaContentModal(false)}
-        onSuccess={handleApplyIaContent}
-        initialNivel={nivel}
-      />
-
-      {/* Modal de Síntese de Narração com IA */}
-      <ExercicioAudioIaModal
-        isOpen={showIaAudioModal}
-        onClose={() => setShowIaAudioModal(false)}
-        textoConteudo={textoConteudo}
-        tituloExercicio={titulo}
-        onAudioSynthesized={handleApplyIaAudio}
-      />
     </form>
+
+    {/* Modais independentes renderizados fora da tag <form> */}
+    <ExercicioPreviewModal
+      exercicio={exercicioParaPreview}
+      isOpen={showPreview}
+      onClose={() => setShowPreview(false)}
+    />
+
+    <ExercicioIaModal
+      isOpen={showIaContentModal}
+      onClose={() => setShowIaContentModal(false)}
+      onSuccess={handleApplyIaContent}
+      initialNivel={nivel}
+      initialTipo={tipo}
+    />
+
+    <ExercicioAudioIaModal
+      isOpen={showIaAudioModal}
+      onClose={() => setShowIaAudioModal(false)}
+      textoConteudo={textoConteudo}
+      tituloExercicio={titulo}
+      onAudioSynthesized={handleApplyIaAudio}
+    />
+  </>
   );
 }

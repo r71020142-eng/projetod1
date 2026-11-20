@@ -1,11 +1,11 @@
 /**
  * contentGenerator.ts
  * Gerador inteligente de conteúdo pedagógico e exercícios com IA para a Juno Academy.
- * Suporta OpenAI (gpt-4o-mini / gpt-4o) como provedor principal e Google Gemini como fallback.
- * Implementa validação estrita dos critérios pedagógicos do Método Paulo.
+ * Utiliza OpenAI (gpt-4o-mini) com Structured Outputs e validação estrita dos critérios pedagógicos do Método Paulo.
+ * Identifica com precisão códigos de erro HTTP (429 - quota, 401 - auth, 403 - permissions, etc.).
  */
 
-import { NivelMaterial, QuestaoObjetiva, IaPromptMetaExercicio } from "@/types";
+import { NivelMaterial, QuestaoObjetiva, IaPromptMetaExercicio, TipoExercicioInterativo } from "@/types";
 
 export interface GerarExercicioIaParams {
   tema: string;
@@ -14,7 +14,7 @@ export interface GerarExercicioIaParams {
   extensao: "curto" | "medio" | "longo";
   quantidadeQuestoes: number; // 2 a 5
   varianteIngles: "american" | "british";
-  tipoExercicio?: "multipla_escolha" | "leitura_audio";
+  tipoExercicio: TipoExercicioInterativo;
 }
 
 export interface ExercicioIaGerado {
@@ -22,6 +22,7 @@ export interface ExercicioIaGerado {
   descricao: string;
   instrucoes: string;
   categoria: string;
+  tipoExercicio: TipoExercicioInterativo;
   textoConteudo: string;
   questoes: QuestaoObjetiva[];
   iaPromptMeta: IaPromptMetaExercicio;
@@ -34,6 +35,25 @@ export interface GerarConteudoResultado {
   data?: ExercicioIaGerado;
   error?: string;
   code?: string;
+  actionUrl?: string;
+  actionLabel?: string;
+  status?: number;
+}
+
+export class OpenAiApiError extends Error {
+  code: string;
+  status: number;
+  actionUrl?: string;
+  actionLabel?: string;
+
+  constructor(message: string, code: string, status: number, actionUrl?: string, actionLabel?: string) {
+    super(message);
+    this.name = "OpenAiApiError";
+    this.code = code;
+    this.status = status;
+    this.actionUrl = actionUrl;
+    this.actionLabel = actionLabel;
+  }
 }
 
 const DESCRICAO_EXTENSAO: Record<string, string> = {
@@ -56,50 +76,96 @@ function construirSystemPrompt(params: GerarExercicioIaParams): string {
       ? "Use ortografia e vocabulário britânico (colour, flavour, centre, holiday, flat, underground, etc.)."
       : "Use ortografia e vocabulário americano (color, flavor, center, vacation, apartment, subway, etc.).";
 
-  return `Você é o Especialista Pedagógico e Designer Instrucional da Juno Academy (Método Paulo), referência no ensino imersivo de inglês com foco no Quadro Europeu Comum de Referência para Línguas (CEFR).
+  const isLeitura = params.tipoExercicio === "leitura_audio";
 
-Sua missão é gerar um exercício pedagógico completo de interpretação textual em inglês, com áudio opcional e questões de múltipla escolha inspiradas no padrão Lingua.com.
+  if (isLeitura) {
+    return `Você é o Especialista Pedagógico da Juno Academy (Método Paulo), referência no ensino de inglês no padrão CEFR.
+
+Sua missão é gerar um exercício completo de LEITURA E INTERPRETAÇÃO TEXTUAL com áudio em inglês (padrão Lingua.com).
 
 DIRETRIZES FUNDAMENTAIS:
 1. Nível CEFR alvo: ${params.nivel}. Ajuste vocabulário, complexidade sintática e estruturas gramaticais estritamente para o nível ${params.nivel}.
 2. Variante da língua: ${variante}. ${regrasVariante}
 3. Tipo de conteúdo: ${NOMES_TIPO_CONTEUDO[params.tipoConteudo] || params.tipoConteudo}.
 4. Extensão: ${DESCRICAO_EXTENSAO[params.extensao] || "3 parágrafos"}. O texto deve ser formatado em parágrafos separados por duas quebras de linha (\\n\\n).
-5. O texto em inglês será lido pelo aluno e posteriormente narrado por IA. Portanto, deve soar 100% natural, fluente e foneticamente agradável.
+5. O texto em inglês será lido pelo aluno e narrado por voz TTS. O texto deve soar 100% natural, fluente e foneticamente claro.
 6. Quantidade de questões: exatamente ${params.quantidadeQuestoes}.
 7. REGRAS OBRIGATÓRIAS PARA AS QUESTÕES:
    - Cada questão DEVE ter EXATAMENTE 4 alternativas.
    - Cada alternativa DEVE ter um texto claro, plausível e sem ambiguidades.
-   - Exatamente UMA alternativa DEVE ser a correta (sem pegadinhas abusivas, mas exigindo interpretação genuína do texto).
-   - A explicação pedagógica ('explicacao') DEVE ser em Português, referenciando explicitamente em qual trecho ou parágrafo a resposta correta se fundamenta.
+   - Exatamente UMA alternativa DEVE ser a correta.
+   - A explicação pedagógica ('explicacao') DEVE ser em Português, referenciando explicitamente em qual trecho ou parágrafo a resposta se fundamenta.
    - Os IDs das questões devem ser sequenciais no formato "q-ia-1", "q-ia-2", etc.
    - Os IDs das alternativas devem seguir o formato "alt-ia-1-a", "alt-ia-1-b", "alt-ia-1-c", "alt-ia-1-d".
    - A soma de pontos de todas as questões DEVE totalizar 10.0 (distribua igualmente: ${(10 / params.quantidadeQuestoes).toFixed(2)} pontos por questão).
 
-RESPONDA EXCLUSIVAMENTE UM OBJETO JSON VÁLIDO COM A SEGUINTE ESTRUTURA:
-{
-  "titulo": "Título expressivo e conciso em inglês",
-  "descricao": "Breve sinopse em português para o aluno (1 a 2 frases)",
-  "instrucoes": "Instruções pedagógicas de estudo em português",
-  "categoria": "Nome da categoria (ex: Reading & Listening, Daily Life, Business English, Culture)",
-  "textoConteudo": "Texto completo em inglês formatado em parágrafos separados por \\n\\n",
-  "questoes": [
-    {
-      "id": "q-ia-1",
-      "enunciado": "Pergunta em inglês sobre o texto",
-      "pontos": ${(10 / params.quantidadeQuestoes).toFixed(2)},
-      "alternativas": [
-        { "id": "alt-ia-1-a", "texto": "Opção A", "ordem": 1 },
-        { "id": "alt-ia-1-b", "texto": "Opção B", "ordem": 2 },
-        { "id": "alt-ia-1-c", "texto": "Opção C", "ordem": 3 },
-        { "id": "alt-ia-1-d", "texto": "Opção D", "ordem": 4 }
-      ],
-      "alternativaCorretaId": "alt-ia-1-b",
-      "explicacao": "Explicação em português detalhando a evidência no texto."
-    }
-  ]
-}`;
+Gere a resposta estritamente conforme o schema JSON solicitado.`;
+  }
+
+  // Múltipla Escolha Pura (Gramática, Vocabulário, Expressões)
+  return `Você é o Especialista Pedagógico da Juno Academy (Método Paulo), referência no ensino de inglês no padrão CEFR.
+
+Sua missão é gerar um exercício prático de MÚLTIPLA ESCOLHA PURA (Gramática Aplicada, Vocabulário e Expressões) sobre o tema indicado.
+
+DIRETRIZES FUNDAMENTAIS:
+1. Nível CEFR alvo: ${params.nivel}.
+2. Variante da língua: ${variante}. ${regrasVariante}
+3. O exercício é composto por questões independentes (sem texto longo de leitura). O campo 'textoConteudo' DEVE ser uma string vazia ("").
+4. Quantidade de questões: exatamente ${params.quantidadeQuestoes}.
+5. REGRAS OBRIGATÓRIAS PARA AS QUESTÕES:
+   - Cada questão deve apresentar uma frase ou contexto curto com lacuna ou pergunta gramatical/lexical direta.
+   - Cada questão DEVE ter EXATAMENTE 4 alternativas.
+   - Exatamente UMA alternativa DEVE ser a correta.
+   - A explicação pedagógica ('explicacao') DEVE ser em Português, explicando a regra gramatical ou motivo do uso correto.
+   - Os IDs das questões devem ser sequenciais: "q-ia-1", "q-ia-2", etc.
+   - Os IDs das alternativas: "alt-ia-1-a", "alt-ia-1-b", "alt-ia-1-c", "alt-ia-1-d".
+   - A soma de pontos DEVE totalizar 10.0 (${(10 / params.quantidadeQuestoes).toFixed(2)} pontos por questão).
+
+Gere a resposta estritamente conforme o schema JSON solicitado.`;
 }
+
+const OPENAI_JSON_SCHEMA = {
+  name: "exercicio_pedagogico",
+  strict: true,
+  schema: {
+    type: "object",
+    properties: {
+      titulo: { type: "string" },
+      descricao: { type: "string" },
+      instrucoes: { type: "string" },
+      categoria: { type: "string" },
+      textoConteudo: { type: "string" },
+      questoes: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            enunciado: { type: "string" },
+            alternativas: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  id: { type: "string" },
+                  texto: { type: "string" },
+                },
+                "required": ["id", "texto"],
+                additionalProperties: false,
+              },
+            },
+            alternativaCorretaId: { type: "string" },
+            explicacao: { type: "string" },
+          },
+          required: ["id", "enunciado", "alternativas", "alternativaCorretaId", "explicacao"],
+          additionalProperties: false,
+        },
+      },
+    },
+    required: ["titulo", "descricao", "instrucoes", "categoria", "textoConteudo", "questoes"],
+    additionalProperties: false,
+  },
+};
 
 function validarEstruturaGerada(json: unknown, params: GerarExercicioIaParams): ExercicioIaGerado {
   if (!json || typeof json !== "object") {
@@ -108,12 +174,17 @@ function validarEstruturaGerada(json: unknown, params: GerarExercicioIaParams): 
 
   const obj = json as Record<string, unknown>;
 
-  if (!obj.titulo || typeof obj.titulo !== "string") {
-    throw new Error("A IA não gerou um título válido.");
+  if (!obj.titulo || typeof obj.titulo !== "string" || obj.titulo.trim().length < 3) {
+    throw new Error("A IA não gerou um título válido para o exercício.");
   }
-  if (!obj.textoConteudo || typeof obj.textoConteudo !== "string" || obj.textoConteudo.length < 50) {
-    throw new Error("O texto pedagógico gerado é muito curto ou inválido.");
+
+  // Validação do texto de leitura apenas quando o tipo for leitura_audio
+  if (params.tipoExercicio === "leitura_audio") {
+    if (!obj.textoConteudo || typeof obj.textoConteudo !== "string" || obj.textoConteudo.trim().length < 40) {
+      throw new Error("O texto pedagógico gerado para a leitura é muito curto ou inválido.");
+    }
   }
+
   if (!Array.isArray(obj.questoes) || obj.questoes.length === 0) {
     throw new Error("Nenhuma questão foi gerada pela IA.");
   }
@@ -126,13 +197,13 @@ function validarEstruturaGerada(json: unknown, params: GerarExercicioIaParams): 
     const rawQ = obj.questoes[i] as Record<string, unknown>;
     const qId = String(rawQ.id || `q-ia-${i + 1}`);
     const enunciado = String(rawQ.enunciado || `Question ${i + 1}`);
-    const explicacao = String(rawQ.explicacao || "Resposta fundamentada no texto de leitura.");
+    const explicacao = String(rawQ.explicacao || "Resposta fundamentada nas regras pedagógicas.");
 
     if (!Array.isArray(rawQ.alternativas) || rawQ.alternativas.length < 2) {
       throw new Error(`A questão ${i + 1} não possui alternativas suficientes.`);
     }
 
-    // Garante exatamente 4 alternativas
+    // Garante exatamente 4 alternativas (A, B, C, D)
     const rawAlts = rawQ.alternativas.slice(0, 4);
     while (rawAlts.length < 4) {
       const idx = rawAlts.length;
@@ -173,12 +244,23 @@ function validarEstruturaGerada(json: unknown, params: GerarExercicioIaParams): 
 
   return {
     titulo: String(obj.titulo).trim(),
-    descricao: String(obj.descricao || "Exercício de interpretação e fixação pedagógica.").trim(),
-    instrucoes: String(
-      obj.instrucoes || "Leia o texto com atenção, ouça a narração se desejar e selecione a alternativa correta para cada pergunta."
+    descricao: String(
+      obj.descricao ||
+        (params.tipoExercicio === "leitura_audio"
+          ? "Exercício de interpretação e fixação pedagógica."
+          : "Exercício prático de múltipla escolha para fixação de gramática e vocabulário.")
     ).trim(),
-    categoria: String(obj.categoria || "Reading & Listening").trim(),
-    textoConteudo: String(obj.textoConteudo).trim(),
+    instrucoes: String(
+      obj.instrucoes ||
+        (params.tipoExercicio === "leitura_audio"
+          ? "Leia o texto com atenção, ouça a narração se desejar e selecione a alternativa correta para cada pergunta."
+          : "Selecione a única alternativa correta para cada uma das perguntas.")
+    ).trim(),
+    categoria: String(
+      obj.categoria || (params.tipoExercicio === "leitura_audio" ? "Reading & Listening" : "Gramática Aplicada")
+    ).trim(),
+    tipoExercicio: params.tipoExercicio,
+    textoConteudo: params.tipoExercicio === "leitura_audio" ? String(obj.textoConteudo || "").trim() : "",
     questoes: questoesNormalizadas,
     iaPromptMeta: {
       tema: params.tema,
@@ -187,6 +269,7 @@ function validarEstruturaGerada(json: unknown, params: GerarExercicioIaParams): 
       extensao: params.extensao,
       varianteIngles: params.varianteIngles,
       geradoEm: new Date().toISOString(),
+      modelo: "gpt-4o-mini",
     },
     modeloUtilizado: "gpt-4o-mini",
     provedor: "openai",
@@ -195,9 +278,10 @@ function validarEstruturaGerada(json: unknown, params: GerarExercicioIaParams): 
 
 async function gerarComOpenAI(params: GerarExercicioIaParams, apiKey: string): Promise<ExercicioIaGerado> {
   const systemPrompt = construirSystemPrompt(params);
-  const userPrompt = `Gere agora um exercício completo sobre o tema "${params.tema}". Responda estritamente em JSON válido conforme as especificações.`;
+  const userPrompt = `Gere agora um exercício completo sobre o tema "${params.tema}". Formate estritamente no schema JSON especificado.`;
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  // Tenta primeiro com Structured Outputs (json_schema)
+  let response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -209,69 +293,146 @@ async function gerarComOpenAI(params: GerarExercicioIaParams, apiKey: string): P
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      response_format: { type: "json_object" },
+      response_format: {
+        type: "json_schema",
+        json_schema: OPENAI_JSON_SCHEMA,
+      },
       temperature: 0.7,
       max_tokens: 2500,
     }),
   });
 
+  // Se json_schema não for aceito por alguma razão de compatibilidade da conta, fallback para json_object
+  if (!response.ok && response.status === 400) {
+    const errText = await response.text();
+    if (errText.includes("json_schema") || errText.includes("response_format")) {
+      console.warn("[OpenAI] Fallback de json_schema para json_object:", errText);
+      response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.7,
+          max_tokens: 2500,
+        }),
+      });
+    } else {
+      // Outro erro 400
+      throw new OpenAiApiError(
+        `Parâmetros de requisição inválidos na OpenAI (Erro 400): ${errText}`,
+        "OPENAI_BAD_REQUEST",
+        400
+      );
+    }
+  }
+
   if (!response.ok) {
     const errorBody = await response.text();
-    throw new Error(`Erro na API OpenAI (${response.status}): ${errorBody}`);
+    let parsedError: Record<string, unknown> | null = null;
+    try {
+      parsedError = JSON.parse(errorBody);
+    } catch {
+      // Ignora erro de parse
+    }
+
+    const openAiError = (parsedError?.error || {}) as Record<string, unknown>;
+    const errorCode = String(openAiError.code || "");
+    const errorType = String(openAiError.type || "");
+    const errorMessage = String(openAiError.message || errorBody);
+
+    // 1. Quota / Créditos Esgotados (429)
+    if (
+      response.status === 429 ||
+      errorCode === "credit_balance_exhausted" ||
+      errorType === "insufficient_quota" ||
+      errorMessage.toLowerCase().includes("credits remaining")
+    ) {
+      throw new OpenAiApiError(
+        "Sua conta da OpenAI está sem créditos ativos ou com saldo esgotado (Erro 429: credit_balance_exhausted). Acesse platform.openai.com/settings/organization/billing para adicionar créditos à sua conta.",
+        "OPENAI_CREDITS_EXHAUSTED",
+        429,
+        "https://platform.openai.com/settings/organization/billing",
+        "Acessar Faturamento OpenAI ↗"
+      );
+    }
+
+    // 2. Chave Inválida / Expirada (401)
+    if (response.status === 401) {
+      throw new OpenAiApiError(
+        "A chave OPENAI_API_KEY configurada na Vercel não foi autorizada pela OpenAI (Erro 401: Invalid Authentication). Verifique a chave no painel da Vercel.",
+        "OPENAI_INVALID_KEY",
+        401,
+        "https://platform.openai.com/api-keys",
+        "Ver Chaves OpenAI ↗"
+      );
+    }
+
+    // 3. Acesso Negado / Permissões (403)
+    if (response.status === 403) {
+      throw new OpenAiApiError(
+        `Acesso não autorizado ao projeto ou modelo OpenAI (Erro 403): ${errorMessage}`,
+        "OPENAI_FORBIDDEN",
+        403
+      );
+    }
+
+    // 4. Modelo Não Encontrado (404)
+    if (response.status === 404) {
+      throw new OpenAiApiError(
+        "O modelo de inteligência artificial 'gpt-4o-mini' não está habilitado para esta chave OpenAI (Erro 404).",
+        "OPENAI_MODEL_NOT_FOUND",
+        404
+      );
+    }
+
+    // 5. Instabilidade no servidor da OpenAI (500, 502, 503)
+    if (response.status >= 500) {
+      throw new OpenAiApiError(
+        "Os servidores da OpenAI estão temporariamente instáveis. Aguarde alguns instantes e tente novamente.",
+        "OPENAI_SERVER_ERROR",
+        502
+      );
+    }
+
+    throw new OpenAiApiError(
+      `Erro na API OpenAI (${response.status}): ${errorMessage}`,
+      "OPENAI_GENERIC_ERROR",
+      response.status
+    );
   }
 
   const data = await response.json();
   const rawContent = data.choices?.[0]?.message?.content;
   if (!rawContent) {
-    throw new Error("A OpenAI retornou uma resposta vazia.");
+    throw new OpenAiApiError(
+      "A OpenAI retornou uma resposta vazia. Tente novamente.",
+      "OPENAI_EMPTY_RESPONSE",
+      500
+    );
   }
 
-  const parsed = JSON.parse(rawContent);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawContent);
+  } catch {
+    throw new OpenAiApiError(
+      "A resposta gerada pela OpenAI não pôde ser convertida em formato estruturado. Tente novamente.",
+      "OPENAI_INVALID_JSON",
+      500
+    );
+  }
+
   const exercicio = validarEstruturaGerada(parsed, params);
   exercicio.modeloUtilizado = "gpt-4o-mini";
   exercicio.provedor = "openai";
-  return exercicio;
-}
-
-async function gerarComGemini(params: GerarExercicioIaParams, apiKey: string): Promise<ExercicioIaGerado> {
-  const systemPrompt = construirSystemPrompt(params);
-  const userPrompt = `Gere agora um exercício completo sobre o tema "${params.tema}". Responda estritamente em JSON válido sem blocos markdown adicionais.`;
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }],
-        },
-      ],
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.7,
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`Erro na API Gemini (${response.status}): ${errorBody}`);
-  }
-
-  const data = await response.json();
-  const rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!rawContent) {
-    throw new Error("A API Gemini retornou uma resposta vazia.");
-  }
-
-  const parsed = JSON.parse(rawContent);
-  const exercicio = validarEstruturaGerada(parsed, params);
-  exercicio.modeloUtilizado = "gemini-1.5-flash";
-  exercicio.provedor = "gemini";
   return exercicio;
 }
 
@@ -280,43 +441,39 @@ export async function gerarConteudoExercicioIa(
 ): Promise<GerarConteudoResultado> {
   try {
     const openaiKey = process.env.OPENAI_API_KEY?.trim();
-    const geminiKey = process.env.GEMINI_API_KEY?.trim();
 
-    if (!openaiKey && !geminiKey) {
+    if (!openaiKey) {
       return {
         success: false,
         error:
-          "Nenhuma chave de IA configurada no servidor (OPENAI_API_KEY ou GEMINI_API_KEY ausente). Configure uma das chaves nas variáveis de ambiente para utilizar a geração inteligente de conteúdo.",
+          "A chave OPENAI_API_KEY não está configurada nas variáveis de ambiente do servidor. Adicione a chave no painel da Vercel ou no arquivo .env.local.",
         code: "AI_KEYS_NOT_CONFIGURED",
+        actionUrl: "https://vercel.com",
+        actionLabel: "Configurar na Vercel ↗",
+        status: 503,
       };
     }
 
-    if (openaiKey) {
-      try {
-        const resultado = await gerarComOpenAI(params, openaiKey);
-        return { success: true, data: resultado };
-      } catch (err: unknown) {
-        console.warn("[Gerador IA] Falha na OpenAI, tentando fallback se disponível:", err);
-        if (!geminiKey) {
-          throw err;
-        }
-      }
-    }
-
-    if (geminiKey) {
-      const resultado = await gerarComGemini(params, geminiKey);
-      return { success: true, data: resultado };
-    }
-
-    return {
-      success: false,
-      error: "Não foi possível concluir a geração de conteúdo com nenhum dos provedores de IA.",
-    };
+    const resultado = await gerarComOpenAI(params, openaiKey);
+    return { success: true, data: resultado };
   } catch (err: unknown) {
+    if (err instanceof OpenAiApiError) {
+      return {
+        success: false,
+        error: err.message,
+        code: err.code,
+        actionUrl: err.actionUrl,
+        actionLabel: err.actionLabel,
+        status: err.status,
+      };
+    }
+
     const msg = (err as Error)?.message || "Erro desconhecido ao gerar exercício com IA.";
     return {
       success: false,
       error: msg,
+      code: "UNKNOWN_ERROR",
+      status: 500,
     };
   }
 }
