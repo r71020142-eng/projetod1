@@ -1,9 +1,24 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { X, BookOpen, AlertCircle, UploadCloud, CheckCircle2, Trash2, Loader2, Paperclip } from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import {
+  X,
+  BookOpen,
+  AlertCircle,
+  UploadCloud,
+  CheckCircle2,
+  Trash2,
+  Loader2,
+  FileText,
+  Music,
+  Film,
+  File as FileIcon,
+  Plus,
+  ExternalLink,
+} from "lucide-react";
 import {
   Material,
+  MaterialArquivo,
   TipoMaterial,
   NivelMaterial,
   StatusMaterial,
@@ -60,11 +75,15 @@ export function MaterialFormModal({
   const [tagsInput, setTagsInput] = useState("");
   const [observacoesInternas, setObservacoesInternas] = useState("");
 
-  // Arquivo no Supabase Storage
+  // Arquivos no Supabase Storage (suporte a múltiplos anexos e imagens coladas)
+  const [arquivos, setArquivos] = useState<MaterialArquivo[]>([]);
   const [arquivoUrl, setArquivoUrl] = useState("");
   const [arquivoNome, setArquivoNome] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgressText, setUploadProgressText] = useState("");
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [pastedNotice, setPastedNotice] = useState<string | null>(null);
 
   // Responsável / Professor
   const [professores, setProfessores] = useState<Professor[]>([]);
@@ -96,8 +115,20 @@ export function MaterialFormModal({
         setDestinoTipo(materialParaEditar.destinoTipo);
         setDestinoId(materialParaEditar.destinoId || "");
         setLinkExterno(materialParaEditar.linkExterno || "");
-        setArquivoUrl(materialParaEditar.arquivoUrl || "");
-        setArquivoNome(materialParaEditar.arquivoNome || "");
+
+        const arquivosIniciais: MaterialArquivo[] = Array.isArray(materialParaEditar.arquivos) && materialParaEditar.arquivos.length > 0
+          ? materialParaEditar.arquivos
+          : materialParaEditar.arquivoUrl
+          ? [{
+              url: materialParaEditar.arquivoUrl,
+              nome: materialParaEditar.arquivoNome || "Arquivo anexo",
+              tipo: materialParaEditar.tipo,
+            }]
+          : [];
+
+        setArquivos(arquivosIniciais);
+        setArquivoUrl(materialParaEditar.arquivoUrl || arquivosIniciais[0]?.url || "");
+        setArquivoNome(materialParaEditar.arquivoNome || arquivosIniciais[0]?.nome || "");
         setConteudoTexto(materialParaEditar.conteudoTexto || "");
         setTagsInput(materialParaEditar.tags ? materialParaEditar.tags.join(", ") : "");
         setObservacoesInternas(materialParaEditar.observacoesInternas || "");
@@ -114,6 +145,7 @@ export function MaterialFormModal({
         setDestinoTipo("geral");
         setDestinoId("");
         setLinkExterno("");
+        setArquivos([]);
         setArquivoUrl("");
         setArquivoNome("");
         setConteudoTexto("");
@@ -124,19 +156,31 @@ export function MaterialFormModal({
       }
       setError(null);
       setUploadError(null);
+      setPastedNotice(null);
       setFieldErrors({});
       setIsSubmitting(false);
       setIsUploading(false);
+      setIsDragging(false);
     }
   }, [isOpen, materialParaEditar, identity]);
 
-  const handleFileUpload = async (file: File) => {
+  const handleMultipleFilesUpload = useCallback(async (fileList: File[] | FileList) => {
+    const filesArray = Array.from(fileList).filter((f) => f && f.size > 0);
+    if (filesArray.length === 0) return;
+
     setIsUploading(true);
     setUploadError(null);
+    setUploadProgressText(
+      filesArray.length === 1
+        ? `Enviando "${filesArray[0].name}"...`
+        : `Enviando ${filesArray.length} arquivos...`
+    );
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      for (const f of filesArray) {
+        formData.append("files", f);
+      }
 
       const res = await fetch("/api/materiais/upload", {
         method: "POST",
@@ -145,35 +189,158 @@ export function MaterialFormModal({
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Falha ao enviar arquivo.");
+        throw new Error(data.error || "Falha ao enviar arquivo(s).");
       }
 
-      setArquivoUrl(data.url);
-      setArquivoNome(data.fileName);
+      const novosArquivos: MaterialArquivo[] = (data.files || []).map((f: { url: string; fileName: string; size: number; type?: string }) => ({
+        url: f.url,
+        nome: f.fileName,
+        tipo: f.type || "documento",
+        tamanho: f.size,
+        criadoEm: new Date().toISOString(),
+      }));
 
-      // Auto-seleção amigável de tipo
-      const ext = data.fileName.split(".").pop()?.toLowerCase();
-      if (ext === "pdf") {
-        setTipo("pdf");
-      } else if (["mp3", "wav", "aac", "ogg", "m4a"].includes(ext || "")) {
-        setTipo("audio");
-      } else if (["mp4", "webm", "mov", "avi"].includes(ext || "")) {
-        setTipo("video");
-      } else if (["ppt", "pptx", "key"].includes(ext || "")) {
-        setTipo("documento");
+      if (novosArquivos.length === 0 && data.url) {
+        novosArquivos.push({
+          url: data.url,
+          nome: data.fileName || "Arquivo",
+          tipo: data.type || "documento",
+          tamanho: data.size,
+          criadoEm: new Date().toISOString(),
+        });
+      }
+
+      setArquivos((prev) => {
+        const combinados = [...prev, ...novosArquivos];
+        if (combinados.length > 0) {
+          setArquivoUrl(combinados[0].url);
+          setArquivoNome(combinados[0].nome);
+        }
+        return combinados;
+      });
+
+      // Sugestão amigável de tipo
+      const primeiro = novosArquivos[0];
+      if (primeiro) {
+        const ext = primeiro.nome.split(".").pop()?.toLowerCase() || "";
+        if (primeiro.tipo === "imagem") {
+          // Mantém documento se não especificado
+        } else if (ext === "pdf") {
+          setTipo("pdf");
+        } else if (["mp3", "wav", "aac", "ogg", "m4a"].includes(ext)) {
+          setTipo("audio");
+        } else if (["mp4", "webm", "mov", "avi"].includes(ext)) {
+          setTipo("video");
+        } else if (["ppt", "pptx", "key"].includes(ext)) {
+          setTipo("documento");
+        }
       }
     } catch (err: unknown) {
       console.error("Erro no upload do material:", err);
       setUploadError(err instanceof Error ? err.message : "Erro ao carregar arquivo no storage.");
     } finally {
       setIsUploading(false);
+      setUploadProgressText("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, []);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleMultipleFilesUpload(files);
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileUpload(file);
+  const handleRemoveArquivo = (index: number) => {
+    setArquivos((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+      setArquivoUrl(updated[0]?.url || "");
+      setArquivoNome(updated[0]?.nome || "");
+      return updated;
+    });
+  };
+
+  // Suporte a Copiar e Colar Imagens (Ctrl+V / Cmd+V)
+  const handlePaste = useCallback(
+    (e: ClipboardEvent | React.ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items || items.length === 0) return;
+
+      const imageFiles: File[] = [];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type.indexOf("image") !== -1) {
+          const blob = item.getAsFile();
+          if (blob) {
+            const ext = item.type.split("/")[1]?.replace("jpeg", "jpg") || "png";
+            const timestamp = Date.now();
+            const pastedFile = new File(
+              [blob],
+              `imagem_colada_${timestamp}_${i + 1}.${ext}`,
+              { type: item.type }
+            );
+            imageFiles.push(pastedFile);
+          }
+        }
+      }
+
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        setPastedNotice(`Colando ${imageFiles.length} imagem(ns) da área de transferência...`);
+        setTimeout(() => setPastedNotice(null), 3000);
+        handleMultipleFilesUpload(imageFiles);
+      }
+    },
+    [handleMultipleFilesUpload]
+  );
+
+  // Listener global de paste no modal
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const onGlobalPaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      let hasImage = false;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith("image/")) {
+          hasImage = true;
+          break;
+        }
+      }
+      if (hasImage) {
+        handlePaste(e);
+      }
+    };
+
+    window.addEventListener("paste", onGlobalPaste);
+    return () => {
+      window.removeEventListener("paste", onGlobalPaste);
+    };
+  }, [isOpen, handlePaste]);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isUploading) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (isUploading) return;
+
+    const droppedFiles = e.dataTransfer.files;
+    if (droppedFiles && droppedFiles.length > 0) {
+      handleMultipleFilesUpload(droppedFiles);
     }
   };
 
@@ -204,8 +371,9 @@ export function MaterialFormModal({
       destinoTipo,
       destinoId: destinoTipo === "geral" ? undefined : destinoId,
       linkExterno: linkExterno.trim().length > 0 ? linkExterno.trim() : undefined,
-      arquivoUrl: arquivoUrl.trim().length > 0 ? arquivoUrl.trim() : undefined,
-      arquivoNome: arquivoNome.trim().length > 0 ? arquivoNome.trim() : undefined,
+      arquivoUrl: arquivos[0]?.url || (arquivoUrl.trim().length > 0 ? arquivoUrl.trim() : undefined),
+      arquivoNome: arquivos[0]?.nome || (arquivoNome.trim().length > 0 ? arquivoNome.trim() : undefined),
+      arquivos,
       conteudoTexto: conteudoTexto.trim().length > 0 ? conteudoTexto.trim() : undefined,
       tags,
       observacoesInternas: observacoesInternas.trim().length > 0 ? observacoesInternas.trim() : undefined,
@@ -596,55 +764,154 @@ export function MaterialFormModal({
             </select>
           </div>
 
-          {/* Anexo de Arquivo no Supabase Storage */}
-          <div className="space-y-2">
-            <label className="block text-xs font-semibold text-slate-700">
-              Arquivo Anexo (PDF, Áudio, Vídeo, Apresentação ou Imagem)
-            </label>
+          {/* Anexo de Arquivo(s) no Supabase Storage */}
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className="space-y-2.5"
+          >
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-slate-700">
+                Arquivos e Imagens Anexos {arquivos.length > 0 && `(${arquivos.length})`}
+              </label>
+              <span className="text-[11px] text-purple-700 font-medium">
+                Múltiplos arquivos e colar imagens (Ctrl+V / ⌘+V)
+              </span>
+            </div>
+
             <input
               type="file"
               ref={fileInputRef}
               onChange={handleFileChange}
               className="hidden"
-              accept=".pdf,.mp3,.wav,.m4a,.ogg,.mp4,.mov,.webm,.ppt,.pptx,.doc,.docx,.txt,.png,.jpg,.jpeg"
+              multiple
+              accept=".pdf,.mp3,.wav,.m4a,.ogg,.mp4,.mov,.webm,.ppt,.pptx,.doc,.docx,.txt,.png,.jpg,.jpeg,.webp,.gif"
             />
 
-            {arquivoUrl ? (
-              <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/60 flex items-center justify-between">
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <div className="h-9 w-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-emerald-950 truncate">{arquivoNome || "Arquivo anexado"}</p>
-                    <a
-                      href={arquivoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[11px] text-emerald-700 hover:underline flex items-center gap-1"
-                    >
-                      <Paperclip className="h-3 w-3" /> Ver arquivo no Supabase Storage
-                    </a>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setArquivoUrl("");
-                    setArquivoNome("");
-                    if (fileInputRef.current) fileInputRef.current.value = "";
-                  }}
-                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-white rounded-lg transition-colors"
-                  title="Remover anexo"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+            {pastedNotice && (
+              <div className="p-2.5 rounded-xl bg-purple-50 border border-purple-200 text-xs text-purple-800 flex items-center gap-2 animate-pulse">
+                <CheckCircle2 className="h-4 w-4 text-purple-600 shrink-0" />
+                <span>{pastedNotice}</span>
               </div>
-            ) : (
+            )}
+
+            {/* Lista de Arquivos Anexados */}
+            {arquivos.length > 0 && (
+              <div className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto p-1 border border-slate-100 rounded-xl bg-slate-50/50">
+                  {arquivos.map((arq, idx) => {
+                    const isImg =
+                      arq.tipo === "imagem" ||
+                      /\.(png|jpe?g|webp|gif|svg)$/i.test(arq.nome || "");
+                    const isPdf = arq.tipo === "pdf" || /\.pdf$/i.test(arq.nome || "");
+                    const isAudio =
+                      arq.tipo === "audio" ||
+                      /\.(mp3|wav|ogg|m4a|aac)$/i.test(arq.nome || "");
+                    const isVideo =
+                      arq.tipo === "video" ||
+                      /\.(mp4|webm|mov|avi)$/i.test(arq.nome || "");
+
+                    return (
+                      <div
+                        key={arq.url + idx}
+                        className="p-2.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between gap-2.5 shadow-2xs hover:border-purple-200 transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {isImg ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              src={arq.url}
+                              alt={arq.nome}
+                              className="h-10 w-10 rounded-lg object-cover border border-slate-200 shrink-0"
+                            />
+                          ) : (
+                            <div
+                              className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${
+                                isPdf
+                                  ? "bg-rose-100 text-rose-700"
+                                  : isAudio
+                                  ? "bg-amber-100 text-amber-700"
+                                  : isVideo
+                                  ? "bg-indigo-100 text-indigo-700"
+                                  : "bg-purple-100 text-purple-700"
+                              }`}
+                            >
+                              {isPdf ? (
+                                <FileText className="h-5 w-5" />
+                              ) : isAudio ? (
+                                <Music className="h-5 w-5" />
+                              ) : isVideo ? (
+                                <Film className="h-5 w-5" />
+                              ) : (
+                                <FileIcon className="h-5 w-5" />
+                              )}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-800 truncate" title={arq.nome}>
+                              {arq.nome || "Arquivo"}
+                            </p>
+                            <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                              {arq.tamanho && arq.tamanho > 0 ? (
+                                <span>
+                                  {arq.tamanho < 1024 * 1024
+                                    ? `${(arq.tamanho / 1024).toFixed(1)} KB`
+                                    : `${(arq.tamanho / (1024 * 1024)).toFixed(1)} MB`}
+                                </span>
+                              ) : null}
+                              <a
+                                href={arq.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-purple-600 hover:underline flex items-center gap-0.5"
+                                title="Abrir arquivo em nova aba"
+                              >
+                                Ver <ExternalLink className="h-2.5 w-2.5" />
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveArquivo(idx)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors shrink-0"
+                          title="Remover anexo"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Botão de Adicionar Mais */}
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => !isUploading && fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-semibold transition-colors disabled:opacity-50"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Adicionar mais arquivos / imagens</span>
+                  </button>
+                  <span className="text-[11px] text-slate-500 hidden sm:inline">
+                    Arraste ou cole com Ctrl+V
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Dropzone / Upload Area */}
+            {(arquivos.length === 0 || isDragging) && (
               <div
                 onClick={() => !isUploading && fileInputRef.current?.click()}
                 className={`p-5 rounded-xl border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center text-center space-y-2 ${
-                  isUploading
+                  isDragging
+                    ? "border-purple-500 bg-purple-100/50 scale-[1.01]"
+                    : isUploading
                     ? "border-purple-300 bg-purple-50/40 cursor-wait"
                     : "border-slate-200 hover:border-purple-400 hover:bg-purple-50/20 bg-slate-50/50"
                 }`}
@@ -652,7 +919,9 @@ export function MaterialFormModal({
                 {isUploading ? (
                   <>
                     <Loader2 className="h-7 w-7 text-purple-600 animate-spin" />
-                    <p className="text-xs font-bold text-purple-900">Enviando arquivo para o Supabase Storage...</p>
+                    <p className="text-xs font-bold text-purple-900">
+                      {uploadProgressText || "Enviando arquivo(s) para o Supabase Storage..."}
+                    </p>
                     <p className="text-[11px] text-purple-700">Por favor, aguarde o upload ser concluído.</p>
                   </>
                 ) : (
@@ -662,10 +931,13 @@ export function MaterialFormModal({
                     </div>
                     <div>
                       <p className="text-xs font-bold text-slate-700">
-                        Clique para selecionar um arquivo do seu computador
+                        Clique para selecionar múltiplos arquivos ou arraste para cá
                       </p>
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        PDF, Áudios (MP3/WAV), Vídeos (MP4), Apresentações ou Imagens até 50MB
+                        PDFs, Imagens (PNG, JPG, WEBP), Áudios, Vídeos e Documentos até 50MB
+                      </p>
+                      <p className="text-[11px] text-purple-700 font-semibold mt-1">
+                        📋 Dica: Você também pode colar imagens diretamente aqui (Ctrl+V ou ⌘+V)
                       </p>
                     </div>
                   </>

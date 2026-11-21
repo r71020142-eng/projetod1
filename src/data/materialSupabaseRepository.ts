@@ -1,4 +1,4 @@
-import { Material, MaterialFilters, OperationResult } from "@/types";
+import { Material, MaterialArquivo, MaterialFilters, OperationResult } from "@/types";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { validateMaterialInput, normalizeText } from "./validators";
 
@@ -25,6 +25,7 @@ interface MaterialDbRow {
   modulo_id: string | null;
   arquivo_url: string | null;
   arquivo_nome: string | null;
+  arquivos?: MaterialArquivo[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -40,6 +41,14 @@ function getSupabase() {
 }
 
 function mapRowToMaterial(row: MaterialDbRow): Material {
+  const arquivos: MaterialArquivo[] = Array.isArray(row.arquivos) && row.arquivos.length > 0
+    ? row.arquivos
+    : row.arquivo_url
+    ? [{ url: row.arquivo_url, nome: row.arquivo_nome || "Arquivo anexo", tipo: row.tipo }]
+    : [];
+
+  const primeiroArquivo = arquivos[0];
+
   return {
     id: row.id,
     titulo: row.titulo,
@@ -59,8 +68,9 @@ function mapRowToMaterial(row: MaterialDbRow): Material {
     observacoesInternas: row.observacoes_internas || undefined,
     moduloId: row.modulo_id || undefined,
     moduleId: row.modulo_id || undefined,
-    arquivoUrl: row.arquivo_url || undefined,
-    arquivoNome: row.arquivo_nome || undefined,
+    arquivoUrl: row.arquivo_url || primeiroArquivo?.url || undefined,
+    arquivoNome: row.arquivo_nome || primeiroArquivo?.nome || undefined,
+    arquivos,
     criadoEm: row.created_at,
   };
 }
@@ -216,6 +226,16 @@ export const materialSupabaseRepository = {
       const moduloIdSanitizado =
         isUuid(dados.moduloId) ? dados.moduloId : isUuid(dados.moduleId) ? dados.moduleId : null;
 
+      const arquivosSanitizados: MaterialArquivo[] = Array.isArray(dados.arquivos) && dados.arquivos.length > 0
+        ? dados.arquivos
+        : dados.arquivoUrl
+        ? [{ url: dados.arquivoUrl.trim(), nome: dados.arquivoNome ? normalizeText(dados.arquivoNome) : "Arquivo anexo", tipo: dados.tipo }]
+        : [];
+
+      const primeiroArquivo = arquivosSanitizados[0];
+      const arquivoUrlFinal = dados.arquivoUrl ? dados.arquivoUrl.trim() : (primeiroArquivo?.url || null);
+      const arquivoNomeFinal = dados.arquivoNome ? normalizeText(dados.arquivoNome) : (primeiroArquivo?.nome ? normalizeText(primeiroArquivo.nome) : null);
+
       const payload = {
         titulo: normalizeText(dados.titulo!),
         descricao: normalizeText(dados.descricao!),
@@ -233,8 +253,9 @@ export const materialSupabaseRepository = {
         tags: dados.tags ? dados.tags.map(normalizeText) : [],
         observacoes_internas: dados.observacoesInternas ? normalizeText(dados.observacoesInternas) : null,
         modulo_id: moduloIdSanitizado,
-        arquivo_url: dados.arquivoUrl ? dados.arquivoUrl.trim() : null,
-        arquivo_nome: dados.arquivoNome ? normalizeText(dados.arquivoNome) : null,
+        arquivo_url: arquivoUrlFinal,
+        arquivo_nome: arquivoNomeFinal,
+        arquivos: arquivosSanitizados,
       };
 
       const { data, error } = await supabase.from("materiais").insert(payload).select().single();
@@ -277,6 +298,15 @@ export const materialSupabaseRepository = {
       if (dados.moduloId !== undefined || dados.moduleId !== undefined) {
         const mid = dados.moduloId || dados.moduleId;
         payload.modulo_id = isUuid(mid) ? mid : null;
+      }
+      if (dados.arquivos !== undefined) {
+        payload.arquivos = Array.isArray(dados.arquivos) ? dados.arquivos : [];
+        if (dados.arquivoUrl === undefined) {
+          payload.arquivo_url = dados.arquivos[0]?.url || null;
+        }
+        if (dados.arquivoNome === undefined) {
+          payload.arquivo_nome = dados.arquivos[0]?.nome ? normalizeText(dados.arquivos[0].nome) : null;
+        }
       }
       if (dados.arquivoUrl !== undefined) payload.arquivo_url = dados.arquivoUrl ? dados.arquivoUrl.trim() : null;
       if (dados.arquivoNome !== undefined) payload.arquivo_nome = dados.arquivoNome ? normalizeText(dados.arquivoNome) : null;

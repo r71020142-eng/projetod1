@@ -15,6 +15,7 @@ import {
   RotateCcw,
   Clock,
   AlertTriangle,
+  Paperclip,
 } from "lucide-react";
 import {
   Material,
@@ -531,7 +532,18 @@ export default function AdminMateriaisPage() {
                           </span>
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap">
-                          <TipoMaterialBadge tipo={m.tipo} />
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <TipoMaterialBadge tipo={m.tipo} />
+                            {((m.arquivos && m.arquivos.length > 0) || m.arquivoUrl) && (
+                              <span
+                                className="inline-flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-md font-medium"
+                                title={`${m.arquivos?.length || 1} anexo(s) disponível(is)`}
+                              >
+                                <Paperclip className="h-2.5 w-2.5" />
+                                <span>{m.arquivos && m.arquivos.length > 0 ? m.arquivos.length : 1}</span>
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap">
                           <DestinoBadge

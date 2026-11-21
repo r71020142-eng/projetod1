@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Info,
   Sparkles,
+  Paperclip,
 } from "lucide-react";
 import {
   Material,
@@ -210,7 +211,19 @@ export default function AlunoMateriaisPage() {
             >
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <TipoMaterialBadge tipo={m.tipo} />
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <TipoMaterialBadge tipo={m.tipo} />
+                    {((m.arquivos && m.arquivos.length > 0) || m.arquivoUrl) && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                        <Paperclip className="h-3 w-3" />
+                        <span>
+                          {m.arquivos && m.arquivos.length > 0
+                            ? `${m.arquivos.length} ${m.arquivos.length === 1 ? "anexo" : "anexos"}`
+                            : "1 anexo"}
+                        </span>
+                      </span>
+                    )}
+                  </div>
                   <span className="text-[11px] font-semibold text-slate-400">
                     {m.categoria}
                   </span>

@@ -169,6 +169,12 @@ export const materialLocalStorageRepository = {
     }
 
     const list = loadMateriaisFromStorage();
+    const arquivos = Array.isArray(dados.arquivos) && dados.arquivos.length > 0
+      ? dados.arquivos
+      : dados.arquivoUrl
+      ? [{ url: dados.arquivoUrl.trim(), nome: dados.arquivoNome ? normalizeText(dados.arquivoNome) : "Arquivo anexo", tipo: dados.tipo }]
+      : [];
+
     const novo: Material = {
       id: generateMaterialId(list),
       titulo: normalizeText(dados.titulo!),
@@ -188,8 +194,9 @@ export const materialLocalStorageRepository = {
       tags: dados.tags ? dados.tags.map(normalizeText) : [],
       observacoesInternas: dados.observacoesInternas ? normalizeText(dados.observacoesInternas) : undefined,
       moduloId: dados.moduloId || dados.moduleId,
-      arquivoUrl: dados.arquivoUrl ? dados.arquivoUrl.trim() : undefined,
-      arquivoNome: dados.arquivoNome ? normalizeText(dados.arquivoNome) : undefined,
+      arquivoUrl: dados.arquivoUrl ? dados.arquivoUrl.trim() : arquivos[0]?.url,
+      arquivoNome: dados.arquivoNome ? normalizeText(dados.arquivoNome) : arquivos[0]?.nome,
+      arquivos,
     };
 
     const updated = [...list, novo];
@@ -228,6 +235,9 @@ export const materialLocalStorageRepository = {
           ? normalizeText(dados.observacoesInternas)
           : atual.observacoesInternas,
       moduloId: dados.moduloId || dados.moduleId || atual.moduloId,
+      arquivoUrl: dados.arquivoUrl !== undefined ? dados.arquivoUrl.trim() : dados.arquivos?.[0]?.url || atual.arquivoUrl,
+      arquivoNome: dados.arquivoNome !== undefined ? normalizeText(dados.arquivoNome) : dados.arquivos?.[0]?.nome || atual.arquivoNome,
+      arquivos: dados.arquivos !== undefined ? dados.arquivos : atual.arquivos,
     };
 
     list[index] = atualizado;

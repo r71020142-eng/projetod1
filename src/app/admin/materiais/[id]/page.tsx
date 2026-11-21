@@ -10,6 +10,9 @@ import {
   AlertTriangle,
   Paperclip,
   Download,
+  FileText,
+  Music,
+  Film,
 } from "lucide-react";
 import {
   Material,
@@ -209,29 +212,119 @@ export default function AdminMaterialDetalhesPage() {
                 </div>
               )}
 
-              {material.arquivoUrl && (
-                <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                      <Paperclip className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <span className="text-xs font-bold text-emerald-950 block">Arquivo Anexo (Armazenamento Supabase):</span>
-                      <p className="text-xs text-emerald-800 font-medium">{material.arquivoNome || "Baixar arquivo"}</p>
+              {/* Arquivos e Imagens Anexos */}
+              {(() => {
+                const listaArquivos =
+                  Array.isArray(material.arquivos) && material.arquivos.length > 0
+                    ? material.arquivos
+                    : material.arquivoUrl
+                    ? [{ url: material.arquivoUrl, nome: material.arquivoNome || "Baixar arquivo", tipo: material.tipo }]
+                    : [];
+
+                if (listaArquivos.length === 0) return null;
+
+                return (
+                  <div className="space-y-2.5">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                      Arquivos e Imagens Anexos ({listaArquivos.length})
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {listaArquivos.map((arq, idx) => {
+                        const isImg =
+                          arq.tipo === "imagem" ||
+                          /\.(png|jpe?g|webp|gif|svg)$/i.test(arq.nome || "");
+                        const isPdf = arq.tipo === "pdf" || /\.pdf$/i.test(arq.nome || "");
+                        const isAudio =
+                          arq.tipo === "audio" ||
+                          /\.(mp3|wav|ogg|m4a|aac)$/i.test(arq.nome || "");
+                        const isVideo =
+                          arq.tipo === "video" ||
+                          /\.(mp4|webm|mov|avi)$/i.test(arq.nome || "");
+
+                        return (
+                          <div
+                            key={arq.url + idx}
+                            className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-center justify-between gap-3 shadow-2xs hover:bg-emerald-50 transition-colors"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              {isImg ? (
+                                <a
+                                  href={arq.url}
+                                  target="_blank"
+                                  rel="noreferrer noopener"
+                                  className="shrink-0"
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={arq.url}
+                                    alt={arq.nome}
+                                    className="h-10 w-10 rounded-lg object-cover border border-emerald-200 hover:opacity-90 transition-opacity"
+                                  />
+                                </a>
+                              ) : (
+                                <div
+                                  className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${
+                                    isPdf
+                                      ? "bg-rose-100 text-rose-700"
+                                      : isAudio
+                                      ? "bg-amber-100 text-amber-700"
+                                      : isVideo
+                                      ? "bg-indigo-100 text-indigo-700"
+                                      : "bg-emerald-100 text-emerald-700"
+                                  }`}
+                                >
+                                  {isPdf ? (
+                                    <FileText className="h-5 w-5" />
+                                  ) : isAudio ? (
+                                    <Music className="h-5 w-5" />
+                                  ) : isVideo ? (
+                                    <Film className="h-5 w-5" />
+                                  ) : (
+                                    <Paperclip className="h-5 w-5" />
+                                  )}
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <span className="text-xs font-bold text-emerald-950 block truncate" title={arq.nome}>
+                                  {arq.nome || "Arquivo anexo"}
+                                </span>
+                                <div className="flex items-center gap-2 text-[10px] text-emerald-800 font-medium">
+                                  {arq.tamanho && arq.tamanho > 0 ? (
+                                    <span>
+                                      {arq.tamanho < 1024 * 1024
+                                        ? `${(arq.tamanho / 1024).toFixed(1)} KB`
+                                        : `${(arq.tamanho / (1024 * 1024)).toFixed(1)} MB`}
+                                    </span>
+                                  ) : null}
+                                  <a
+                                    href={arq.url}
+                                    target="_blank"
+                                    rel="noreferrer noopener"
+                                    className="hover:underline flex items-center gap-0.5 text-emerald-700 font-semibold"
+                                  >
+                                    Visualizar <ExternalLink className="h-2.5 w-2.5" />
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+
+                            <a
+                              href={arq.url}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              download
+                              className="p-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1 shrink-0"
+                              title="Baixar arquivo"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                            </a>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                  <a
-                    href={material.arquivoUrl}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    download
-                    className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shrink-0"
-                  >
-                    <span>Baixar Arquivo</span>
-                    <Download className="h-3.5 w-3.5" />
-                  </a>
-                </div>
-              )}
+                );
+              })()}
 
               {material.observacoesInternas && (
                 <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 text-xs text-amber-900 space-y-0.5">

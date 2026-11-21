@@ -21,6 +21,9 @@ import {
   Volume2,
   Download,
   FileText,
+  Music,
+  Film,
+  Paperclip,
 } from "lucide-react";
 import {
   Material,
@@ -286,38 +289,127 @@ export default function AlunoMaterialDetalhesPage() {
             </div>
           )}
 
-          {/* Anexo no Supabase Storage */}
-          {material.arquivoUrl && (
-            <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50/50 to-emerald-50 border border-emerald-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5">
-                <div className="h-11 w-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                  <FileText className="h-6 w-6" />
+          {/* Anexos e Imagens no Supabase Storage */}
+          {(() => {
+            const listaArquivos =
+              Array.isArray(material.arquivos) && material.arquivos.length > 0
+                ? material.arquivos
+                : material.arquivoUrl
+                ? [{ url: material.arquivoUrl, nome: material.arquivoNome || "Material anexo", tipo: material.tipo }]
+                : [];
+
+            if (listaArquivos.length === 0) return null;
+
+            return (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">
+                    Arquivos e Recursos Anexos ({listaArquivos.length})
+                  </h2>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2 text-emerald-950 font-bold text-sm">
-                    Arquivo Didático Anexo
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-200/70 text-emerald-800 uppercase tracking-wider">
-                      Disponível
-                    </span>
-                  </div>
-                  <p className="text-xs text-emerald-800 mt-0.5 font-medium">
-                    {material.arquivoNome || "Material completo para estudo e consulta"}
-                  </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {listaArquivos.map((arq, idx) => {
+                    const isImg =
+                      arq.tipo === "imagem" ||
+                      /\.(png|jpe?g|webp|gif|svg)$/i.test(arq.nome || "");
+                    const isPdf = arq.tipo === "pdf" || /\.pdf$/i.test(arq.nome || "");
+                    const isAudio =
+                      arq.tipo === "audio" ||
+                      /\.(mp3|wav|ogg|m4a|aac)$/i.test(arq.nome || "");
+                    const isVideo =
+                      arq.tipo === "video" ||
+                      /\.(mp4|webm|mov|avi)$/i.test(arq.nome || "");
+
+                    return (
+                      <div
+                        key={arq.url + idx}
+                        className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50/80 via-teal-50/40 to-emerald-50/80 border border-emerald-200/80 flex items-center justify-between gap-3 shadow-2xs hover:border-emerald-300 transition-all"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          {isImg ? (
+                            <a
+                              href={arq.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="shrink-0"
+                              title="Clique para ampliar imagem"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={arq.url}
+                                alt={arq.nome}
+                                className="h-12 w-12 rounded-xl object-cover border border-emerald-200 hover:scale-105 transition-transform"
+                              />
+                            </a>
+                          ) : (
+                            <div
+                              className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 ${
+                                isPdf
+                                  ? "bg-rose-100 text-rose-700"
+                                  : isAudio
+                                  ? "bg-amber-100 text-amber-700"
+                                  : isVideo
+                                  ? "bg-indigo-100 text-indigo-700"
+                                  : "bg-emerald-100 text-emerald-700"
+                              }`}
+                            >
+                              {isPdf ? (
+                                <FileText className="h-6 w-6" />
+                              ) : isAudio ? (
+                                <Music className="h-6 w-6" />
+                              ) : isVideo ? (
+                                <Film className="h-6 w-6" />
+                              ) : (
+                                <Paperclip className="h-6 w-6" />
+                              )}
+                            </div>
+                          )}
+
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-emerald-950 truncate" title={arq.nome}>
+                              {arq.nome || "Arquivo didático anexo"}
+                            </p>
+                            <div className="flex items-center gap-2 text-[11px] text-emerald-800 font-medium mt-0.5">
+                              {arq.tamanho && arq.tamanho > 0 ? (
+                                <span>
+                                  {arq.tamanho < 1024 * 1024
+                                    ? `${(arq.tamanho / 1024).toFixed(1)} KB`
+                                    : `${(arq.tamanho / (1024 * 1024)).toFixed(1)} MB`}
+                                </span>
+                              ) : (
+                                <span>Recurso pronto para consulta</span>
+                              )}
+                              <a
+                                href={arq.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:underline text-emerald-700 font-bold flex items-center gap-0.5"
+                              >
+                                Visualizar <ExternalLink className="h-2.5 w-2.5" />
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+
+                        <a
+                          href={arq.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          download
+                          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-2xs transition-all shrink-0"
+                          title="Baixar arquivo"
+                        >
+                          <Download className="h-4 w-4" />
+                          <span className="hidden sm:inline">Baixar</span>
+                        </a>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-
-              <a
-                href={material.arquivoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                download
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-2xs transition-all shrink-0"
-              >
-                <span>Baixar / Visualizar Arquivo</span>
-                <Download className="h-3.5 w-3.5" />
-              </a>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Text Content */}
           {material.conteudoTexto ? (

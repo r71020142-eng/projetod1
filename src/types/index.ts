@@ -368,6 +368,15 @@ export type NivelMaterial = "todos" | "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 export type StatusMaterial = "rascunho" | "agendado" | "publicado" | "arquivado";
 export type DestinoTipo = "geral" | "turma" | "aluno";
 
+export interface MaterialArquivo {
+  id?: string;
+  url: string;
+  nome: string;
+  tipo?: string; // "imagem" | "pdf" | "audio" | "video" | "documento" | string
+  tamanho?: number;
+  criadoEm?: string;
+}
+
 export interface Material {
   id: string;
   titulo: string;
@@ -388,8 +397,9 @@ export interface Material {
   observacoesInternas?: string;
   moduloId?: string; // Vínculo pedagógico opcional (Etapa 7)
   moduleId?: string; // Alias
-  arquivoUrl?: string; // Reservado para futura conexão com storage
+  arquivoUrl?: string; // Reservado para futura conexão com storage / retrocompatibilidade
   arquivoNome?: string;
+  arquivos?: MaterialArquivo[]; // Suporte a múltiplos anexos (documentos, imagens, etc.)
 }
 
 export type TipoAtividade = "texto" | "link" | "multipla_escolha" | "audio" | "video" | "arquivo";
